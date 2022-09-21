@@ -1,0 +1,13 @@
+$schema: https://raw.githubusercontent.com/remal-github-actions/sync-with-template/main/config.schema.json
+includes:
+- '.github/**'
+- '.mergify/*'
+- '.gitattributes'
+- '.gitignore'
+- '.editorconfig'
+- 'LICENSE'
+- 'checkstyle.xml'
+- 'lombok.config'
+- '.eslint*'
+- '.prettier*'
+- '.yarn*'

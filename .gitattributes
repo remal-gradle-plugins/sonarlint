@@ -1,0 +1,49 @@
+# Common:
+* text=auto eol=lf
+
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+*.7z binary
+*.bz2 binary
+*.cur binary
+*.eot binary
+*.ez binary
+*.fla binary
+*.flv binary
+*.gif binary
+*.gz binary
+*.jar binary
+*.ico binary
+*.jpeg binary
+*.jpg binary
+*.mov binary
+*.mp3 binary
+*.mp4 binary
+*.pdf binary
+*.png binary
+*.pyc binary
+*.swf binary
+*.swp binary
+*.ttf binary
+*.wav binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.zip binary
+
+
+# NodeJS:
+/.yarn/releases/** binary
+/.yarn/plugins/** binary
+
+
+# Chocolatey:
+*.nuspec text eol=crlf
+*.ps1 text eol=crlf
+*.psm1 text eol=crlf
+*.nupkg binary
+
+
+# IntelliJ IDEA:
+/.idea/* text eol=auto

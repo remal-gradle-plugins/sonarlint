@@ -1,0 +1,32 @@
+name: Automatic release
+
+on:
+  schedule:
+  - cron: '23 17 * * 2'
+  workflow_dispatch: { }
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  automatic-release:
+    name: Automatic release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency: automatic-release
+    steps:
+    - name: Automatic release
+      uses: remal-github-actions/automatic-release@v1
+      with:
+        githubToken: ${{secrets.PUSH_BACK_TOKEN}}
+        versionIncrementMode: 'patch'
+        versionTagPrefix: 'v'
+        expectedFilesToChange: |
+          gradle-plugin-api-dependencies.txt
+        allowedCommitPrefixes: |
+          [push-back]
+          [ci]
+        allowedPullRequestLabels: |
+          dependencies
+          sync-with-template

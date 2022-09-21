@@ -1,0 +1,9 @@
+# Configuration file for Pull Request Label Enforcer GitHub App: https://github.com/marketplace/pr-label-enforcer
+
+version: '1'
+invalidStatus: "pending"
+labelRule:
+  not:
+  - wip
+  - needs-more-approvals
+  - changes-requested

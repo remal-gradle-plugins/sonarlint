@@ -1,0 +1,64 @@
+# Remal Gradle plugins:
+/gradle-ci.properties
+
+
+# Logs:
+log/
+!**/src/**/log/
+*.log
+
+
+# Java:
+hs_err_pid*
+java_pid*.hprof
+
+
+# Maven:
+target/
+!**/src/**/target/
+
+
+# Gradle:
+build/
+!**/src/**/build/
+build-cache/
+!**/src/**/build-cache/
+.gradle/
+
+
+# NodeJS:
+node_modules/
+
+
+# IntelliJ:
+/layout.json
+/.idea/*
+!/.idea/.editorconfig
+!/.idea/groovyc.xml
+!/.idea/jsonSchemas.xml
+!/.idea/inspectionProfiles/
+!/.idea/inspectionProfiles/*
+!/.idea/jsLinters/
+!/.idea/jsLinters/*
+!/.idea/runConfigurations/
+!/.idea/runConfigurations/*
+!/.idea/scopes/
+!/.idea/scopes/*
+!/.idea/copyright/
+!/.idea/copyright/*
+!/.idea/dictionaries/
+/.idea/dictionaries/*
+!/.idea/dictionaries/.gitkeep
+*.iml
+*.iws
+*.*___jb_tmp___
+
+
+# Eclipse:
+.classpath
+.project
+.settings/
+
+
+# Mac:
+.DS_Store

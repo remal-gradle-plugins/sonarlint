@@ -1,0 +1,34 @@
+# Configuration file for Trafico – Bot GitHub App: https://github.com/marketplace/trafico-pull-request-labeler
+
+# Add WIP labels for PRs that are set to be work-in-progress, no other label will be added.
+addWipLabel: true
+
+# Configuration for labels, set ignore to true to skip adding label
+labels:
+  wip:
+    name: "wip"
+    color: "#FBCA04"
+    description: "Still work-in-progress, please don't review and don't merge"
+    ignore: false
+  unreviewed:
+    name: "ready-for-review"
+    color: "#334796"
+    description: "Pull Request is not reviewed yet"
+    ignore: false
+  approved:
+    name: "approved"
+    color: "#0E8A16"
+    description: "Pull Request has been approved and can be merged"
+    ignore: false
+  needsMoreApprovals:
+    name: "needs-more-approvals"
+    color: "#96C823"
+    description: "Pull Request needs more approvals"
+    ignore: false
+  changesRequested:
+    name: "changes-requested"
+    color: "#AA2626"
+    description: "Pull Request needs changes before it can be reviewed again"
+    ignore: false
+  merged:
+    ignore: true

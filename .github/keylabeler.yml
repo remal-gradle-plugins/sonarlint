@@ -1,0 +1,13 @@
+# Configuration file for KeywordLabeler GitHub App: https://github.com/marketplace/keywordlabeler
+
+# Determines if we search the title:
+matchTitle: true
+
+# Determines if we search the body:
+matchBody: true
+
+# Determines if label matching is case sensitive:
+caseSensitive: false
+
+# Explicit keyword mappings to labels. Form of match:label.
+labelMappings: {}

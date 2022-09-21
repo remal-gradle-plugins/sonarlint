@@ -1,0 +1,4 @@
+# This file is generated automatically by `collectAllGradlePluginApiDependencies` Gradle task.
+# Do not modify it yourself unless you know what you are doing.
+
+

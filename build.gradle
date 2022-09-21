@@ -1,0 +1,38 @@
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+buildscript {
+    dependencies {
+        classpath 'name.remal.gradle-plugins.toolkit:build-logic:0.28.0'
+    }
+    repositories {
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+allprojects {
+    group = "name.remal.gradle-plugins.${rootProject.name}"
+    version = '2-SNAPSHOT'
+
+    apply plugin: 'name.remal.toolkit.build-logic'
+}
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+apply plugin: 'java-gradle-plugin'
+
+dependencies {
+}
+
+gradlePlugin {
+    plugins {
+        'name.remal.template-plugin' {
+            id = 'name.remal.template-plugin'
+            implementationClass = 'name.remal.gradleplugins.template.TemplatePlugin'
+            displayName = 'Template plugin'
+            description = property('repository-description')
+        }
+    }
+}

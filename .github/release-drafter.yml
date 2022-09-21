@@ -1,0 +1,29 @@
+# Configuration file for Release Drafter GitHub App: https://probot.github.io/apps/release-drafter
+
+tag-template: v$NEXT_MINOR_VERSION
+
+name-template: $NEXT_MINOR_VERSION
+
+template: |
+  # What's Changed
+
+  $CHANGES
+
+categories:
+- title: 🚀 Features & Enhancements
+  labels:
+  - feature
+  - enhancement
+- title: 🐛 Bug Fixes
+  labels:
+  - bug
+- title: 📖 Documentation
+  labels:
+  - docs
+- title: 🧹 Housekeeping
+  labels:
+  - housekeeping
+  - test-improvement
+- title: 📦 Dependency updates
+  labels:
+  - dependencies
