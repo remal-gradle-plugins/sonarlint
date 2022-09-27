@@ -1,0 +1,7 @@
+apply plugin: 'java-library'
+
+dependencies {
+    relocateClasses 'com.google.code.gson:gson'
+}
+
+configurations.excludeFromClassesRelocation.exclude(group: 'com.google.code.gson', module: 'gson')

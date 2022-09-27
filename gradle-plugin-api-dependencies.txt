@@ -1,4 +1,22 @@
 # This file is generated automatically by `collectAllGradlePluginApiDependencies` Gradle task.
 # Do not modify it yourself unless you know what you are doing.
 
-
+Node.js:lts:16.17.1
+com.google.code.findbugs:jsr305:3.0.2
+com.google.code.gson:gson:2.9.1
+commons-io:commons-io:2.11.0
+org.apache.commons:commons-lang3:3.12.0
+org.ow2.asm:asm:9.3
+org.sonarsource.analyzer-commons:sonar-analyzer-commons:1.25.0.1003
+org.sonarsource.analyzer-commons:sonar-analyzer-recognizers:1.25.0.1003
+org.sonarsource.analyzer-commons:sonar-xml-parsing:1.25.0.1003
+org.sonarsource.html:sonar-html-plugin:3.6.0.3106:@sonar-plugin
+org.sonarsource.java:sonar-java-plugin:7.12.0.29739:@sonar-plugin
+org.sonarsource.javascript:sonar-javascript-plugin:9.3.0.18033:@sonar-plugin
+org.sonarsource.kotlin:sonar-kotlin-plugin:2.10.0.1456
+org.sonarsource.slang:sonar-ruby-plugin:1.10.0.3710
+org.sonarsource.slang:sonar-scala-plugin:1.10.0.3710
+org.sonarsource.sonarlint.core:sonarlint-core:8.8.1.54103
+org.sonarsource.sslr:sslr-core:1.24.0.633
+org.sonarsource.xml:sonar-xml-plugin:2.5.0.3376:@sonar-plugin
+xml-apis:xml-apis:1.4.01

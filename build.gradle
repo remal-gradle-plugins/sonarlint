@@ -2,7 +2,10 @@
 
 buildscript {
     dependencies {
-        classpath 'name.remal.gradle-plugins.toolkit:build-logic:0.28.0'
+        classpath 'name.remal.gradle-plugins.sonarlint:sonarlint:2-SNAPSHOT'
+        classpath('name.remal.gradle-plugins.toolkit:build-logic:0-SNAPSHOT') {
+            exclude group: 'name.remal.gradle-plugins.sonarlint'
+        }
     }
     repositories {
         mavenCentral()
@@ -15,24 +18,216 @@ buildscript {
 allprojects {
     group = "name.remal.gradle-plugins.${rootProject.name}"
     version = '2-SNAPSHOT'
+}
 
-    apply plugin: 'name.remal.toolkit.build-logic'
+apply plugin: 'name.remal.toolkit.build-logic'
+
+allprojects {
+    pluginManager.withPlugin('java') {
+        dependencies {
+            optional 'name.remal.gradle-api:gradle-api'
+
+            relocateClasses 'com.google.guava:guava'
+        }
+
+        if (project.path != ':shared') {
+            dependencies {
+                relocateClasses project(':shared')
+            }
+        }
+    }
+}
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+if (rootProject.buildscript.configurations.classpath.allDependencies.any { it.group == 'name.remal.gradle-plugins.sonarlint' }) {
+    apply plugin: 'name.remal.sonarlint'
+}
+
+pluginManager.withPlugin('name.remal.sonarlint') {
+    sonarLint {
+        rules {
+            disable(
+                'java:S110',  // Inheritance tree of classes should not be too deep
+                'java:S1134', // Track uses of "FIXME" tags
+                'java:S1171', // Only static class initializers should be used
+                'java:S1199', // Nested code blocks should not be used
+                'java:S1214', // Constants should not be defined in interfaces
+                'java:S1602', // Lambdas containing only one statement should not nest this statement in a block
+                'java:S1610', // Abstract classes without fields should be converted to interfaces
+                'java:S2259', // Null pointers should not be dereferenced
+            )
+        }
+        fork {
+            enabled = false
+        }
+    }
 }
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 apply plugin: 'java-gradle-plugin'
+apply plugin: 'name.remal.generate-sources'
 
 dependencies {
+    relocateClasses 'name.remal.gradle-plugins.toolkit:classpath'
 }
 
 gradlePlugin {
     plugins {
-        'name.remal.template-plugin' {
-            id = 'name.remal.template-plugin'
-            implementationClass = 'name.remal.gradleplugins.template.TemplatePlugin'
-            displayName = 'Template plugin'
+        'name.remal.sonarlint' {
+            id = 'name.remal.sonarlint'
+            implementationClass = 'name.remal.gradleplugins.sonarlint.SonarLintPlugin'
+            displayName = 'SonarLint'
             description = property('repository-description')
+        }
+    }
+}
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+tasks.named('generateJava') {
+    classFile('name.remal.gradleplugins.sonarlint', 'BuildInfo') {
+        it.writePackage()
+        it.println("")
+        it.writeBlock("interface ${it.simpleName}") {
+            it.println("String PLUGIN_GROUP_ID = \"${it.escapeJava(project.group.toString())}\";")
+            it.println("String PLUGIN_ARTIFACT_ID = \"${it.escapeJava(project.name.toString())}\";")
+            it.println("String PLUGIN_VERSION = \"${it.escapeJava(project.version.toString())}\";")
+        }
+    }
+}
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+project.nonJavaApiDependencies.add(project.provider { "Node.js:lts:${project.getLtsNodeJsVersions()[0]}" })
+
+tasks.named('generateJava') {
+    classFile('name.remal.gradleplugins.sonarlint', 'NodeJsVersions') {
+        it.writePackage()
+        it.println("")
+        it.writeBlock("interface ${it.simpleName}") {
+            it.println("String LATEST_NODEJS_LTS_VERSION = \"${it.escapeJava(project.getLtsNodeJsVersions()[0])}\";")
+        }
+    }
+}
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+configurations.create('sonarCoreArtifacts') {
+    project.configurations.indirectApi.extendsFrom(it)
+}
+
+configurations.create('sonarPluginArtifacts') {
+    project.configurations.indirectApi.extendsFrom(it)
+}
+
+dependencies {
+    // Core:
+    sonarCoreArtifacts 'org.sonarsource.sonarlint.core:sonarlint-core:8.8.1.54103'
+
+
+    // Plugins:
+    sonarPluginArtifacts 'org.sonarsource.java:sonar-java-plugin:7.12.0.29739'
+    sonarPluginArtifacts 'org.sonarsource.javascript:sonar-javascript-plugin:9.3.0.18033'
+    sonarPluginArtifacts 'org.sonarsource.kotlin:sonar-kotlin-plugin:2.10.0.1456'
+    sonarPluginArtifacts 'org.sonarsource.slang:sonar-ruby-plugin:1.10.0.3710'
+    sonarPluginArtifacts 'org.sonarsource.slang:sonar-scala-plugin:1.10.0.3710'
+    sonarPluginArtifacts 'org.sonarsource.html:sonar-html-plugin:3.6.0.3106'
+    sonarPluginArtifacts 'org.sonarsource.xml:sonar-xml-plugin:2.5.0.3376'
+
+    // Plugins for languages that highly unlikely are built with Gradle:
+    //sonarPluginArtifacts 'org.sonarsource.php:sonar-php-plugin:3.25.0.9077'
+    //sonarPluginArtifacts 'org.sonarsource.python:sonar-python-plugin:3.17.0.10029'
+    //sonarPluginArtifacts 'org.sonarsource.sonarlint.omnisharp:sonarlint-omnisharp-plugin:1.4.0.50839'
+
+    // Known SonarQube plugins without SonarLint support:
+    //sonarPluginArtifacts 'org.sonarsource.css:sonar-css-plugin:1.4.2.2002'
+    //sonarPluginArtifacts 'org.sonarsource.dotnet:sonar-csharp-plugin:8.45.0.54064'
+    //sonarPluginArtifacts 'org.sonarsource.dotnet:sonar-vbnet-plugin:8.45.0.54064'
+    //sonarPluginArtifacts 'org.sonarsource.flex:sonar-flex-plugin:2.7.0.2865'
+    //sonarPluginArtifacts 'org.sonarsource.groovy:sonar-groovy-plugin:1.4'
+    //sonarPluginArtifacts 'org.sonarsource.iac:sonar-iac-plugin:1.9.2.2279'
+    //sonarPluginArtifacts 'org.sonarsource.slang:sonar-go-plugin:1.10.0.3710'
+    //sonarPluginArtifacts 'org.sonarsource.text:sonar-text-plugin:1.1.0.282'
+    //sonarPluginArtifacts 'org.sonarsource.typescript:sonar-typescript-plugin:2.1.0.4359'
+    //sonarPluginArtifacts 'com.github.sbaudoin:sonar-shellcheck-plugin:2.5.0'
+    //sonarPluginArtifacts 'com.github.sbaudoin:sonar-yaml-plugin:1.7.0' // broken (depends on Logback)
+    //sonarPluginArtifacts 'com.github.sbaudoin:sonar-ansible-plugin:2.5.1'
+}
+
+tasks.named('generateJava') {
+    classFile('name.remal.gradleplugins.sonarlint', 'SonarDependencyType') {
+        it.writePackage()
+        it.println("")
+        it.writeBlock("enum ${it.simpleName}") {
+            it.println("CORE,")
+            it.println("PLUGIN,")
+            it.println(";")
+        }
+    }
+    classFile('name.remal.gradleplugins.sonarlint', 'SonarDependency') {
+        it.writePackage()
+        it.println("")
+        it.writeImport("lombok.Builder")
+        it.writeImport("lombok.Value")
+        it.println("")
+        it.println("@Value")
+        it.println("@Builder")
+        it.writeBlock("class ${it.simpleName}") {
+            it.println("SonarDependencyType type;")
+            it.println("String group;")
+            it.println("String name;")
+            it.println("String version;")
+        }
+    }
+    classFile('name.remal.gradleplugins.sonarlint', 'SonarDependencies') {
+        it.writePackage()
+        it.println("")
+        it.writeStaticImport("lombok.AccessLevel", "PRIVATE")
+        it.println("")
+        it.writeImport("com.google.common.collect.ImmutableMap")
+        it.writeImport("java.util.Map")
+        it.writeImport("lombok.NoArgsConstructor")
+        it.writeImport("lombok.val")
+        it.println("")
+        it.println("@NoArgsConstructor(access = PRIVATE)")
+        it.writeBlock("abstract class ${it.simpleName}") {
+            it.println("")
+            it.println("private static final Map<String, SonarDependency> MAPPING = ImmutableMap.<String, SonarDependency>builder()")
+            configurations.sonarCoreArtifacts.dependencies.forEach { Dependency dep ->
+                it.println("    .put(\"${it.escapeJava(dep.name)}\", SonarDependency.builder()")
+                it.println("        .type(SonarDependencyType.CORE)")
+                it.println("        .group(\"${it.escapeJava(dep.group)}\")")
+                it.println("        .name(\"${it.escapeJava(dep.name)}\")")
+                it.println("        .version(\"${it.escapeJava(dep.version)}\")")
+                it.println("        .build()")
+                it.println("    )")
+            }
+            configurations.sonarPluginArtifacts.dependencies.forEach { Dependency dep ->
+                it.println("    .put(\"${it.escapeJava(dep.name)}\", SonarDependency.builder()")
+                it.println("        .type(SonarDependencyType.PLUGIN)")
+                it.println("        .group(\"${it.escapeJava(dep.group)}\")")
+                it.println("        .name(\"${it.escapeJava(dep.name)}\")")
+                it.println("        .version(\"${it.escapeJava(dep.version)}\")")
+                it.println("        .build()")
+                it.println("    )")
+            }
+            it.println("    .build();")
+
+            it.println("")
+            it.writeBlock("public static Map<String, SonarDependency> getSonarDependencies()") {
+                it.println("return MAPPING;")
+            }
+
+            it.println("")
+            it.writeBlock("public static SonarDependency getSonarDependency(String id)") {
+                it.println("val dependency = getSonarDependencies().get(id);")
+                it.writeBlock("if (dependency == null)") {
+                    it.println("throw new IllegalStateException(\"Sonar dependency is not registered: \" + id);")
+                }
+                it.println("return dependency;")
+            }
         }
     }
 }

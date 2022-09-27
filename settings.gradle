@@ -1,0 +1,7 @@
+rootProject.name = 'sonarlint'
+
+include(
+    ':shared',
+    ':runner:cross-compile--sonarlint-common',
+    ':runner',
+)
