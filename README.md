@@ -1,4 +1,4 @@
-**Min supported Gradle version: <!--property:gradle-api.min-version-->6.0<!--/property-->**
+**Min supported Gradle version: <!--property:gradle-api.min-version-->6.7<!--/property-->**
 
 # `name.remal.sonarlint` plugin
 
