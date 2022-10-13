@@ -41,6 +41,8 @@ jobs:
     - name: Cache Gradle
       id: cache-gradle
       uses: remal-github-actions/cache-gradle@main
+      with:
+        build-cache-enabled: 'false'
     - name: Setup Java 11
       if: ${{steps.cache-gradle.outputs.gradle-wrapper-cache-hit != 'true' || steps.cache-gradle.outputs.gradle-caches-cache-hit != 'true'}}
       uses: actions/setup-java@v3
@@ -116,17 +118,17 @@ jobs:
       run: |
         if [ -f "build/publish-gradle-plugin.flag" ]; then
           echo "isGradlePlugin = true"
-          echo '::set-output name=isGradlePlugin::true'
+          echo 'isGradlePlugin=true' >> $GITHUB_OUTPUT
         else
           echo "isGradlePlugin = false"
-          echo '::set-output name=isGradlePlugin::false'
+          echo 'isGradlePlugin=false' >> $GITHUB_OUTPUT
         fi
         if [ -f "build/publish-maven-central.flag" ]; then
           echo "isMavenCentral = true"
-          echo '::set-output name=isMavenCentral::true'
+          echo 'isMavenCentral=true' >> $GITHUB_OUTPUT
         else
           echo "isMavenCentral = false"
-          echo '::set-output name=isMavenCentral::false'
+          echo 'isMavenCentral=false' >> $GITHUB_OUTPUT
         fi
     - name: Archive workspace
       run: |
@@ -272,7 +274,7 @@ jobs:
     steps:
     - name: Parse Git tag
       id: parse-git-tag
-      uses: actions/github-script@c713e510dbd7d213d92d41b7a7805a986f4c5c66 # tag=v6
+      uses: actions/github-script@100527700e8b29ca817ac0e0dfbfc5e8ff38edda # tag=v6
       with:
         script: |
           const tagName = context.payload.ref.replace(/^refs\/tags\//, '')
