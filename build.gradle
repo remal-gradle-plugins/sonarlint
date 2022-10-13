@@ -51,6 +51,7 @@ pluginManager.withPlugin('name.remal.sonarlint') {
                 'java:S110',  // Inheritance tree of classes should not be too deep
                 'java:S1134', // Track uses of "FIXME" tags
                 'java:S1171', // Only static class initializers should be used
+                'java:S1192', // String literals should not be duplicated
                 'java:S1199', // Nested code blocks should not be used
                 'java:S1214', // Constants should not be defined in interfaces
                 'java:S1602', // Lambdas containing only one statement should not nest this statement in a block
