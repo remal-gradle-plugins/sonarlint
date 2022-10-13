@@ -134,7 +134,7 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
 
     @Override
     protected CodeQualityExtension createExtension() {
-        val extension = project.getExtensions().create("sonarLint", SonarLintExtension.class);
+        val extension = project.getExtensions().create("sonarLint", SonarLintExtension.class, project);
         this.extension = extension;
 
         extension.setToolVersion(getSonarDependency("sonarlint-core").getVersion());
