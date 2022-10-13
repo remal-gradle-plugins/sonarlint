@@ -4,9 +4,9 @@
 Node.js:lts:16.18.0
 org.sonarsource.html:sonar-html-plugin:3.6.0.3106:@sonar-plugin
 org.sonarsource.java:sonar-java-plugin:7.12.1.29810:@sonar-plugin
-org.sonarsource.javascript:sonar-javascript-plugin:9.3.0.18033:@sonar-plugin
+org.sonarsource.javascript:sonar-javascript-plugin:9.9.0.19492:@sonar-plugin
 org.sonarsource.kotlin:sonar-kotlin-plugin:2.10.0.1456
-org.sonarsource.slang:sonar-ruby-plugin:1.10.0.3710
+org.sonarsource.slang:sonar-ruby-plugin:1.11.0.3905
 org.sonarsource.slang:sonar-scala-plugin:1.11.0.3905
 org.sonarsource.sonarlint.core:sonarlint-core:8.9.0.54830
 org.sonarsource.xml:sonar-xml-plugin:2.6.1.3686:@sonar-plugin
