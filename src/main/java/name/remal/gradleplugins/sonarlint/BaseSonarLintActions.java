@@ -342,8 +342,8 @@ abstract class BaseSonarLintActions {
         if (moduleNames.contains("LineLength")) {
             disabledRules.add("java:S103");
         }
-        if (moduleNames.contains("???")) { // FIXME
-            disabledRules.add("java:S105"); // Tabulation characters should not be used
+        if (moduleNames.contains("FileTabCharacter")) {
+            disabledRules.add("java:S105");
         }
         if (moduleNames.contains("MemberName")) {
             disabledRules.add("java:S116");
@@ -360,11 +360,11 @@ abstract class BaseSonarLintActions {
         if (moduleNames.contains("PackageName")) {
             disabledRules.add("java:S120");
         }
-        if (moduleNames.contains("???")) { // FIXME
-            disabledRules.add("java:S121"); // Control structures should use curly braces
+        if (moduleNames.contains("NeedBraces")) {
+            disabledRules.add("java:S121");
         }
-        if (moduleNames.contains("???")) { // FIXME
-            disabledRules.add("java:S122"); // Statements should be on separate lines
+        if (moduleNames.contains("OneStatementPerLine")) {
+            disabledRules.add("java:S122");
         }
 
         return unmodifiableCollection(disabledRules);

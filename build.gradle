@@ -2,8 +2,8 @@
 
 buildscript {
     dependencies {
-        classpath 'name.remal.gradle-plugins.sonarlint:sonarlint:2-SNAPSHOT'
-        classpath('name.remal.gradle-plugins.toolkit:build-logic:0-SNAPSHOT') {
+        //classpath 'name.remal.gradle-plugins.sonarlint:sonarlint:2-SNAPSHOT'
+        classpath('name.remal.gradle-plugins.toolkit:build-logic:0.30.0') {
             exclude group: 'name.remal.gradle-plugins.sonarlint'
         }
     }
@@ -87,6 +87,9 @@ gradlePlugin {
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 tasks.named('generateJava') {
+    inputs.property('project.group', project.provider { project.group })
+    inputs.property('project.name', project.provider { project.name })
+    inputs.property('project.version', project.provider { project.version })
     classFile('name.remal.gradleplugins.sonarlint', 'BuildInfo') {
         it.writePackage()
         it.println("")
@@ -100,27 +103,36 @@ tasks.named('generateJava') {
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-project.nonJavaApiDependencies.add(project.provider { "Node.js:lts:${project.getLtsNodeJsVersions()[0]}" })
+Provider<String> ltsNodeJsVersion = project.provider { "Node.js:lts:${project.getLtsNodeJsVersions()[0]}" }
+project.nonJavaApiDependencies.add(ltsNodeJsVersion)
 
 tasks.named('generateJava') {
+    inputs.property('ltsNodeJsVersion', ltsNodeJsVersion)
     classFile('name.remal.gradleplugins.sonarlint', 'NodeJsVersions') {
         it.writePackage()
         it.println("")
         it.writeBlock("interface ${it.simpleName}") {
-            it.println("String LATEST_NODEJS_LTS_VERSION = \"${it.escapeJava(project.getLtsNodeJsVersions()[0])}\";")
+            it.println("String LATEST_NODEJS_LTS_VERSION = \"${it.escapeJava(ltsNodeJsVersion.get())}\";")
         }
     }
 }
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-configurations.create('sonarCoreArtifacts') {
-    project.configurations.indirectApi.extendsFrom(it)
+Closure<Configuration> createSonarArtifactsConfiguration = { String name ->
+    return project.configurations.create(name) { Configuration conf ->
+        conf.transitive = false
+        conf.dependencies.all { Dependency dep ->
+            if (dep instanceof ModuleDependency) {
+                dep.transitive = false
+            }
+        }
+        project.configurations.indirectApi.extendsFrom(conf)
+    }
 }
 
-configurations.create('sonarPluginArtifacts') {
-    project.configurations.indirectApi.extendsFrom(it)
-}
+createSonarArtifactsConfiguration('sonarCoreArtifacts')
+createSonarArtifactsConfiguration('sonarPluginArtifacts')
 
 dependencies {
     // Core:
@@ -156,7 +168,9 @@ dependencies {
     //sonarPluginArtifacts 'com.github.sbaudoin:sonar-ansible-plugin:2.5.1'
 }
 
-tasks.named('generateJava') {
+tasks.named('generateJava') { Task task ->
+    inputs.files(configurations.sonarCoreArtifacts).withPropertyName('sonarCoreArtifacts').optional()
+    inputs.files(configurations.sonarPluginArtifacts).withPropertyName('sonarPluginArtifacts').optional()
     classFile('name.remal.gradleplugins.sonarlint', 'SonarDependencyType') {
         it.writePackage()
         it.println("")
