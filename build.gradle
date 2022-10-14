@@ -104,8 +104,8 @@ tasks.named('generateJava') {
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-Provider<String> ltsNodeJsVersion = project.provider { "Node.js:lts:${project.getLtsNodeJsVersions()[0]}" }
-project.nonJavaApiDependencies.add(ltsNodeJsVersion)
+Provider<String> ltsNodeJsVersion = project.provider { project.getLtsNodeJsVersions()[0] }
+project.nonJavaApiDependencies.add(project.provider { 'Node.js:lts:' + ltsNodeJsVersion.get() })
 
 tasks.named('generateJava') {
     inputs.property('ltsNodeJsVersion', ltsNodeJsVersion)
@@ -146,13 +146,15 @@ dependencies {
     sonarPluginArtifacts 'org.sonarsource.kotlin:sonar-kotlin-plugin:2.10.0.1456'
     sonarPluginArtifacts 'org.sonarsource.slang:sonar-ruby-plugin:1.11.0.3905'
     sonarPluginArtifacts 'org.sonarsource.slang:sonar-scala-plugin:1.11.0.3905'
-    sonarPluginArtifacts 'org.sonarsource.html:sonar-html-plugin:3.6.0.3106'
     sonarPluginArtifacts 'org.sonarsource.xml:sonar-xml-plugin:2.6.1.3686'
 
     // Plugins for languages that highly unlikely are built with Gradle:
     //sonarPluginArtifacts 'org.sonarsource.php:sonar-php-plugin:3.25.0.9077'
     //sonarPluginArtifacts 'org.sonarsource.python:sonar-python-plugin:3.17.0.10029'
     //sonarPluginArtifacts 'org.sonarsource.sonarlint.omnisharp:sonarlint-omnisharp-plugin:1.4.0.50839'
+
+    // Broken plugins:
+    //sonarPluginArtifacts 'org.sonarsource.html:sonar-html-plugin:3.6.0.3106' // `org.jboss.el:jboss-el:1.0_02.CR4` dependency can't be found in Maven Central
 
     // Known SonarQube plugins without SonarLint support:
     //sonarPluginArtifacts 'org.sonarsource.css:sonar-css-plugin:1.4.2.2002'
