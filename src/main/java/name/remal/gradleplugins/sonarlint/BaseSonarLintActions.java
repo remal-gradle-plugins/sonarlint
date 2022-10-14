@@ -81,7 +81,7 @@ abstract class BaseSonarLintActions {
 
         task.getIsTest().convention(false);
 
-        val javaToolchainService = getService(project, JavaToolchainService.class);
+        val javaToolchainService = getExtension(project, JavaToolchainService.class);
         val currentJavaLauncherProvider = javaToolchainService.launcherFor(spec ->
             spec.getLanguageVersion().set(JavaLanguageVersion.of(JavaVersion.current().getMajorVersion()))
         );

@@ -26,6 +26,7 @@ class SonarLintPluginFunctionalTest {
             build.applyPlugin("java");
             build.append("repositories { mavenCentral() }");
             build.appendBuildDirMavenRepositories();
+            build.append("sonarLint { ignoreFailures = true }");
             build.registerDefaultTask("sonarlintMain");
         });
     }
@@ -36,7 +37,7 @@ class SonarLintPluginFunctionalTest {
         return new CheckstyleXmlIssuesParser().parseIssuesFrom(reportFile);
     }
 
-    private List<Issue> parseSonarLintIssues(String relativePath) {
+    private List<Issue> parseSonarLintIssuesOf(String relativePath) {
         val projectPath = normalizePath(project.getProjectDir().toPath());
         val absolutePath = normalizePath(projectPath.resolve(relativePath));
         val absoluteFile = absolutePath.toFile();
@@ -68,9 +69,9 @@ class SonarLintPluginFunctionalTest {
             "",
             "}",
             }));
-        project.assertBuildFails();
+        project.assertBuildSuccessfully();
 
-        val issues = parseSonarLintIssues(sourceFileRelativePath);
+        val issues = parseSonarLintIssuesOf(sourceFileRelativePath);
         assertThat(issues)
             .extracting(Issue::getRule)
             .contains("java:S1171");
