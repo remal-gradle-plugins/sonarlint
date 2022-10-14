@@ -16,6 +16,7 @@ import static name.remal.gradleplugins.sonarlint.CanonizationUtils.canonizeRules
 import static name.remal.gradleplugins.sonarlint.SonarDependencies.getSonarDependencies;
 import static name.remal.gradleplugins.sonarlint.SonarDependencies.getSonarDependency;
 import static name.remal.gradleplugins.toolkit.ExtensionContainerUtils.findExtension;
+import static name.remal.gradleplugins.toolkit.ExtensionContainerUtils.getExtension;
 import static name.remal.gradleplugins.toolkit.PredicateUtils.not;
 import static name.remal.gradleplugins.toolkit.PropertiesConventionUtils.setPropertyConvention;
 import static name.remal.gradleplugins.toolkit.SourceSetUtils.whenTestSourceSetRegistered;
@@ -44,6 +45,7 @@ import org.gradle.api.plugins.quality.CheckstyleExtension;
 import org.gradle.api.plugins.quality.CodeQualityExtension;
 import org.gradle.api.plugins.quality.internal.AbstractCodeQualityPlugin;
 import org.gradle.api.tasks.SourceSet;
+import org.gradle.api.tasks.SourceSetContainer;
 import org.gradle.api.tasks.VerificationTask;
 import org.gradle.api.tasks.compile.JavaCompile;
 import org.jetbrains.annotations.Unmodifiable;
@@ -199,7 +201,7 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
         ));
 
         val testSourceSets = getTestSourceSets();
-        val mainSourceSets = getJavaPluginExtension().getSourceSets().stream()
+        val mainSourceSets = getExtension(project, SourceSetContainer.class).stream()
             .filter(not(testSourceSets::contains))
             .collect(toList());
         task.dependsOn(project.provider(() -> {
