@@ -21,7 +21,7 @@ public class SonarLintExtension extends CodeQualityExtension {
 
     private final SonarLintRulesSettings rules;
 
-    private final Map<String, Object> sonarProperties = new LinkedHashMap<>();
+    private Map<String, Object> sonarProperties = new LinkedHashMap<>();
 
     private final SonarLintForkOptions fork;
 
@@ -36,7 +36,7 @@ public class SonarLintExtension extends CodeQualityExtension {
         action.execute(rules);
     }
 
-    public void property(String key, @Nullable Object value) {
+    public void sonarProperty(String key, @Nullable Object value) {
         sonarProperties.put(key, value);
     }
 

@@ -3,8 +3,8 @@
 buildscript {
     dependencies {
         //classpath 'name.remal.gradle-plugins.sonarlint:sonarlint:2-SNAPSHOT'
-        classpath('name.remal.gradle-plugins.toolkit:build-logic:0.31.0') {
-            exclude group: 'name.remal.gradle-plugins.sonarlint'
+        classpath('name.remal.gradle-plugins.toolkit:build-logic:0.32.0') {
+            //exclude group: 'name.remal.gradle-plugins.sonarlint'
         }
     }
     repositories {
@@ -42,25 +42,25 @@ allprojects {
 
 if (rootProject.buildscript.configurations.classpath.allDependencies.any { it.group == 'name.remal.gradle-plugins.sonarlint' }) {
     apply plugin: 'name.remal.sonarlint'
-}
 
-pluginManager.withPlugin('name.remal.sonarlint') {
-    sonarLint {
-        rules {
-            disable(
-                'java:S110',  // Inheritance tree of classes should not be too deep
-                'java:S1134', // Track uses of "FIXME" tags
-                'java:S1171', // Only static class initializers should be used
-                'java:S1192', // String literals should not be duplicated
-                'java:S1199', // Nested code blocks should not be used
-                'java:S1214', // Constants should not be defined in interfaces
-                'java:S1602', // Lambdas containing only one statement should not nest this statement in a block
-                'java:S1610', // Abstract classes without fields should be converted to interfaces
-                'java:S2259', // Null pointers should not be dereferenced
-            )
-        }
-        fork {
-            enabled = false
+    pluginManager.withPlugin('name.remal.sonarlint') {
+        sonarLint {
+            rules {
+                disable(
+                    'java:S110',  // Inheritance tree of classes should not be too deep
+                    'java:S1134', // Track uses of "FIXME" tags
+                    'java:S1171', // Only static class initializers should be used
+                    'java:S1192', // String literals should not be duplicated
+                    'java:S1199', // Nested code blocks should not be used
+                    'java:S1214', // Constants should not be defined in interfaces
+                    'java:S1602', // Lambdas containing only one statement should not nest this statement in a block
+                    'java:S1610', // Abstract classes without fields should be converted to interfaces
+                    'java:S2259', // Null pointers should not be dereferenced
+                )
+            }
+            fork {
+                enabled = false
+            }
         }
     }
 }
@@ -120,10 +120,13 @@ tasks.named('generateJava') {
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+Configuration sonarArtifactsToDownloadForBuildCacheConf = project.configurations.create('sonarArtifactsToDownloadForBuildCache')
+
 Closure<Configuration> createSonarArtifactsConfiguration = { String name ->
     return project.configurations.create(name) { Configuration conf ->
         conf.transitive = false
         conf.dependencies.all { Dependency dep ->
+            sonarArtifactsToDownloadForBuildCacheConf.dependencies.add(dep.copy())
             if (dep instanceof ModuleDependency) {
                 dep.transitive = false
             }
@@ -142,11 +145,11 @@ dependencies {
 
     // Plugins:
     sonarPluginArtifacts 'org.sonarsource.java:sonar-java-plugin:7.14.0.30229'
-    sonarPluginArtifacts 'org.sonarsource.javascript:sonar-javascript-plugin:9.9.0.19492'
     sonarPluginArtifacts 'org.sonarsource.kotlin:sonar-kotlin-plugin:2.10.0.1456'
     sonarPluginArtifacts 'org.sonarsource.slang:sonar-ruby-plugin:1.11.0.3905'
     sonarPluginArtifacts 'org.sonarsource.slang:sonar-scala-plugin:1.11.0.3905'
     sonarPluginArtifacts 'org.sonarsource.xml:sonar-xml-plugin:2.6.1.3686'
+    sonarPluginArtifacts 'org.sonarsource.javascript:sonar-javascript-plugin:9.9.0.19492'
 
     // Plugins for languages that highly unlikely are built with Gradle:
     //sonarPluginArtifacts 'org.sonarsource.php:sonar-php-plugin:3.25.0.9077'
@@ -247,4 +250,39 @@ tasks.named('generateJava') { Task task ->
             }
         }
     }
+}
+
+tasks.named('processReadme') {
+    readmeFileProcessors.add(
+        { File readmeFile ->
+            String content = readmeFile.getText('UTF-8')
+
+            content = content.replaceAll(
+                /<!--\s*(sonar-plugins-list)\s*-->[\s\S]*?<!--\s*\/\s*\1\s*-->/
+            ) {
+                String tag = it[1]
+                logger.lifecycle('  Handling {}', tag)
+                StringBuilder listContent = new StringBuilder()
+                listContent.append('\n')
+
+                configurations.sonarPluginArtifacts.dependencies.forEach { Dependency dep ->
+                    if ((dep.group + '.').startsWith('org.sonarsource.')
+                        && dep.name.startsWith('sonar-') && dep.name.endsWith('-plugin')
+                    ) {
+                        String lang = dep.name.substring('sonar-'.length(), dep.name.length() - '-plugin'.length())
+                        if (!lang.isEmpty()) {
+                            listContent.append("* [`${lang}`](https://rules.sonarsource.com/${lang})\n")
+                            return
+                        }
+                    }
+
+                    listContent.append("* [`${dep.group}:${dep.name}:${dep.version}`](https://mvnrepository.com/artifact/${dep.group}/{$dep.name}/${dep.version})\n")
+                }
+
+                return "<!--$tag-->\n$listContent\n<!--/$tag-->"
+            }
+
+            readmeFile.setText(content, 'UTF-8')
+        }
+    )
 }

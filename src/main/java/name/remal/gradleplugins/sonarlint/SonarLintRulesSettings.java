@@ -29,9 +29,9 @@ public class SonarLintRulesSettings {
     private Boolean disableConflictingWithLombok;
 
 
-    private final Collection<String> enabled = new ArrayList<>();
+    private Collection<String> enabled = new ArrayList<>();
 
-    private final Collection<String> disabled = new ArrayList<>();
+    private Collection<String> disabled = new ArrayList<>();
 
     private final Map<String, SonarLintRuleSettings> rulesSettings = new LinkedHashMap<>();
 

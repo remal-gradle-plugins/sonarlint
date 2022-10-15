@@ -10,7 +10,7 @@ import lombok.Setter;
 @Setter
 public class SonarLintRuleSettings {
 
-    private final Map<String, Object> properties = new LinkedHashMap<>();
+    private Map<String, Object> properties = new LinkedHashMap<>();
 
     public void property(String key, @Nullable Object value) {
         properties.put(key, value);
