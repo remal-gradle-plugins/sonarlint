@@ -1,12 +1,13 @@
 package name.remal.gradleplugins.sonarlint;
 
 import static java.lang.String.join;
-import static java.util.stream.Collectors.toList;
-import static name.remal.gradleplugins.toolkit.PathUtils.normalizePath;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import lombok.val;
 import name.remal.gradleplugins.toolkit.issues.CheckstyleXmlIssuesParser;
 import name.remal.gradleplugins.toolkit.issues.Issue;
@@ -26,7 +27,7 @@ class SonarLintPluginFunctionalTest {
             build.applyPlugin("java");
             build.append("repositories { mavenCentral() }");
             build.appendBuildDirMavenRepositories();
-            build.append("sonarLint { ignoreFailures = true }");
+            build.append("sonarLint.ignoreFailures = true");
             build.registerDefaultTask("sonarlintMain");
         });
     }
@@ -37,14 +38,18 @@ class SonarLintPluginFunctionalTest {
         return new CheckstyleXmlIssuesParser().parseIssuesFrom(reportFile);
     }
 
+    @SneakyThrows
     private List<Issue> parseSonarLintIssuesOf(String relativePath) {
-        val projectPath = normalizePath(project.getProjectDir().toPath());
-        val absolutePath = normalizePath(projectPath.resolve(relativePath));
-        val absoluteFile = absolutePath.toFile();
+        val fileToMatch = new File(project.getProjectDir(), relativePath).getCanonicalFile();
 
-        return parseSonarLintIssues().stream()
-            .filter(issue -> absoluteFile.equals(issue.getSourceFile()))
-            .collect(toList());
+        List<Issue> fileIssues = new ArrayList<>();
+        for (val issue : parseSonarLintIssues()) {
+            val sourceFile = issue.getSourceFile().getCanonicalFile();
+            if (sourceFile.equals(fileToMatch)) {
+                fileIssues.add(issue);
+            }
+        }
+        return fileIssues;
     }
 
 
@@ -55,6 +60,8 @@ class SonarLintPluginFunctionalTest {
 
     @Test
     void java() {
+        project.getBuildFile().append("sonarLint.rules.enable('java:S1171')");
+
         val sourceFileRelativePath = "src/main/java/pkg/TestMap.java";
         project.writeTextFile(sourceFileRelativePath, join("\n", new String[]{
             "package pkg;",
