@@ -27,6 +27,9 @@ jobs:
         allowedCommitPrefixes: |
           [push-back]
           [ci]
+          [release-later]
+          [doc]
+          [documentation]
         allowedPullRequestLabels: |
           dependencies
           sync-with-template
