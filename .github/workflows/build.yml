@@ -52,11 +52,11 @@ jobs:
     - name: Create Gradle wrapper cache content
       if: ${{steps.cache-gradle.outputs.gradle-wrapper-cache-hit != 'true'}}
       run: |
-        ./gradlew help
+        ./gradlew-retry-connection-timeouts help
     - name: Create Gradle caches cache content
       if: ${{steps.cache-gradle.outputs.gradle-caches-cache-hit != 'true'}}
       run: |
-        ./gradlew downloadDependencies
+        ./gradlew-retry-connection-timeouts downloadDependencies
 
 
   build:
@@ -110,11 +110,11 @@ jobs:
         echo "REPOSITORY_LICENSE_HTML_URL=$REPOSITORY_LICENSE_HTML_URL" >> "$GITHUB_ENV"
     - name: Compile classes
       run: |
-        ./gradlew allClasses
+        ./gradlew-retry-connection-timeouts allClasses
         echo "DISABLE_COMPILATION=true" >> "$GITHUB_ENV"
     - name: Build
       run: |
-        ./gradlew build publishToMavenLocal -Pdisable-tests=true
+        ./gradlew-retry-connection-timeouts build publishToMavenLocal -Pdisable-tests=true
     - name: Read publish flags
       id: publish-flags
       run: |
@@ -198,10 +198,10 @@ jobs:
         tar -xz -f "${{steps.download-workspace.outputs.download-path}}/workspace-${{github.run_id}}.tar.gz"
     - name: Download dependencies
       run: |
-        ./gradlew downloadDependencies "-Pgradle-api.version=${{matrix.gradle-version}}"
+        ./gradlew-retry-connection-timeouts downloadDependencies "-Pgradle-api.version=${{matrix.gradle-version}}"
     - name: Execute tests
       run: |
-        ./gradlew allTests "-Pgradle-api.version=${{matrix.gradle-version}}"
+        ./gradlew-retry-connection-timeouts allTests "-Pgradle-api.version=${{matrix.gradle-version}}"
 
   cross-versions-tests-success:
     needs:
@@ -251,13 +251,13 @@ jobs:
         tar -xz -f "${{steps.download-workspace.outputs.download-path}}/workspace-${{github.run_id}}.tar.gz"
     - name: Update README
       run: |
-        ./gradlew processReadme
+        ./gradlew-retry-connection-timeouts processReadme
     - name: Collect all Gradle plugin API dependencies
       run: |
-        ./gradlew collectAllGradlePluginApiDependencies
+        ./gradlew-retry-connection-timeouts collectAllGradlePluginApiDependencies
     - name: Update IDEA settings
       run: |
-        ./gradlew processIdeaSettings
+        ./gradlew-retry-connection-timeouts processIdeaSettings
     - name: Push back
       env:
         PUSH_BACK_TOKEN: ${{secrets.PUSH_BACK_TOKEN}}
@@ -346,7 +346,7 @@ jobs:
         tar -xz -f "${{steps.download-workspace.outputs.download-path}}/workspace-${{github.run_id}}.tar.gz"
     - name: Publish to Gradle Plugin Portal
       run: |
-        ./gradlew publishPlugins "-Pgradle.publish.key=${{secrets.GRADLE_PLUGINS_PORTAL_KEY}}" "-Pgradle.publish.secret=${{secrets.GRADLE_PLUGINS_PORTAL_SECRET}}"
+        ./gradlew-retry-connection-timeouts publishPlugins "-Pgradle.publish.key=${{secrets.GRADLE_PLUGINS_PORTAL_KEY}}" "-Pgradle.publish.secret=${{secrets.GRADLE_PLUGINS_PORTAL_SECRET}}"
 
 
   evaluate-maven-central-publish-conditions:
@@ -403,4 +403,4 @@ jobs:
         tar -xz -f "${{steps.download-workspace.outputs.download-path}}/workspace-${{github.run_id}}.tar.gz"
     - name: Publish to Maven Central
       run: |
-        ./gradlew publishToSonatype closeAndReleaseSonatypeStagingRepository "-PsonatypeUsername=${{secrets.OSS_USER}}" "-PsonatypePassword=${{secrets.OSS_PASSWORD}}" "-Psigning.key=${{secrets.SIGNING_SECRET_KEY_RING}}" "-Psigning.keyId=${{secrets.SIGNING_KEY_ID}}" "-Psigning.password=${{secrets.SIGNING_PASSWORD}}"
+        ./gradlew-retry-connection-timeouts publishToSonatype closeAndReleaseSonatypeStagingRepository "-PsonatypeUsername=${{secrets.OSS_USER}}" "-PsonatypePassword=${{secrets.OSS_PASSWORD}}" "-Psigning.key=${{secrets.SIGNING_SECRET_KEY_RING}}" "-Psigning.keyId=${{secrets.SIGNING_KEY_ID}}" "-Psigning.password=${{secrets.SIGNING_PASSWORD}}"
