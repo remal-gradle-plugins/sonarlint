@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+PWD=$(pwd)
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+if [ "$SCRIPT_DIR" == "$PWD" ]; then
+    SCRIPT_DIR="."
+fi
+
+"$SCRIPT_DIR/retry-connection-timeouts" "$SCRIPT_DIR/gradlew" "$@"
