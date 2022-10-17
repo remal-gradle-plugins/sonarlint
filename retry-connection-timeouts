@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+
+DELAY_INTERVAL=1
+
+HIGHLIGHT_COLOR='\033[1;33m'
+TRACE_COLOR='\033[1;90m'
+NO_COLOR='\033[0m'
+
+RESULT=0
+
+for ATTEMPT in $(seq 1 3); do
+    if [ "$ATTEMPT" -gt 1 ]; then
+        echo -e "\n${HIGHLIGHT_COLOR}Waiting $DELAY_INTERVAL seconds before attempt #$ATTEMPT...${NO_COLOR}\n"
+        sleep "$DELAY_INTERVAL"
+    fi
+
+    LOGFILE=$(mktemp)
+    #echo -e "${TRACE_COLOR}Executing $* command and storing its output to log file $LOGFILE${NO_COLOR}"
+    echo "::debug::Executing $* command and storing its output to log file $LOGFILE"
+
+    "$@" |& tee "$LOGFILE"
+    RESULT="${PIPESTATUS[0]}"
+
+    if [ "$RESULT" -eq 0 ]; then
+        exit 0
+
+    elif STR="connect timed out" && grep -q "\b$STR\b" "$LOGFILE"; then
+        echo "::warning::'$STR' found in $* command log file $LOGFILE"
+
+    else
+        break
+    fi
+done
+
+exit "$RESULT"
