@@ -3,7 +3,7 @@
 buildscript {
     dependencies {
         //classpath 'name.remal.gradle-plugins.sonarlint:sonarlint:2-SNAPSHOT'
-        classpath('name.remal.gradle-plugins.toolkit:build-logic:0.32.0') {
+        classpath('name.remal.gradle-plugins.toolkit:build-logic:0.32.1') {
             //exclude group: 'name.remal.gradle-plugins.sonarlint'
         }
     }
