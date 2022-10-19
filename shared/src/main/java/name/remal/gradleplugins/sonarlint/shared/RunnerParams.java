@@ -42,6 +42,16 @@ public interface RunnerParams extends Serializable {
 
     Path getProjectDir();
 
+    @Value.Default
+    default boolean isGeneratedCodeIgnored() {
+        return true;
+    }
+
+    @Value.Default
+    default List<Path> getBaseGeneratedDirs() {
+        return emptyList();
+    }
+
     Path getHomeDir();
 
     Path getWorkDir();
@@ -75,6 +85,12 @@ public interface RunnerParams extends Serializable {
 
     @Nullable
     @Value.Default
+    default String getDefaultNodeJsVersion() {
+        return null;
+    }
+
+    @Nullable
+    @Value.Default
     default Path getXmlReportLocation() {
         return null;
     }
@@ -83,6 +99,15 @@ public interface RunnerParams extends Serializable {
     @Value.Default
     default Path getHtmlReportLocation() {
         return null;
+    }
+
+
+    default boolean isIgnored(SourceFile sourceFile) {
+        if (sourceFile.isGenerated()) {
+            return isGeneratedCodeIgnored();
+        }
+
+        return false;
     }
 
 

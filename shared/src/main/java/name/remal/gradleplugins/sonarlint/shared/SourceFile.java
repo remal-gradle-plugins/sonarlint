@@ -31,6 +31,11 @@ public interface SourceFile extends Serializable {
     }
 
     @Value.Default
+    default boolean isGenerated() {
+        return false;
+    }
+
+    @Value.Default
     default String getCharsetName() {
         return UTF_8.name();
     }

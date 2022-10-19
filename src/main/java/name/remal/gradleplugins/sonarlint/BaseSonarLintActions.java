@@ -4,6 +4,7 @@ import static com.google.common.io.ByteStreams.toByteArray;
 import static java.lang.Boolean.FALSE;
 import static java.lang.Boolean.TRUE;
 import static java.lang.Math.toIntExact;
+import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.Files.createDirectories;
 import static java.util.Collections.emptyList;
@@ -20,6 +21,9 @@ import static name.remal.gradleplugins.sonarlint.shared.RunnerParams.newRunnerPa
 import static name.remal.gradleplugins.sonarlint.shared.SourceFile.newSourceFileBuilder;
 import static name.remal.gradleplugins.toolkit.ExtensionContainerUtils.findExtension;
 import static name.remal.gradleplugins.toolkit.ExtensionContainerUtils.getExtension;
+import static name.remal.gradleplugins.toolkit.ObjectUtils.defaultFalse;
+import static name.remal.gradleplugins.toolkit.ObjectUtils.defaultTrue;
+import static name.remal.gradleplugins.toolkit.ObjectUtils.isEmpty;
 import static name.remal.gradleplugins.toolkit.ObjectUtils.isNotEmpty;
 import static name.remal.gradleplugins.toolkit.PathUtils.normalizePath;
 import static name.remal.gradleplugins.toolkit.PluginManagerUtils.withAnyOfPlugins;
@@ -39,6 +43,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import javax.annotation.Nullable;
 import lombok.CustomLog;
@@ -79,6 +84,8 @@ abstract class BaseSonarLintActions {
     public static void init(BaseSonarLint task) {
         val project = task.getProject();
 
+        task.getIsGeneratedCodeIgnored().convention(true);
+
         task.getIsTest().convention(false);
 
         val javaToolchainService = getExtension(project, JavaToolchainService.class);
@@ -107,8 +114,43 @@ abstract class BaseSonarLintActions {
     }
 
     @SneakyThrows
+    @SuppressWarnings("java:S3776")
     public static void execute(BaseSonarLint task, RunnerCommand runnerCommand) {
+        val generatedCodeIgnored = defaultTrue(task.getIsGeneratedCodeIgnored().getOrNull());
+        val sourceFiles = collectSourceFiles(task);
+
+
         val sonarProperties = new LinkedHashMap<>(task.getSonarProperties().get());
+
+        if (generatedCodeIgnored) {
+            val ignoreMulticriteriaPrevNumber = new AtomicInteger(0);
+            sourceFiles.stream()
+                .filter(SourceFile::isGenerated)
+                .map(SourceFile::getRelativePath)
+                .forEach(sourceFileRelativePath -> {
+                    while (true) {
+                        val multicriteriaId = "_generated_" + ignoreMulticriteriaPrevNumber.incrementAndGet();
+                        val ruleKey = format("sonar.issue.ignore.multicriteria.%s.ruleKey", multicriteriaId);
+                        val resourceKey = format("sonar.issue.ignore.multicriteria.%s.resourceKey", multicriteriaId);
+                        if (sonarProperties.containsKey(ruleKey) || sonarProperties.containsKey(resourceKey)) {
+                            continue;
+                        }
+
+                        String multicriteria = sonarProperties.get("sonar.issue.ignore.multicriteria");
+                        if (isEmpty(multicriteria)) {
+                            multicriteria = multicriteriaId;
+                        } else {
+                            multicriteria += ',' + multicriteriaId;
+                        }
+                        sonarProperties.put("sonar.issue.ignore.multicriteria", multicriteria);
+
+                        sonarProperties.put(ruleKey, "*");
+                        sonarProperties.put(resourceKey, sourceFileRelativePath);
+
+                        break;
+                    }
+                });
+        }
 
         sonarProperties.computeIfAbsent("sonar.java.jdkHome", __ ->
             Optional.ofNullable(task.getJavaLauncher().getOrNull())
@@ -130,8 +172,6 @@ abstract class BaseSonarLintActions {
         );
         sonarProperties.computeIfAbsent("sonar.java.target", __ -> sonarProperties.get("sonar.java.source"));
 
-        sonarProperties.computeIfAbsent("sonar.nodejs.version", __ -> LATEST_NODEJS_LTS_VERSION);
-
         sonarProperties.values().removeIf(Objects::isNull);
 
 
@@ -144,6 +184,8 @@ abstract class BaseSonarLintActions {
             .command(runnerCommand)
             .sonarLintMajorVersion(getSonarLintMajorVersion(task))
             .projectDir(normalizePath(project.getProjectDir().toPath()))
+            .generatedCodeIgnored(generatedCodeIgnored)
+            .addBaseGeneratedDir(normalizePath(project.getBuildDir().toPath()))
             .homeDir(createDirectories(tempDir.resolve("home")))
             .workDir(createDirectories(tempDir.resolve("work")))
             .toolClasspath(task.getToolClasspath().getFiles().stream()
@@ -152,12 +194,13 @@ abstract class BaseSonarLintActions {
                 .map(PathUtils::normalizePath)
                 .collect(toList())
             )
-            .files(collectSourceFiles(task))
+            .files(sourceFiles)
             .enabledRules(task.getEnabledRules().get())
             .disabledRules(task.getDisabledRules().get())
             .addAllDisabledRules(getDisabledRulesFromCheckstyleConfig(task))
             .addAllDisabledRules(getDisabledRulesConflictingWithLombok(task))
             .sonarProperties(sonarProperties)
+            .defaultNodeJsVersion(LATEST_NODEJS_LTS_VERSION)
             .rulesProperties(task.getRulesProperties().get())
             .xmlReportLocation(getSonarLintReportPath(task, SonarLintReports::getXml))
             .htmlReportLocation(getSonarLintReportPath(task, SonarLintReports::getHtml))
@@ -259,7 +302,8 @@ abstract class BaseSonarLintActions {
             return collectSourceFiles(
                 ((SourceTask) task).getSource(),
                 getRepositoryRootPath(task),
-                TRUE.equals(task.getIsTest().getOrNull())
+                defaultFalse(task.getIsTest().getOrNull()),
+                normalizePath(task.getProject().getBuildDir().toPath())
             );
         }
 
@@ -269,7 +313,8 @@ abstract class BaseSonarLintActions {
     private static Collection<SourceFile> collectSourceFiles(
         FileTree fileTree,
         Path repositoryRootPath,
-        boolean isTest
+        boolean isTest,
+        Path buildDirPath
     ) {
         val editorConfig = new EditorConfig(repositoryRootPath);
         List<SourceFile> sourceFiles = new ArrayList<>();
@@ -279,6 +324,8 @@ abstract class BaseSonarLintActions {
             }
 
             val path = normalizePath(details.getFile().toPath());
+
+            val isGenerated = path.startsWith(buildDirPath);
 
             final String charsetName;
             {
@@ -295,6 +342,7 @@ abstract class BaseSonarLintActions {
                 .absolutePath(path.toString())
                 .relativePath(details.getPath())
                 .test(isTest)
+                .generated(isGenerated)
                 .charsetName(charsetName)
                 .build()
             );
@@ -376,7 +424,7 @@ abstract class BaseSonarLintActions {
         }
 
         return ImmutableList.of(
-
+            "java:S4838" // An iteration on a Collection should be performed on the type handled by the Collection
         );
     }
 

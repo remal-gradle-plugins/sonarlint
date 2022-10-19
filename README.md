@@ -22,6 +22,8 @@ For every [`SourceSet`](https://docs.gradle.org/current/javadoc/org/gradle/api/t
 
 ```groovy
 sonarLint {
+  isGeneratedCodeIgnored = false // `true` by default, set to `false` to validate generated code (code inside `./build/`)
+
   rules {
     enable(
       'java:S100', // Enable `java:S100` rule (that is disabled by default)

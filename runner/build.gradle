@@ -1,5 +1,4 @@
 apply plugin: 'java-library'
-apply plugin: 'application'
 apply plugin: 'maven-publish'
 
 dependencies {
@@ -7,17 +6,6 @@ dependencies {
 
     optional 'org.sonarsource.sonarlint.core:sonarlint-core:8.9.0.54830'
     //optional 'org.sonarsource.java:sonar-java-plugin:7.12.0.29739'
-}
-
-application {
-    mainClass = 'name.remal.gradleplugins.sonarlint.runner.Main'
-}
-
-tasks.named('run', JavaExec) {
-    onlyIf {
-        classpath += project.configurations.optional
-        retur true
-    }
 }
 
 publishing.publications.withType(MavenPublication) {

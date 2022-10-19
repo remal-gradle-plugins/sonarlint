@@ -31,7 +31,7 @@ public class NodeJsInfo {
                 "sonar.nodejs.version"
             ))
             .filter(ObjectUtils::isNotEmpty)
-            .orElse(null);
+            .orElse(params.getDefaultNodeJsVersion());
 
         val nodeJsPath = Optional.ofNullable(params.getSonarProperties().get(
                 "sonar.nodejs.executable"

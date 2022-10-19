@@ -24,6 +24,9 @@ interface BaseSonarLint extends Task {
     FileCollection getToolClasspath();
 
     @Input
+    Property<Boolean> getIsGeneratedCodeIgnored();
+
+    @Input
     Property<Boolean> getIsTest();
 
     @org.gradle.api.tasks.Optional

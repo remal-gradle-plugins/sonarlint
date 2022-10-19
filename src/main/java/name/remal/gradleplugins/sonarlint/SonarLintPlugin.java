@@ -17,8 +17,10 @@ import static name.remal.gradleplugins.sonarlint.SonarDependencies.getSonarDepen
 import static name.remal.gradleplugins.sonarlint.SonarDependencies.getSonarDependency;
 import static name.remal.gradleplugins.toolkit.ExtensionContainerUtils.findExtension;
 import static name.remal.gradleplugins.toolkit.ExtensionContainerUtils.getExtension;
+import static name.remal.gradleplugins.toolkit.ObjectUtils.defaultTrue;
 import static name.remal.gradleplugins.toolkit.PredicateUtils.not;
 import static name.remal.gradleplugins.toolkit.PropertiesConventionUtils.setPropertyConvention;
+import static name.remal.gradleplugins.toolkit.SourceSetUtils.isSourceSetTask;
 import static name.remal.gradleplugins.toolkit.SourceSetUtils.whenTestSourceSetRegistered;
 import static org.gradle.api.artifacts.ExcludeRule.GROUP_KEY;
 import static org.gradle.api.artifacts.ExcludeRule.MODULE_KEY;
@@ -38,19 +40,26 @@ import javax.annotation.Nullable;
 import lombok.CustomLog;
 import lombok.val;
 import name.remal.gradleplugins.toolkit.ObjectUtils;
+import name.remal.gradleplugins.toolkit.ReliesOnInternalGradleApi;
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.Dependency;
+import org.gradle.api.file.DirectoryProperty;
+import org.gradle.api.internal.tasks.compile.HasCompileOptions;
 import org.gradle.api.plugins.quality.Checkstyle;
 import org.gradle.api.plugins.quality.CheckstyleExtension;
 import org.gradle.api.plugins.quality.CodeQualityExtension;
 import org.gradle.api.plugins.quality.internal.AbstractCodeQualityPlugin;
+import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.SourceSet;
 import org.gradle.api.tasks.SourceSetContainer;
 import org.gradle.api.tasks.VerificationTask;
+import org.gradle.api.tasks.compile.AbstractCompile;
+import org.gradle.api.tasks.compile.CompileOptions;
 import org.gradle.api.tasks.compile.JavaCompile;
 import org.jetbrains.annotations.Unmodifiable;
 
 @CustomLog
+@ReliesOnInternalGradleApi
 public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLint> {
 
     @Override
@@ -165,6 +174,9 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
         );
 
         val extension = (SonarLintExtension) this.extension;
+        task.getIsGeneratedCodeIgnored().convention(project.provider(() ->
+            defaultTrue(extension.getIsGeneratedCodeIgnored().getOrNull())
+        ));
         task.getEnabledRules().convention(project.provider(() ->
             canonizeRules(extension.getRules().getEnabled())
         ));
@@ -191,10 +203,28 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
     }
 
     @Override
+    @ReliesOnInternalGradleApi
     protected void configureForSourceSet(SourceSet sourceSet, SonarLint task) {
         task.setDescription("Run " + getToolName() + " analysis for " + sourceSet.getName() + " classes");
-        task.setSource(sourceSet.getAllSource());
         task.dependsOn(sourceSet.getClassesTaskName());
+
+        task.setSource(sourceSet.getAllSource());
+        task.source(project.provider(() -> {
+            //noinspection ConstantConditions
+            return project.getTasks().withType(AbstractCompile.class).stream()
+                .filter(HasCompileOptions.class::isInstance)
+                .filter(compileTask -> isSourceSetTask(sourceSet, compileTask))
+                .map(HasCompileOptions.class::cast)
+                .map(compileTask -> Optional.ofNullable(compileTask.getOptions())
+                    .map(CompileOptions::getGeneratedSourceOutputDirectory)
+                    .map(DirectoryProperty::getAsFile)
+                    .map(Provider::getOrNull)
+                    .map(File::getAbsoluteFile)
+                    .orElse(null)
+                )
+                .filter(Objects::nonNull)
+                .collect(toList());
+        }));
 
         task.getIsTest().convention(project.provider(() ->
             getTestSourceSets().contains(sourceSet)

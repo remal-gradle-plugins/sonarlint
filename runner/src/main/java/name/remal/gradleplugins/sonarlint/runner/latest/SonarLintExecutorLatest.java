@@ -10,6 +10,7 @@ import static name.remal.gradleplugins.sonarlint.runner.common.RulesDocumentatio
 import static name.remal.gradleplugins.sonarlint.runner.common.RulesDocumentation.RuleStatus.DISABLED_EXPLICITLY;
 import static name.remal.gradleplugins.sonarlint.runner.common.RulesDocumentation.RuleStatus.ENABLED_BY_DEFAULT;
 import static name.remal.gradleplugins.sonarlint.runner.common.RulesDocumentation.RuleStatus.ENABLED_EXPLICITLY;
+import static name.remal.gradleplugins.toolkit.PredicateUtils.not;
 import static name.remal.gradleplugins.toolkit.ProxyUtils.toDynamicInterface;
 import static name.remal.gradleplugins.toolkit.issues.Issue.newIssue;
 import static name.remal.gradleplugins.toolkit.issues.IssueSeverity.ERROR;
@@ -23,6 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Optional;
+import lombok.CustomLog;
 import lombok.SneakyThrows;
 import lombok.val;
 import name.remal.gradleplugins.sonarlint.runner.common.PropertiesDocumentation;
@@ -46,6 +48,7 @@ import org.sonarsource.sonarlint.core.commons.Version;
 import org.sonarsource.sonarlint.core.plugin.commons.loading.PluginInfo;
 
 @AutoService(SonarLintExecutor.class)
+@CustomLog
 public class SonarLintExecutorLatest implements SonarLintExecutor {
 
     private RunnerParams params;
@@ -120,6 +123,7 @@ public class SonarLintExecutorLatest implements SonarLintExecutor {
                             .map(ClientInputFile::getClientObject)
                             .filter(SourceFile.class::isInstance)
                             .map(SourceFile.class::cast)
+                            .filter(not(params::isIgnored))
                             .map(SourceFile::getAbsolutePath)
                             .map(File::new)
                             .orElse(null);
@@ -232,7 +236,7 @@ public class SonarLintExecutorLatest implements SonarLintExecutor {
 
     @Override
     public Object collectPropertiesDocumentation() {
-        val propertyDefinitionsExtractor = new PropertyDefinitionsExtractorContainer(engineConfig);
+        val propertyDefinitionsExtractor = new PropertyDefinitionsExtractorContainer(params, engineConfig);
         propertyDefinitionsExtractor.execute();
 
         val propertiesDoc = new PropertiesDocumentation();
