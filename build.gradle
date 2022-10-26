@@ -2,10 +2,8 @@
 
 buildscript {
     dependencies {
-        //classpath 'name.remal.gradle-plugins.sonarlint:sonarlint:2-SNAPSHOT'
-        classpath('name.remal.gradle-plugins.toolkit:build-logic:0.35.0') {
-            //exclude group: 'name.remal.gradle-plugins.sonarlint'
-        }
+        //classpath('name.remal.gradle-plugins.sonarlint:sonarlint') { version { strictly('2-SNAPSHOT') } }
+        classpath 'name.remal.gradle-plugins.toolkit:build-logic:0.35.0'
     }
     repositories {
         mavenCentral()
@@ -33,33 +31,6 @@ allprojects {
         if (project.path != ':shared') {
             dependencies {
                 relocateClasses project(':shared')
-            }
-        }
-    }
-}
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-if (rootProject.buildscript.configurations.classpath.allDependencies.any { it.group == 'name.remal.gradle-plugins.sonarlint' }) {
-    apply plugin: 'name.remal.sonarlint'
-
-    pluginManager.withPlugin('name.remal.sonarlint') {
-        sonarLint {
-            rules {
-                disable(
-                    'java:S110',  // Inheritance tree of classes should not be too deep
-                    'java:S1134', // Track uses of "FIXME" tags
-                    'java:S1171', // Only static class initializers should be used
-                    'java:S1192', // String literals should not be duplicated
-                    'java:S1199', // Nested code blocks should not be used
-                    'java:S1214', // Constants should not be defined in interfaces
-                    'java:S1602', // Lambdas containing only one statement should not nest this statement in a block
-                    'java:S1610', // Abstract classes without fields should be converted to interfaces
-                    'java:S2259', // Null pointers should not be dereferenced
-                )
-            }
-            fork {
-                enabled = false
             }
         }
     }

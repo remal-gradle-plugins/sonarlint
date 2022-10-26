@@ -26,3 +26,12 @@ publishing.publications.withType(MavenPublication) {
         }
     }
 }
+
+// Fox some strange reason SonarLint fails for `:runner`, let's disable it:
+allprojects {
+    pluginManager.withPlugin('java') {
+        sourceSets.all { SourceSet sourceSet ->
+            tasks.matching { it.name == sourceSet.getTaskName('sonarlint', null) }.all { disableTask(it) }
+        }
+    }
+}
