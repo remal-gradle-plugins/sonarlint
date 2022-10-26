@@ -63,7 +63,7 @@ sonarLint {
 
 ## Help tasks
 
-Two additional help tasks a created:
+Two additional help tasks are created:
 
 1. `sonarLintProperties` - displays Sonar properties that can be configured via `sonarLint.sonarProperties`.
 2. `sonarLintRules` - displays all Sonar rules available, their description and their properties.
