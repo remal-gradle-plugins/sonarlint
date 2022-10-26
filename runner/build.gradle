@@ -10,11 +10,14 @@ dependencies {
 
 publishing.publications.withType(MavenPublication) {
     pom.withXml { XmlProvider xml ->
-        def rootNode = xml.asNode()
+        Node rootNode = xml.asNode()
         rootNode.remove(rootNode.dependencyManagement)
 
-        rootNode.dependencies.dependency.forEach { dependency ->
-            dependency.remove(dependency.scope)
+        rootNode.dependencies.dependency.forEach { Node dependency ->
+            String scope = dependency.scope?.text()?.trim()
+            if (scope != 'test') {
+                dependency.scope.replaceNode {}
+            }
 
             String version = dependency.version?.text()?.trim()
             if (version == null || version.isEmpty()) {
