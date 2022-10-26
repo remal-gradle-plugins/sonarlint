@@ -26,6 +26,8 @@ jobs:
           gradle-plugin-api-dependencies.txt
         allowedCommitPrefixes: |
           [push-back]
+          [noci]
+          [no-ci]
           [ci]
           [release-later]
           [doc]
