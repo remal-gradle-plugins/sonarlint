@@ -21,6 +21,7 @@ import static name.remal.gradleplugins.sonarlint.shared.RunnerParams.newRunnerPa
 import static name.remal.gradleplugins.sonarlint.shared.SourceFile.newSourceFileBuilder;
 import static name.remal.gradleplugins.toolkit.ExtensionContainerUtils.findExtension;
 import static name.remal.gradleplugins.toolkit.ExtensionContainerUtils.getExtension;
+import static name.remal.gradleplugins.toolkit.JavaToolchainServiceUtils.getJavaToolchainServiceFor;
 import static name.remal.gradleplugins.toolkit.ObjectUtils.defaultFalse;
 import static name.remal.gradleplugins.toolkit.ObjectUtils.defaultTrue;
 import static name.remal.gradleplugins.toolkit.ObjectUtils.isEmpty;
@@ -71,7 +72,6 @@ import org.gradle.api.tasks.VerificationTask;
 import org.gradle.jvm.toolchain.JavaInstallationMetadata;
 import org.gradle.jvm.toolchain.JavaLanguageVersion;
 import org.gradle.jvm.toolchain.JavaLauncher;
-import org.gradle.jvm.toolchain.JavaToolchainService;
 import org.gradle.workers.WorkQueue;
 import org.gradle.workers.WorkerExecutor;
 import org.w3c.dom.Document;
@@ -88,7 +88,7 @@ abstract class BaseSonarLintActions {
 
         task.getIsTest().convention(false);
 
-        val javaToolchainService = getExtension(project, JavaToolchainService.class);
+        val javaToolchainService = getJavaToolchainServiceFor(project);
         val currentJavaLauncherProvider = javaToolchainService.launcherFor(spec ->
             spec.getLanguageVersion().set(JavaLanguageVersion.of(JavaVersion.current().getMajorVersion()))
         );
