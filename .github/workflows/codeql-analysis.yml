@@ -24,13 +24,13 @@ jobs:
       with:
         submodules: recursive
         fetch-depth: 2
-    - name: Cache
-      id: cache
-      uses: actions/cache@v3
+    - name: Validate Gradle Wrapper
+      uses: gradle/wrapper-validation-action@v1
+    - name: Cache Gradle
+      id: cache-gradle
+      uses: remal-github-actions/cache-gradle@main
       with:
-        key: ${{runner.os}}-gradle-${{hashFiles('gradle/wrapper/**', '**/*.gradle')}}
-        path: |
-          ~/.gradle
+        build-cache-enabled: 'false'
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v2
       with:
