@@ -93,16 +93,23 @@ tasks.named('generateJava') {
 
 Configuration sonarArtifactsToDownloadForBuildCacheConf = project.configurations.create('sonarArtifactsToDownloadForBuildCache')
 
-Closure<Configuration> createSonarArtifactsConfiguration = { String name ->
+Closure<Configuration> createSonarArtifactsConfiguration = { String name, boolean addToIndirectApi = true ->
     return project.configurations.create(name) { Configuration conf ->
         conf.transitive = false
+        conf.extendsFrom = []
         conf.dependencies.all { Dependency dep ->
             sonarArtifactsToDownloadForBuildCacheConf.dependencies.add(dep.copy())
             if (dep instanceof ModuleDependency) {
                 dep.transitive = false
             }
+            if (dep instanceof ExternalDependency) {
+                dep.version { strictly(dep.version) }
+            }
         }
-        project.configurations.indirectApi.extendsFrom(conf)
+
+        if (addToIndirectApi) {
+            project.configurations.indirectApi.extendsFrom(conf)
+        }
     }
 }
 
