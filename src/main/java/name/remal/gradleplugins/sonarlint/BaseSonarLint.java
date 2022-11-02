@@ -56,6 +56,7 @@ interface BaseSonarLint extends Task {
 
 
     @Nested
+    @org.gradle.api.tasks.Optional
     Property<JavaLauncher> getJavaLauncher();
 
 }
