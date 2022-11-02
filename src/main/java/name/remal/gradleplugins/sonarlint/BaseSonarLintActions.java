@@ -20,14 +20,12 @@ import static name.remal.gradleplugins.sonarlint.SonarDependencies.getSonarDepen
 import static name.remal.gradleplugins.sonarlint.shared.RunnerParams.newRunnerParamsBuilder;
 import static name.remal.gradleplugins.sonarlint.shared.SourceFile.newSourceFileBuilder;
 import static name.remal.gradleplugins.toolkit.ExtensionContainerUtils.findExtension;
-import static name.remal.gradleplugins.toolkit.ExtensionContainerUtils.getExtension;
-import static name.remal.gradleplugins.toolkit.JavaToolchainServiceUtils.getJavaToolchainServiceFor;
+import static name.remal.gradleplugins.toolkit.JavaLauncherUtils.updateJavaLauncherPropertyConvention;
 import static name.remal.gradleplugins.toolkit.ObjectUtils.defaultFalse;
 import static name.remal.gradleplugins.toolkit.ObjectUtils.defaultTrue;
 import static name.remal.gradleplugins.toolkit.ObjectUtils.isEmpty;
 import static name.remal.gradleplugins.toolkit.ObjectUtils.isNotEmpty;
 import static name.remal.gradleplugins.toolkit.PathUtils.normalizePath;
-import static name.remal.gradleplugins.toolkit.PluginManagerUtils.withAnyOfPlugins;
 import static name.remal.gradleplugins.toolkit.PredicateUtils.not;
 import static name.remal.gradleplugins.toolkit.ProjectUtils.getTopLevelDirOf;
 import static name.remal.gradleplugins.toolkit.ServiceRegistryUtils.getService;
@@ -63,7 +61,6 @@ import org.gradle.api.artifacts.ResolvedDependency;
 import org.gradle.api.file.Directory;
 import org.gradle.api.file.FileSystemLocation;
 import org.gradle.api.file.FileTree;
-import org.gradle.api.plugins.JavaPluginExtension;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.reporting.Report;
 import org.gradle.api.reporting.Reporting;
@@ -82,26 +79,11 @@ import org.w3c.dom.Element;
 abstract class BaseSonarLintActions {
 
     public static void init(BaseSonarLint task) {
-        val project = task.getProject();
-
         task.getIsGeneratedCodeIgnored().convention(true);
 
         task.getIsTest().convention(false);
 
-        val javaToolchainService = getJavaToolchainServiceFor(project);
-        val currentJavaLauncherProvider = javaToolchainService.launcherFor(spec ->
-            spec.getLanguageVersion().set(JavaLanguageVersion.of(JavaVersion.current().getMajorVersion()))
-        );
-        task.getJavaLauncher().convention(currentJavaLauncherProvider);
-        withAnyOfPlugins(project.getPluginManager(), "java-base", "java", __ -> {
-            val javaPluginExtension = getExtension(project, JavaPluginExtension.class);
-            val toolchain = javaPluginExtension.getToolchain();
-            task.getJavaLauncher().convention(
-                javaToolchainService
-                    .launcherFor(toolchain)
-                    .orElse(currentJavaLauncherProvider)
-            );
-        });
+        updateJavaLauncherPropertyConvention(task.getProject(), task.getJavaLauncher());
 
         task.onlyIf(__ -> {
             task.getEnabledRules().set(canonizeRules(task.getEnabledRules().getOrNull()));
