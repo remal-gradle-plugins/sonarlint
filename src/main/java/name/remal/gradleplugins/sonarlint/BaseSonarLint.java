@@ -4,7 +4,7 @@ import static org.gradle.api.tasks.PathSensitivity.RELATIVE;
 
 import java.util.Map;
 import org.gradle.api.Task;
-import org.gradle.api.file.FileCollection;
+import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.file.RegularFileProperty;
 import org.gradle.api.provider.ListProperty;
 import org.gradle.api.provider.MapProperty;
@@ -21,7 +21,7 @@ interface BaseSonarLint extends Task {
 
     @Classpath
     @InputFiles
-    FileCollection getToolClasspath();
+    ConfigurableFileCollection getToolClasspath();
 
     @Input
     Property<Boolean> getIsGeneratedCodeIgnored();

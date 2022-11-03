@@ -20,7 +20,7 @@ import static name.remal.gradleplugins.sonarlint.SonarDependencies.getSonarDepen
 import static name.remal.gradleplugins.sonarlint.shared.RunnerParams.newRunnerParamsBuilder;
 import static name.remal.gradleplugins.sonarlint.shared.SourceFile.newSourceFileBuilder;
 import static name.remal.gradleplugins.toolkit.ExtensionContainerUtils.findExtension;
-import static name.remal.gradleplugins.toolkit.JavaLauncherUtils.updateJavaLauncherPropertyConvention;
+import static name.remal.gradleplugins.toolkit.JavaLauncherUtils.getJavaLauncherProviderFor;
 import static name.remal.gradleplugins.toolkit.ObjectUtils.defaultFalse;
 import static name.remal.gradleplugins.toolkit.ObjectUtils.defaultTrue;
 import static name.remal.gradleplugins.toolkit.ObjectUtils.isEmpty;
@@ -83,7 +83,7 @@ abstract class BaseSonarLintActions {
 
         task.getIsTest().convention(false);
 
-        updateJavaLauncherPropertyConvention(task.getProject(), task.getJavaLauncher());
+        task.getJavaLauncher().convention(getJavaLauncherProviderFor(task.getProject()));
 
         task.onlyIf(__ -> {
             task.getEnabledRules().set(canonizeRules(task.getEnabledRules().getOrNull()));

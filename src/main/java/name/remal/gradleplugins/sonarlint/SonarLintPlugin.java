@@ -169,7 +169,7 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
             setPropertyConvention(task, "ignoreFailures", extension::isIgnoreFailures);
         }
 
-        setPropertyConvention(task, "toolClasspath", () ->
+        task.getToolClasspath().setFrom(
             project.getConfigurations().getByName(getClasspathConfigurationName())
         );
 

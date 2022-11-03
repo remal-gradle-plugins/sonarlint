@@ -7,17 +7,12 @@ import static org.gradle.language.base.plugins.LifecycleBasePlugin.VERIFICATION_
 
 import java.io.File;
 import java.util.concurrent.Callable;
-import lombok.Getter;
-import lombok.Setter;
 import lombok.val;
 import name.remal.gradleplugins.toolkit.tasks.BaseSourceVerificationReportingTask;
-import org.gradle.api.file.FileCollection;
 import org.gradle.api.tasks.CacheableTask;
 import org.gradle.api.tasks.TaskAction;
 
 @CacheableTask
-@Getter
-@Setter
 public abstract class SonarLint
     extends BaseSourceVerificationReportingTask<SonarLintReports>
     implements BaseSonarLint {
@@ -31,8 +26,6 @@ public abstract class SonarLint
             return sonarLintExtension != null ? sonarLintExtension.getReportsDir() : null;
         });
     }
-
-    private FileCollection toolClasspath = getProject().files();
 
     @TaskAction
     public void execute() {
