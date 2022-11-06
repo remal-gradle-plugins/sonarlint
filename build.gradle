@@ -10,7 +10,7 @@ buildscript {
     }
     dependencies {
         //classpath("$pluginGroupId:$pluginArtifactId") { version { strictly(pluginSnapshotVersion) } }
-        classpath 'name.remal.gradle-plugins.toolkit:build-logic:0.35.1'
+        classpath 'name.remal.gradle-plugins.toolkit:build-logic:0.36.0'
     }
     repositories {
         mavenCentral()
