@@ -120,7 +120,7 @@ createSonarArtifactsConfiguration('sonarPluginArtifacts')
 
 dependencies {
     // Core:
-    sonarCoreArtifacts 'org.sonarsource.sonarlint.core:sonarlint-core:8.9.0.54830'
+    sonarCoreArtifacts 'org.sonarsource.sonarlint.core:sonarlint-core:8.10.0.56343'
 
 
     // Plugins:
