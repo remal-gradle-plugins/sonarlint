@@ -1,15 +1,11 @@
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 buildscript {
-    String pluginGroupId = "name.remal.gradle-plugins.${rootProject.name}"
-    String pluginArtifactId = rootProject.name
-    String pluginSnapshotVersion = '2-SNAPSHOT'
-    allprojects {
-        group = pluginGroupId
-        version = pluginSnapshotVersion
-    }
+    String pluginRootGroupId = project.ext.pluginRootGroupId = "name.remal.gradle-plugins.${rootProject.name}"
+    String pluginRootArtifactId = project.ext.pluginRootArtifactId = rootProject.name
+    String pluginRootSnapshotVersion = project.ext.pluginRootSnapshotVersion = '2-SNAPSHOT'
     dependencies {
-        //classpath("$pluginGroupId:$pluginArtifactId") { version { strictly(pluginSnapshotVersion) } }
+        //classpath("$pluginRootGroupId:$pluginRootArtifactId:$pluginRootSnapshotVersion") { version { strictly(pluginRootSnapshotVersion) } }
         classpath 'name.remal.gradle-plugins.toolkit:build-logic:0.36.0'
     }
     repositories {
@@ -19,6 +15,11 @@ buildscript {
 }
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+allprojects {
+    group = project.pluginRootGroupId
+    version = project.pluginRootSnapshotVersion
+}
 
 apply plugin: 'name.remal.toolkit.build-logic'
 
@@ -120,7 +121,7 @@ createSonarArtifactsConfiguration('sonarPluginArtifacts')
 
 dependencies {
     // Core:
-    sonarCoreArtifacts 'org.sonarsource.sonarlint.core:sonarlint-core:8.10.0.56343'
+    sonarCoreArtifacts 'org.sonarsource.sonarlint.core:sonarlint-core:8.9.0.54830'
 
 
     // Plugins:
@@ -129,7 +130,7 @@ dependencies {
     sonarPluginArtifacts 'org.sonarsource.slang:sonar-ruby-plugin:1.11.0.3905'
     sonarPluginArtifacts 'org.sonarsource.slang:sonar-scala-plugin:1.11.0.3905'
     sonarPluginArtifacts 'org.sonarsource.xml:sonar-xml-plugin:2.6.1.3686'
-    sonarPluginArtifacts 'org.sonarsource.javascript:sonar-javascript-plugin:9.10.0.19937'
+    sonarPluginArtifacts 'org.sonarsource.javascript:sonar-javascript-plugin:9.9.0.19492'
 
     // Plugins for languages that highly unlikely are built with Gradle:
     //sonarPluginArtifacts 'org.sonarsource.php:sonar-php-plugin:3.25.0.9077'
