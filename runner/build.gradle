@@ -4,7 +4,7 @@ apply plugin: 'maven-publish'
 dependencies {
     api 'com.google.code.findbugs:jsr305'
 
-    optional 'org.sonarsource.sonarlint.core:sonarlint-core:8.10.0.56343'
+    optional 'org.sonarsource.sonarlint.core:sonarlint-core:8.11.0.56591'
     //optional 'org.sonarsource.java:sonar-java-plugin:7.12.0.29739'
 }
 
