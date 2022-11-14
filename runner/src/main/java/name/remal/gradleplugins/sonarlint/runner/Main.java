@@ -63,13 +63,15 @@ public class Main {
                 new CheckstyleHtmlIssuesRenderer().renderIssuesToPath(issues, htmlReportLocation);
             }
 
-            if (isNotEmpty(issues) && !params.isIgnoreFailures()) {
+            if (isNotEmpty(issues)) {
                 logger.error(new TextIssuesRenderer().renderIssues(issues));
 
-                throw new AssertionError(format(
-                    "SonarLint analysis failed with %d issues",
-                    issues.size()
-                ));
+                if (!params.isIgnoreFailures()) {
+                    throw new AssertionError(format(
+                        "SonarLint analysis failed with %d issues",
+                        issues.size()
+                    ));
+                }
             }
 
         } else if (command == HELP_RULES) {
