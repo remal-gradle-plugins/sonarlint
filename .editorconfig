@@ -310,7 +310,6 @@ ij_xml_attribute_wrap = on_every_item
 ij_xml_block_comment_at_first_column = true
 ij_xml_line_comment_at_first_column = true
 
-ij_json_keep_blank_lines_in_code = 2
 ij_json_keep_line_breaks = true
 ij_json_space_after_colon = true
 ij_json_space_after_comma = true
@@ -320,8 +319,16 @@ ij_json_spaces_within_braces = false
 ij_json_spaces_within_brackets = false
 ij_json_wrap_long_lines = false
 
+ij_yaml_align_values_properties = do_not_align
+ij_yaml_autoinsert_sequence_marker = true
+ij_yaml_block_mapping_on_new_line = false
+ij_yaml_indent_sequence_value = false
+ij_yaml_keep_indents_on_empty_lines = false
 ij_yaml_keep_line_breaks = true
+ij_yaml_sequence_on_new_line = false
 ij_yaml_space_before_colon = false
+ij_yaml_spaces_within_braces = true
+ij_yaml_spaces_within_brackets = true
 
 ij_asciidoc_formatting_enabled = true
 ij_asciidoc_one_sentence_per_line = true
