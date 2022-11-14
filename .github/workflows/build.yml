@@ -112,7 +112,7 @@ jobs:
       run: |
         ./gradlew-retry-connection-timeouts allClasses
         echo "DISABLE_COMPILATION=true" >> "$GITHUB_ENV"
-    - name: Build
+    - name: Build without tests
       run: |
         ./gradlew-retry-connection-timeouts build publishToMavenLocal -Pdisable-tests=true
     - name: Read publish flags
@@ -196,9 +196,6 @@ jobs:
     - name: Unarchive workspace
       run: |
         tar -xz -f "${{steps.download-workspace.outputs.download-path}}/workspace-${{github.run_id}}.tar.gz"
-    - name: Download dependencies
-      run: |
-        ./gradlew-retry-connection-timeouts downloadDependencies "-Pgradle-api.version=${{matrix.gradle-version}}"
     - name: Execute tests
       run: |
         ./gradlew-retry-connection-timeouts allTests "-Pgradle-api.version=${{matrix.gradle-version}}"
