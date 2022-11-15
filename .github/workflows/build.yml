@@ -133,9 +133,11 @@ jobs:
           echo 'isMavenCentral=false' >> $GITHUB_OUTPUT
         fi
     - name: Archive workspace
+      if: ${{ always() }}
       run: |
         tar -cz -f "/tmp/workspace-${{github.run_id}}.tar.gz" `git ls-files -m -o`
     - name: Upload workspace archive
+      if: ${{ always() }}
       uses: actions/upload-artifact@v3
       with:
         name: workspace
