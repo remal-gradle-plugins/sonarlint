@@ -406,7 +406,6 @@ abstract class BaseSonarLintActions {
         }
 
         return ImmutableList.of(
-            "java:S2583", // Conditionally executed code should be reachable
             "java:S4838" // An iteration on a Collection should be performed on the type handled by the Collection
         );
     }
