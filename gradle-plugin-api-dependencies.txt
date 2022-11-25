@@ -4,7 +4,7 @@
 Node.js:lts:18.12.1
 org.ow2.asm:asm-bom:9.4:@pom
 org.sonarsource.java:sonar-java-plugin:7.15.0.30507:@sonar-plugin
-org.sonarsource.javascript:sonar-javascript-plugin:9.11.0.20161:@sonar-plugin
+org.sonarsource.javascript:sonar-javascript-plugin:9.11.1.20218:@sonar-plugin
 org.sonarsource.kotlin:sonar-kotlin-plugin:2.11.0.1828
 org.sonarsource.slang:sonar-ruby-plugin:1.11.0.3905
 org.sonarsource.slang:sonar-scala-plugin:1.11.0.3905
