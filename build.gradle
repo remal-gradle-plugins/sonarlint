@@ -6,7 +6,7 @@ buildscript {
     String pluginRootSnapshotVersion = project.ext.pluginRootSnapshotVersion = '2-SNAPSHOT'
     dependencies {
         //classpath("$pluginRootGroupId:$pluginRootArtifactId:$pluginRootSnapshotVersion") { version { strictly(pluginRootSnapshotVersion) } }
-        classpath 'name.remal.gradle-plugins.toolkit:build-logic:0.41.2'
+        classpath 'name.remal.gradle-plugins.toolkit:build-logic:0.42.0'
     }
     repositories {
         mavenCentral()
