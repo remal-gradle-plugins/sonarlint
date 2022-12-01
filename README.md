@@ -2,6 +2,8 @@
 
 # `name.remal.sonarlint` plugin
 
+[![configuration% cache: not supported](https://img.shields.io/static/v1?label=configuration%20cache&message=not%20supported&color=critical)](https://docs.gradle.org/current/userguide/configuration_cache.html)
+
 This plugin executes [SonarLint](https://www.sonarlint.org/) inspections without connecting to a SonarQube server.
 
 The plugin uses these Sonar plugins:

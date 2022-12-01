@@ -30,6 +30,8 @@ class SonarLintPluginFunctionalTest {
             build.append("sonarLint.ignoreFailures = true");
             build.registerDefaultTask("sonarlintMain");
         });
+
+        project.withoutConfigurationCache();
     }
 
     private List<Issue> parseSonarLintIssues() {
