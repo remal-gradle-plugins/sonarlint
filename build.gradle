@@ -130,7 +130,7 @@ dependencies {
     sonarPluginArtifacts 'org.sonarsource.slang:sonar-ruby-plugin:1.11.0.3905'
     sonarPluginArtifacts 'org.sonarsource.slang:sonar-scala-plugin:1.11.0.3905'
     sonarPluginArtifacts 'org.sonarsource.xml:sonar-xml-plugin:2.6.1.3686'
-    sonarPluginArtifacts 'org.sonarsource.javascript:sonar-javascript-plugin:9.11.1.20218'
+    sonarPluginArtifacts 'org.sonarsource.javascript:sonar-javascript-plugin:9.12.0.20319'
 
     // Plugins for languages that highly unlikely are built with Gradle:
     //sonarPluginArtifacts 'org.sonarsource.php:sonar-php-plugin:3.25.0.9077'
