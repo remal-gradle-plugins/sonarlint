@@ -6,7 +6,6 @@ import static java.lang.Boolean.TRUE;
 import static java.lang.Math.toIntExact;
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.nio.file.Files.createDirectories;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.unmodifiableCollection;
 import static java.util.stream.Collectors.toList;
@@ -17,9 +16,9 @@ import static name.remal.gradleplugins.sonarlint.CanonizationUtils.canonizeRules
 import static name.remal.gradleplugins.sonarlint.CanonizationUtils.canonizeRulesProperties;
 import static name.remal.gradleplugins.sonarlint.NodeJsVersions.LATEST_NODEJS_LTS_VERSION;
 import static name.remal.gradleplugins.sonarlint.SonarDependencies.getSonarDependency;
-import static name.remal.gradleplugins.sonarlint.shared.RunnerParams.newRunnerParamsBuilder;
-import static name.remal.gradleplugins.sonarlint.shared.SourceFile.newSourceFileBuilder;
+import static name.remal.gradleplugins.sonarlint.internal.SourceFile.newSourceFileBuilder;
 import static name.remal.gradleplugins.toolkit.ExtensionContainerUtils.findExtension;
+import static name.remal.gradleplugins.toolkit.FileUtils.normalizeFile;
 import static name.remal.gradleplugins.toolkit.JavaLauncherUtils.getJavaLauncherProviderFor;
 import static name.remal.gradleplugins.toolkit.ObjectUtils.defaultFalse;
 import static name.remal.gradleplugins.toolkit.ObjectUtils.defaultTrue;
@@ -29,6 +28,7 @@ import static name.remal.gradleplugins.toolkit.PathUtils.normalizePath;
 import static name.remal.gradleplugins.toolkit.PredicateUtils.not;
 import static name.remal.gradleplugins.toolkit.ProjectUtils.getTopLevelDirOf;
 import static name.remal.gradleplugins.toolkit.ServiceRegistryUtils.getService;
+import static name.remal.gradleplugins.toolkit.SneakyThrowUtils.sneakyThrow;
 import static name.remal.gradleplugins.toolkit.git.GitUtils.findGitRepositoryRootFor;
 import static name.remal.gradleplugins.toolkit.xml.DomUtils.streamNodeList;
 import static name.remal.gradleplugins.toolkit.xml.XmlUtils.parseXml;
@@ -49,13 +49,12 @@ import lombok.CustomLog;
 import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.val;
-import name.remal.gradleplugins.sonarlint.shared.RunnerCommand;
-import name.remal.gradleplugins.sonarlint.shared.SourceFile;
+import name.remal.gradleplugins.sonarlint.internal.SonarLintCommand;
+import name.remal.gradleplugins.sonarlint.internal.SourceFile;
 import name.remal.gradleplugins.toolkit.EditorConfig;
+import name.remal.gradleplugins.toolkit.FileUtils;
 import name.remal.gradleplugins.toolkit.ObjectUtils;
-import name.remal.gradleplugins.toolkit.PathUtils;
 import name.remal.gradleplugins.toolkit.Version;
-import name.remal.gradleplugins.toolkit.classpath.ClasspathFiles;
 import org.gradle.api.JavaVersion;
 import org.gradle.api.artifacts.ResolvedDependency;
 import org.gradle.api.file.Directory;
@@ -97,7 +96,7 @@ abstract class BaseSonarLintActions {
 
     @SneakyThrows
     @SuppressWarnings("java:S3776")
-    public static void execute(BaseSonarLint task, RunnerCommand runnerCommand) {
+    public static void execute(BaseSonarLint task, SonarLintCommand command) {
         val generatedCodeIgnored = defaultTrue(task.getIsGeneratedCodeIgnored().getOrNull());
         val sourceFiles = collectSourceFiles(task);
 
@@ -158,37 +157,6 @@ abstract class BaseSonarLintActions {
 
 
         val project = task.getProject();
-        val tempDir = normalizePath(task.getTemporaryDir().toPath());
-        val runnerParamsFile = tempDir.resolve("runner-params.json");
-
-        newRunnerParamsBuilder()
-            .ignoreFailures(task instanceof VerificationTask && ((VerificationTask) task).getIgnoreFailures())
-            .command(runnerCommand)
-            .sonarLintMajorVersion(getSonarLintMajorVersion(task))
-            .projectDir(normalizePath(project.getProjectDir().toPath()))
-            .generatedCodeIgnored(generatedCodeIgnored)
-            .addBaseGeneratedDir(normalizePath(project.getBuildDir().toPath()))
-            .homeDir(createDirectories(tempDir.resolve("home")))
-            .workDir(createDirectories(tempDir.resolve("work")))
-            .toolClasspath(task.getToolClasspath().getFiles().stream()
-                .filter(File::exists)
-                .map(File::toPath)
-                .map(PathUtils::normalizePath)
-                .collect(toList())
-            )
-            .files(sourceFiles)
-            .enabledRules(task.getEnabledRules().get())
-            .disabledRules(task.getDisabledRules().get())
-            .addAllDisabledRules(getDisabledRulesFromCheckstyleConfig(task))
-            .addAllDisabledRules(getDisabledRulesConflictingWithLombok(task))
-            .sonarProperties(sonarProperties)
-            .defaultNodeJsVersion(LATEST_NODEJS_LTS_VERSION)
-            .rulesProperties(task.getRulesProperties().get())
-            .xmlReportLocation(getSonarLintReportPath(task, SonarLintReports::getXml))
-            .htmlReportLocation(getSonarLintReportPath(task, SonarLintReports::getHtml))
-            .build()
-            .writeTo(runnerParamsFile);
-
 
         final WorkQueue workQueue;
         {
@@ -222,7 +190,32 @@ abstract class BaseSonarLintActions {
         }
 
         workQueue.submit(SonarLintAction.class, params -> {
-            params.getRunnerParamsFile().fileValue(runnerParamsFile.toFile());
+            val tempDir = normalizeFile(task.getTemporaryDir());
+
+            params.getIsIgnoreFailures().set(isIgnoreFailures(task));
+            params.getCommand().set(command);
+            params.getSonarLintMajorVersion().set(getSonarLintMajorVersion(task));
+            params.getProjectDir().set(normalizeFile(project.getProjectDir()));
+            params.getIsGeneratedCodeIgnored().set(generatedCodeIgnored);
+            params.getBaseGeneratedDirs().add(project.getLayout().getBuildDirectory());
+            params.getHomeDir().set(new File(tempDir, "home"));
+            params.getWorkDir().set(new File(tempDir, "work"));
+            params.getToolClasspath().from(task.getToolClasspath().getFiles().stream()
+                .filter(File::exists)
+                .map(FileUtils::normalizeFile)
+                .distinct()
+                .collect(toList())
+            );
+            params.getSourceFiles().set(sourceFiles);
+            params.getEnabledRules().set(task.getEnabledRules());
+            params.getDisabledRules().set(task.getDisabledRules());
+            params.getDisabledRules().addAll(getDisabledRulesFromCheckstyleConfig(task));
+            params.getDisabledRules().addAll(getDisabledRulesConflictingWithLombok(task));
+            params.getSonarProperties().set(sonarProperties);
+            params.getDefaultNodeJsVersion().set(LATEST_NODEJS_LTS_VERSION);
+            params.getRulesProperties().set(task.getRulesProperties());
+            params.getXmlReportLocation().set(getSonarLintReportFile(task, SonarLintReports::getXml));
+            params.getHtmlReportLocation().set(getSonarLintReportFile(task, SonarLintReports::getHtml));
         });
     }
 
@@ -236,24 +229,46 @@ abstract class BaseSonarLintActions {
         return topLevelDir;
     }
 
+    private static boolean isIgnoreFailures(BaseSonarLint task) {
+        if (task instanceof VerificationTask) {
+            return ((VerificationTask) task).getIgnoreFailures();
+        }
+        return false;
+    }
+
     @SneakyThrows
     private static int getSonarLintMajorVersion(BaseSonarLint task) {
-        val javaVersion = Optional.ofNullable(task.getJavaLauncher().getOrNull())
-            .map(JavaLauncher::getMetadata)
-            .map(JavaInstallationMetadata::getLanguageVersion)
-            .map(JavaLanguageVersion::asInt)
-            .map(JavaVersion::toVersion)
-            .orElseGet(JavaVersion::current);
-        val classpath = new ClasspathFiles(task.getToolClasspath(), javaVersion);
-        try (val inputStream = classpath.openStream("sonarlint-api-version.txt")) {
-            if (inputStream != null) {
-                val bytes = toByteArray(inputStream);
-                val content = new String(bytes, UTF_8).trim();
-                if (!content.isEmpty()) {
-                    val version = Version.parse(content);
-                    return toIntExact(version.getNumber(0));
-                }
+        AtomicInteger sonarLintMajorVersionFromClasspath = new AtomicInteger(-1);
+        FileTree classpathFileTree = task.getProject().files().getAsFileTree();
+        for (val file : task.getToolClasspath()) {
+            if (file.isDirectory()) {
+                classpathFileTree = classpathFileTree.plus(task.getProject().fileTree(file));
+            } else if (file.isFile()) {
+                classpathFileTree = classpathFileTree.plus(task.getProject().zipTree(file));
             }
+        }
+        classpathFileTree
+            .matching(it -> it.include("sonarlint-api-version.txt"))
+            .visit(details -> {
+                if (details.isDirectory()) {
+                    return;
+                }
+
+                try (val inputStream = details.open()) {
+                    val bytes = toByteArray(inputStream);
+                    val content = new String(bytes, UTF_8).trim();
+                    if (!content.isEmpty()) {
+                        val version = Version.parse(content);
+                        val majorVersion = toIntExact(version.getNumber(0));
+                        sonarLintMajorVersionFromClasspath.set(majorVersion);
+                        details.stopVisiting();
+                    }
+                } catch (Exception e) {
+                    throw sneakyThrow(e);
+                }
+            });
+        if (sonarLintMajorVersionFromClasspath.get() >= 0) {
+            return sonarLintMajorVersionFromClasspath.get();
         }
 
         val configuration = task.getProject().getConfigurations().findByName("sonarlint");
@@ -411,15 +426,14 @@ abstract class BaseSonarLintActions {
     }
 
     @Nullable
-    private static Path getSonarLintReportPath(BaseSonarLint task, Function<SonarLintReports, Report> reportGetter) {
+    private static File getSonarLintReportFile(BaseSonarLint task, Function<SonarLintReports, Report> reportGetter) {
         return getSonarLintReports(task)
             .map(reportGetter)
             .filter(report -> !FALSE.equals(report.getRequired().getOrNull()))
             .map(Report::getOutputLocation)
             .map(Provider::getOrNull)
             .map(FileSystemLocation::getAsFile)
-            .map(File::toPath)
-            .map(PathUtils::normalizePath)
+            .map(FileUtils::normalizeFile)
             .orElse(null);
     }
 

@@ -6,7 +6,7 @@ buildscript {
     String pluginRootSnapshotVersion = project.ext.pluginRootSnapshotVersion = '2-SNAPSHOT'
     dependencies {
         //classpath("$pluginRootGroupId:$pluginRootArtifactId:$pluginRootSnapshotVersion") { version { strictly(pluginRootSnapshotVersion) } }
-        classpath 'name.remal.gradle-plugins.toolkit:build-logic:0.45.0'
+        classpath 'name.remal.gradle-plugins.toolkit:build-logic:0.49.0'
     }
     repositories {
         mavenCentral()
@@ -30,12 +30,6 @@ allprojects {
 
             relocateClasses 'com.google.guava:guava'
         }
-
-        if (project.path != ':shared') {
-            dependencies {
-                relocateClasses project(':shared')
-            }
-        }
     }
 }
 
@@ -45,7 +39,7 @@ apply plugin: 'java-gradle-plugin'
 apply plugin: 'name.remal.generate-sources'
 
 dependencies {
-    relocateClasses 'name.remal.gradle-plugins.toolkit:classpath'
+    optional('org.sonarsource.sonarlint.core:sonarlint-core:8.11.0.56591') { transitive = false }
 }
 
 gradlePlugin {

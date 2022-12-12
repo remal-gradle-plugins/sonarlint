@@ -1,6 +1,6 @@
 package name.remal.gradleplugins.sonarlint;
 
-import static name.remal.gradleplugins.sonarlint.shared.RunnerCommand.ANALYSE;
+import static name.remal.gradleplugins.sonarlint.internal.SonarLintCommand.ANALYSE;
 import static name.remal.gradleplugins.toolkit.ExtensionContainerUtils.findExtension;
 import static name.remal.gradleplugins.toolkit.ReportContainerUtils.setTaskReportDestinationsAutomatically;
 import static org.gradle.language.base.plugins.LifecycleBasePlugin.VERIFICATION_GROUP;
