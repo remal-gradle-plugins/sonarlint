@@ -8,8 +8,6 @@ import static java.util.Collections.singletonList;
 import static java.util.Collections.unmodifiableCollection;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
-import static name.remal.gradleplugins.sonarlint.BuildInfo.PLUGIN_GROUP_ID;
-import static name.remal.gradleplugins.sonarlint.BuildInfo.PLUGIN_VERSION;
 import static name.remal.gradleplugins.sonarlint.CanonizationUtils.canonizeProperties;
 import static name.remal.gradleplugins.sonarlint.CanonizationUtils.canonizeRules;
 import static name.remal.gradleplugins.sonarlint.CanonizationUtils.canonizeRulesProperties;
@@ -24,6 +22,10 @@ import static name.remal.gradleplugins.toolkit.SourceSetUtils.isSourceSetTask;
 import static name.remal.gradleplugins.toolkit.SourceSetUtils.whenTestSourceSetRegistered;
 import static org.gradle.api.artifacts.ExcludeRule.GROUP_KEY;
 import static org.gradle.api.artifacts.ExcludeRule.MODULE_KEY;
+import static org.gradle.api.attributes.Category.CATEGORY_ATTRIBUTE;
+import static org.gradle.api.attributes.Category.LIBRARY;
+import static org.gradle.api.attributes.Usage.JAVA_RUNTIME;
+import static org.gradle.api.attributes.Usage.USAGE_ATTRIBUTE;
 
 import com.google.common.collect.ImmutableMap;
 import java.io.File;
@@ -40,9 +42,11 @@ import javax.annotation.Nullable;
 import lombok.CustomLog;
 import lombok.val;
 import name.remal.gradleplugins.toolkit.ObjectUtils;
-import name.remal.gradleplugins.toolkit.ReliesOnInternalGradleApi;
+import name.remal.gradleplugins.toolkit.annotations.ReliesOnInternalGradleApi;
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.Dependency;
+import org.gradle.api.attributes.Category;
+import org.gradle.api.attributes.Usage;
 import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.internal.tasks.compile.HasCompileOptions;
 import org.gradle.api.plugins.quality.Checkstyle;
@@ -72,8 +76,9 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
         return SonarLint.class;
     }
 
-    protected String getRunnerConfigurationName() {
-        return getConfigurationName() + "Runner";
+    @Override
+    protected String getConfigurationName() {
+        return super.getConfigurationName() + "Core";
     }
 
     protected String getPluginsConfigurationName() {
@@ -81,7 +86,7 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
     }
 
     protected String getClasspathConfigurationName() {
-        return getConfigurationName() + "ToolClasspath";
+        return getConfigurationName() + "Classpath";
     }
 
     @Override
@@ -101,25 +106,9 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
         super.createConfigurations();
 
         {
-            val runnerConfiguration = project.getConfigurations().create(getRunnerConfigurationName());
-            runnerConfiguration.setDescription("The " + getToolName() + " runner to be used for this project.");
-            configureSonarLintConfiguration(runnerConfiguration);
-
-            runnerConfiguration.defaultDependencies(dependencies -> {
-                dependencies.add(
-                    project.getDependencies().create(ImmutableMap.of(
-                        "group", PLUGIN_GROUP_ID,
-                        "name", "runner",
-                        "version", PLUGIN_VERSION
-                    ))
-                );
-            });
-        }
-
-        {
             val pluginsConfiguration = project.getConfigurations().create(getPluginsConfigurationName());
-            pluginsConfiguration.setDescription(getToolName() + " plugins to be used for this project.");
             configureSonarLintConfiguration(pluginsConfiguration);
+            pluginsConfiguration.setDescription(getToolName() + " plugins to be used for this project.");
 
             getSonarDependencies().values().stream()
                 .filter(sonarDependency -> sonarDependency.getType() == SonarDependencyType.PLUGIN)
@@ -132,11 +121,11 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
 
         {
             val classpathConfiguration = project.getConfigurations().create(getClasspathConfigurationName());
-            classpathConfiguration.setDescription("Full " + getToolName() + " classpath to be used for this project.");
             configureSonarLintConfiguration(classpathConfiguration);
+            classpathConfiguration.setCanBeResolved(true);
+            classpathConfiguration.setDescription("Full " + getToolName() + " classpath to be used for this project.");
 
             classpathConfiguration.extendsFrom(
-                project.getConfigurations().getByName(getRunnerConfigurationName()),
                 project.getConfigurations().getByName(getConfigurationName()),
                 project.getConfigurations().getByName(getPluginsConfigurationName())
             );
@@ -397,6 +386,20 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
     private void configureSonarLintConfiguration(Configuration configuration) {
         configuration.setVisible(false);
         configuration.setCanBeConsumed(false);
+        configuration.setCanBeResolved(false);
+
+
+        configuration.attributes(attrs -> {
+            attrs.attribute(
+                USAGE_ATTRIBUTE,
+                project.getObjects().named(Usage.class, JAVA_RUNTIME)
+            );
+            attrs.attribute(
+                CATEGORY_ATTRIBUTE,
+                project.getObjects().named(Category.class, LIBRARY)
+            );
+        });
+
 
         configuration.exclude(ImmutableMap.of(
             GROUP_KEY, "ch.qos.logback",

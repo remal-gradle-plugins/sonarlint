@@ -1,0 +1,60 @@
+import static java.nio.charset.StandardCharsets.UTF_8
+
+import java.nio.file.Files
+import java.util.zip.ZipEntry
+import java.util.zip.ZipInputStream
+import java.util.zip.ZipOutputStream
+
+allprojects {
+    if (gradle.startParameter.taskNames.isEmpty() || gradle.startParameter.taskNames == ['processIdeaSettings']) return
+
+    configurations
+        .matching { !it.name.startsWith('sonar') }
+        .all { Configuration conf ->
+            if (conf.state != Configuration.State.UNRESOLVED) return
+
+            conf.dependencies.all { Dependency dep ->
+                if (!(dep instanceof ExternalModuleDependency)) return
+                if ("${dep.group}:${dep.name}" != 'org.sonarsource.sonarlint.core:sonarlint-core') return
+
+                conf.dependencies.remove(dep)
+
+                FileCollection unshadedFiles = project.files(
+                    project.provider {
+                        Configuration tempConf = configurations.detachedConfiguration(project.dependencies.create("${dep.group}:${dep.name}:${dep.version}"))
+                        tempConf.extendsFrom(configurations.projectDependencyConstraints)
+                        Collection<File> files = tempConf.resolvedConfiguration.resolvedArtifacts
+                            .findAll { "${dep.group}:${dep.name}" == "${it.id.componentIdentifier.group}:${it.id.componentIdentifier.module}" }
+                            .collect { it.file }
+                        Collection<File> unshadedFiles = []
+                        File cacheDir = project.file('build/tmp/unshaded')
+                        for (File file : files) {
+                            File outputFile = new File(cacheDir, file.name)
+                            unshadedFiles.add(outputFile)
+                            if (outputFile.exists() && outputFile.lastModified() >= rootProject.buildFile.lastModified()) continue
+
+                            Files.createDirectories(outputFile.parentFile.toPath())
+                            new ZipInputStream(new FileInputStream(file), UTF_8).withCloseable { ZipInputStream inputStream ->
+                                new ZipOutputStream(new FileOutputStream(outputFile), UTF_8).withCloseable { ZipOutputStream outputStream ->
+                                    while (true) {
+                                        ZipEntry zipEntry = inputStream.nextEntry
+                                        if (zipEntry == null) break
+
+                                        if (zipEntry.name.contains('/shaded/')) continue
+
+                                        if (!zipEntry.name.contains('sonar') && !zipEntry.name.startsWith('META-INF/')) continue
+
+                                        outputStream.putNextEntry(zipEntry)
+                                        outputStream << inputStream
+                                    }
+                                }
+                            }
+                        }
+                        return unshadedFiles
+                    }
+                )
+
+                conf.dependencies.add(project.dependencies.create(unshadedFiles))
+            }
+        }
+}

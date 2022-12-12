@@ -1,7 +1,5 @@
 rootProject.name = 'sonarlint'
 
 include(
-    ':shared',
-    ':runner:cross-compile--common',
-    ':runner',
+    ':cross-compile--common',
 )

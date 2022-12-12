@@ -1,0 +1,7 @@
+apply plugin: 'java-library'
+
+dependencies {
+    optional 'name.remal.gradle-api:gradle-api'
+
+    testImplementation 'com.google.guava:guava'
+}

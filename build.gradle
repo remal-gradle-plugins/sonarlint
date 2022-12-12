@@ -6,7 +6,7 @@ buildscript {
     String pluginRootSnapshotVersion = project.ext.pluginRootSnapshotVersion = '2-SNAPSHOT'
     dependencies {
         //classpath("$pluginRootGroupId:$pluginRootArtifactId:$pluginRootSnapshotVersion") { version { strictly(pluginRootSnapshotVersion) } }
-        classpath 'name.remal.gradle-plugins.toolkit:build-logic:0.45.0'
+        classpath 'name.remal.gradle-plugins.toolkit:build-logic:0.49.1'
     }
     repositories {
         mavenCentral()
@@ -23,29 +23,16 @@ allprojects {
 
 apply plugin: 'name.remal.toolkit.build-logic'
 
-allprojects {
-    pluginManager.withPlugin('java') {
-        dependencies {
-            optional 'name.remal.gradle-api:gradle-api'
-
-            relocateClasses 'com.google.guava:guava'
-        }
-
-        if (project.path != ':shared') {
-            dependencies {
-                relocateClasses project(':shared')
-            }
-        }
-    }
-}
-
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 apply plugin: 'java-gradle-plugin'
 apply plugin: 'name.remal.generate-sources'
+apply from: 'unshade-sonarlint-core.gradle'
 
 dependencies {
-    relocateClasses 'name.remal.gradle-plugins.toolkit:classpath'
+    relocateClasses 'com.google.guava:guava'
+
+    optional('org.sonarsource.sonarlint.core:sonarlint-core:8.11.0.56591') { transitive = false }
 }
 
 gradlePlugin {
@@ -55,23 +42,6 @@ gradlePlugin {
             implementationClass = 'name.remal.gradleplugins.sonarlint.SonarLintPlugin'
             displayName = 'SonarLint'
             description = property('repository-description')
-        }
-    }
-}
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-tasks.named('generateJava') {
-    inputs.property('project.group', project.provider { project.group })
-    inputs.property('project.name', project.provider { project.name })
-    inputs.property('project.version', project.provider { project.version })
-    classFile('name.remal.gradleplugins.sonarlint', 'BuildInfo') {
-        it.writePackage()
-        it.println("")
-        it.writeBlock("interface ${it.simpleName}") {
-            it.println("String PLUGIN_GROUP_ID = \"${it.escapeJava(project.group.toString())}\";")
-            it.println("String PLUGIN_ARTIFACT_ID = \"${it.escapeJava(project.name.toString())}\";")
-            it.println("String PLUGIN_VERSION = \"${it.escapeJava(project.version.toString())}\";")
         }
     }
 }
@@ -232,6 +202,8 @@ tasks.named('generateJava') { Task task ->
         }
     }
 }
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 tasks.named('processReadme') {
     readmeFileProcessors.add(

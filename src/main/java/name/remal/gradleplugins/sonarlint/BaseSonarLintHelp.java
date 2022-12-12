@@ -2,7 +2,7 @@ package name.remal.gradleplugins.sonarlint;
 
 import static org.gradle.api.plugins.HelpTasksPlugin.HELP_GROUP;
 
-import name.remal.gradleplugins.sonarlint.shared.RunnerCommand;
+import name.remal.gradleplugins.sonarlint.internal.SonarLintCommand;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.tasks.Internal;
 import org.gradle.api.tasks.TaskAction;
@@ -19,7 +19,7 @@ abstract class BaseSonarLintHelp
     }
 
     @Internal
-    protected abstract RunnerCommand getRunnerCommand();
+    protected abstract SonarLintCommand getRunnerCommand();
 
     @TaskAction
     public void execute() {
