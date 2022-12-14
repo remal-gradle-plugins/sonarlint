@@ -2,6 +2,7 @@
 # Do not modify it yourself unless you know what you are doing.
 
 Node.js:lts:18.12.1
+classes-that-rely-on-gradle-internal-api:dd0cd41ad4af5f1fefab8098d31ee0c5ff46a7227dc94818228f6a72f3f70e1a
 org.ow2.asm:asm-bom:9.4:@pom
 org.sonarsource.java:sonar-java-plugin:7.15.0.30507:@sonar-plugin
 org.sonarsource.javascript:sonar-javascript-plugin:9.12.0.20319:@sonar-plugin
