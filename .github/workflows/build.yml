@@ -18,6 +18,12 @@ defaults:
 env:
   GRADLE_OPTS: -Dorg.gradle.parallel=true -Dorg.gradle.workers.max=4 -Dorg.gradle.warning.mode=all -Dorg.gradle.daemon=true -Dhttp.keepAlive=false -Dsun.net.client.defaultConnectTimeout=15000 -Dsun.net.client.defaultReadTimeout=600000 -Dsun.net.http.retryPost=false -Dsun.io.useCanonCaches=false -Djava.awt.headless=true -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
   GIT_REF: ${{github.ref}}
+  GIT_SHA: ${{github.sha}}
+  GITHUB_ACTIONS_TOKEN: ${{github.token}}
+  GITHUB_ACTIONS_RUN_ID: ${{github.run_id}}
+  GITHUB_ACTIONS_RUN_ATTEMPT: ${{github.run_attempt}}
+  GITHUB_ACTIONS_JOB: ${{github.job}}
+  GITHUB_ACTIONS_JOB_INDEX: ${{github.job_index||'0'}}
 
 jobs:
   populate-cache:
@@ -91,6 +97,7 @@ jobs:
       env:
         REPOSITORY_NAME: ${{fromJSON(steps.repository-info.outputs.result).name}}
         REPOSITORY_FULL_NAME: ${{fromJSON(steps.repository-info.outputs.result).fullName}}
+        REPOSITORY_API_URL: ${{fromJSON(steps.repository-info.outputs.result).url}}
         REPOSITORY_HTML_URL: ${{fromJSON(steps.repository-info.outputs.result).htmlUrl}}
         REPOSITORY_DESCRIPTION: ${{fromJSON(steps.repository-info.outputs.result).description}}
         REPOSITORY_TOPICS: ${{fromJSON(steps.repository-info.outputs.result).topicsString}}
@@ -101,6 +108,7 @@ jobs:
       run: |
         echo "REPOSITORY_NAME=$REPOSITORY_NAME" >> "$GITHUB_ENV"
         echo "REPOSITORY_FULL_NAME=$REPOSITORY_FULL_NAME" >> "$GITHUB_ENV"
+        echo "REPOSITORY_API_URL=$REPOSITORY_API_URL" >> "$GITHUB_ENV"
         echo "REPOSITORY_HTML_URL=$REPOSITORY_HTML_URL" >> "$GITHUB_ENV"
         echo "REPOSITORY_DESCRIPTION=$REPOSITORY_DESCRIPTION" >> "$GITHUB_ENV"
         echo "REPOSITORY_TOPICS=$REPOSITORY_TOPICS" >> "$GITHUB_ENV"
@@ -108,6 +116,9 @@ jobs:
         echo "REPOSITORY_OWNER_NAME=$REPOSITORY_OWNER_NAME" >> "$GITHUB_ENV"
         echo "REPOSITORY_LICENSE_NAME=$REPOSITORY_LICENSE_NAME" >> "$GITHUB_ENV"
         echo "REPOSITORY_LICENSE_HTML_URL=$REPOSITORY_LICENSE_HTML_URL" >> "$GITHUB_ENV"
+    - name: Submit dependencies to GitHub
+      run: |
+        ./gradlew-retry-connection-timeouts githubSubmitDependencies
     - name: Compile classes
       run: |
         ./gradlew-retry-connection-timeouts allClasses
