@@ -154,7 +154,7 @@ jobs:
         name: workspace
         path: '/tmp/workspace-${{github.run_id}}.tar.gz'
         if-no-files-found: error
-        retention-days: 1
+        retention-days: 90
     - name: Read min supported Gradle version
       id: min-gradle-version
       uses: remal-github-actions/read-property@v1
