@@ -32,7 +32,7 @@ apply from: 'unshade-sonarlint-core.gradle'
 dependencies {
     relocateClasses 'com.google.guava:guava'
 
-    optional('org.sonarsource.sonarlint.core:sonarlint-core:8.11.0.56591') { transitive = false }
+    optional('org.sonarsource.sonarlint.core:sonarlint-core:8.12.0.58811') { transitive = false }
 }
 
 gradlePlugin {
@@ -91,7 +91,7 @@ createSonarArtifactsConfiguration('sonarPluginArtifacts')
 
 dependencies {
     // Core:
-    sonarCoreArtifacts 'org.sonarsource.sonarlint.core:sonarlint-core:8.11.0.56591'
+    sonarCoreArtifacts 'org.sonarsource.sonarlint.core:sonarlint-core:8.12.0.58811'
 
 
     // Plugins:
