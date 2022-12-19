@@ -27,6 +27,7 @@ public class RulesDocumentation implements Documentation {
 
     public void rule(String ruleKey, Consumer<RuleDoc> action) {
         val ruleDoc = new RuleDoc();
+        ruleDoc.setName(ruleKey);
         action.accept(ruleDoc);
         rules.put(ruleKey, ruleDoc);
     }

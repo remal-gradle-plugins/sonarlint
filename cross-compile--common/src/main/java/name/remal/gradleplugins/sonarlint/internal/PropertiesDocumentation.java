@@ -20,6 +20,7 @@ public class PropertiesDocumentation implements Documentation {
 
     public void property(String propertyKey, Consumer<PropertyDocumentation> action) {
         val propertyDocumentation = new PropertyDocumentation();
+        propertyDocumentation.setName(propertyKey);
         action.accept(propertyDocumentation);
         properties.put(propertyKey, propertyDocumentation);
     }

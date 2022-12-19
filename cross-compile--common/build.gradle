@@ -1,7 +1,7 @@
 apply plugin: 'java-library'
 
 dependencies {
-    optional 'name.remal.gradle-api:gradle-api'
+    optional('org.sonarsource.sonarlint.core:sonarlint-core:8.12.0.58811') { transitive = false }
 
     testImplementation 'com.google.guava:guava'
 }

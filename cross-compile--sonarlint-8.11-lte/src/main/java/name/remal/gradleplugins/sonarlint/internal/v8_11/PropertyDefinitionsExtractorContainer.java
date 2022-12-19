@@ -1,4 +1,4 @@
-package name.remal.gradleplugins.sonarlint.internal.latest;
+package name.remal.gradleplugins.sonarlint.internal.v8_11;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -17,7 +17,7 @@ public interface SonarLintExecutionParams extends WorkParameters {
 
     Property<SonarLintCommand> getCommand();
 
-    Property<Integer> getSonarLintMajorVersion();
+    Property<String> getSonarLintVersion();
 
     DirectoryProperty getProjectDir();
 
