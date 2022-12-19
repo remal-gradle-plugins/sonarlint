@@ -1,9 +1,7 @@
 package name.remal.gradleplugins.sonarlint;
 
-import static com.google.common.io.ByteStreams.toByteArray;
 import static java.lang.Boolean.FALSE;
 import static java.lang.Boolean.TRUE;
-import static java.lang.Math.toIntExact;
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.emptyList;
@@ -28,7 +26,6 @@ import static name.remal.gradleplugins.toolkit.PathUtils.normalizePath;
 import static name.remal.gradleplugins.toolkit.PredicateUtils.not;
 import static name.remal.gradleplugins.toolkit.ProjectUtils.getTopLevelDirOf;
 import static name.remal.gradleplugins.toolkit.ServiceRegistryUtils.getService;
-import static name.remal.gradleplugins.toolkit.SneakyThrowUtils.sneakyThrow;
 import static name.remal.gradleplugins.toolkit.git.GitUtils.findGitRepositoryRootFor;
 import static name.remal.gradleplugins.toolkit.xml.DomUtils.streamNodeList;
 import static name.remal.gradleplugins.toolkit.xml.XmlUtils.parseXml;
@@ -44,6 +41,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import javax.annotation.Nullable;
 import lombok.CustomLog;
 import lombok.NoArgsConstructor;
@@ -54,7 +52,6 @@ import name.remal.gradleplugins.sonarlint.internal.SourceFile;
 import name.remal.gradleplugins.toolkit.EditorConfig;
 import name.remal.gradleplugins.toolkit.FileUtils;
 import name.remal.gradleplugins.toolkit.ObjectUtils;
-import name.remal.gradleplugins.toolkit.Version;
 import org.gradle.api.JavaVersion;
 import org.gradle.api.artifacts.ResolvedDependency;
 import org.gradle.api.file.Directory;
@@ -194,7 +191,7 @@ abstract class BaseSonarLintActions {
 
             params.getIsIgnoreFailures().set(isIgnoreFailures(task));
             params.getCommand().set(command);
-            params.getSonarLintMajorVersion().set(getSonarLintMajorVersion(task));
+            params.getSonarLintVersion().set(getSonarLintVersion(task));
             params.getProjectDir().set(normalizeFile(project.getProjectDir()));
             params.getIsGeneratedCodeIgnored().set(generatedCodeIgnored);
             params.getBaseGeneratedDirs().add(project.getLayout().getBuildDirectory());
@@ -236,39 +233,17 @@ abstract class BaseSonarLintActions {
         return false;
     }
 
-    @SneakyThrows
-    private static int getSonarLintMajorVersion(BaseSonarLint task) {
-        AtomicInteger sonarLintMajorVersionFromClasspath = new AtomicInteger(-1);
-        FileTree classpathFileTree = task.getProject().files().getAsFileTree();
-        for (val file : task.getToolClasspath()) {
-            if (file.isDirectory()) {
-                classpathFileTree = classpathFileTree.plus(task.getProject().fileTree(file));
-            } else if (file.isFile()) {
-                classpathFileTree = classpathFileTree.plus(task.getProject().zipTree(file));
-            }
-        }
-        classpathFileTree
-            .matching(it -> it.include("sonarlint-api-version.txt"))
-            .visit(details -> {
-                if (details.isDirectory()) {
-                    return;
-                }
+    private static final Pattern SONARLINT_CORE_FILE_NAME = Pattern.compile(
+        "sonarlint-core-(\\d+(?:\\.\\d+){0,3}).*\\.jar"
+    );
 
-                try (val inputStream = details.open()) {
-                    val bytes = toByteArray(inputStream);
-                    val content = new String(bytes, UTF_8).trim();
-                    if (!content.isEmpty()) {
-                        val version = Version.parse(content);
-                        val majorVersion = toIntExact(version.getNumber(0));
-                        sonarLintMajorVersionFromClasspath.set(majorVersion);
-                        details.stopVisiting();
-                    }
-                } catch (Exception e) {
-                    throw sneakyThrow(e);
-                }
-            });
-        if (sonarLintMajorVersionFromClasspath.get() >= 0) {
-            return sonarLintMajorVersionFromClasspath.get();
+    @SneakyThrows
+    private static String getSonarLintVersion(BaseSonarLint task) {
+        for (val classpathFile : task.getToolClasspath().getFiles()) {
+            val matcher = SONARLINT_CORE_FILE_NAME.matcher(classpathFile.getName());
+            if (matcher.matches()) {
+                return matcher.group(1);
+            }
         }
 
         val configuration = task.getProject().getConfigurations().findByName("sonarlint");
@@ -281,17 +256,14 @@ abstract class BaseSonarLintActions {
                 .filter(dep -> Objects.equals(dep.getModuleName(), "sonarlint-core"))
                 .map(ResolvedDependency::getModuleVersion)
                 .filter(ObjectUtils::isNotEmpty)
-                .map(Version::parse)
                 .findFirst()
                 .orElse(null);
             if (version != null) {
-                return toIntExact(version.getNumber(0));
+                return version;
             }
         }
 
-        val versionString = getSonarDependency("sonarlint-core").getVersion();
-        val version = Version.parse(versionString);
-        return toIntExact(version.getNumber(0));
+        return getSonarDependency("sonarlint-core").getVersion();
     }
 
     private static Collection<SourceFile> collectSourceFiles(BaseSonarLint task) {

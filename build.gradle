@@ -1,3 +1,10 @@
+import static java.nio.charset.StandardCharsets.UTF_8
+
+import java.nio.file.Files
+import java.util.zip.ZipEntry
+import java.util.zip.ZipInputStream
+import java.util.zip.ZipOutputStream
+
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 buildscript {
@@ -25,13 +32,33 @@ apply plugin: 'name.remal.toolkit.build-logic'
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+project.registerCrossCompileDependencyInfo(
+    [
+        name               : 'sonarlint',
+        maxVersionNumbers  : 3,
+        dependencyNotations: [
+            'org.sonarsource.sonarlint.core:sonarlint-core',
+        ],
+    ]
+)
+
+allprojects {
+    pluginManager.withPlugin('java') {
+        dependencies {
+            relocateClasses 'name.remal.gradle-plugins.toolkit:toolkit'
+            relocateClasses 'com.google.guava:guava'
+
+            optional 'name.remal.gradle-api:gradle-api'
+        }
+    }
+}
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 apply plugin: 'java-gradle-plugin'
 apply plugin: 'name.remal.generate-sources'
-apply from: 'unshade-sonarlint-core.gradle'
 
 dependencies {
-    relocateClasses 'com.google.guava:guava'
-
     optional('org.sonarsource.sonarlint.core:sonarlint-core:8.12.0.58811') { transitive = false }
 }
 
@@ -238,4 +265,83 @@ tasks.named('processReadme') {
             readmeFile.setText(content, 'UTF-8')
         }
     )
+}
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+allprojects {
+    /*
+    if (gradle.startParameter.taskNames.isEmpty()
+        || gradle.startParameter.taskNames == ['processIdeaSettings']
+        || gradle.startParameter.taskNames == ['dependencies']
+        || gradle.startParameter.taskNames == ['help']
+    ) {
+        return
+    }
+    */
+
+    def artifactType = Attribute.of('artifactType', String)
+    def unshadedSonar = Attribute.of('unshaded', Boolean)
+    dependencies {
+        attributesSchema {
+            attribute(unshadedSonar)
+        }
+        artifactTypes.getByName('jar') {
+            attributes.attribute(unshadedSonar, false)
+        }
+    }
+
+    configurations
+        .matching { !it.name.startsWith('sonar') }
+        .all { Configuration conf ->
+            if (conf.state != Configuration.State.UNRESOLVED) return
+
+            conf.dependencies.withType(ExternalModuleDependency).configureEach { ExternalModuleDependency dep ->
+                if ("${dep.group}:${dep.name}" == 'org.sonarsource.sonarlint.core:sonarlint-core') {
+                    dep.attributes {
+                        attribute(unshadedSonar, true)
+                    }
+                }
+            }
+        }
+
+    dependencies {
+        registerTransform(UnshadeSonar) {
+            from.attribute(unshadedSonar, false).attribute(artifactType, 'jar')
+            to.attribute(unshadedSonar, true).attribute(artifactType, 'jar')
+        }
+    }
+}
+
+abstract class UnshadeSonar implements TransformAction<UnshadeParameters> {
+
+    interface UnshadeParameters extends TransformParameters {}
+
+    @InputArtifact
+    abstract Provider<FileSystemLocation> getInputArtifact()
+
+    @Override
+    void transform(TransformOutputs outputs) {
+        File file = inputArtifact.get().asFile
+        File outputFile = outputs.file(file.name)
+        if (outputFile.exists() && outputFile.lastModified() >= rootProject.buildFile.lastModified()) return
+
+        Files.createDirectories(outputFile.parentFile.toPath())
+        new ZipInputStream(new FileInputStream(file), UTF_8).withCloseable { ZipInputStream inputStream ->
+            new ZipOutputStream(new FileOutputStream(outputFile), UTF_8).withCloseable { ZipOutputStream outputStream ->
+                while (true) {
+                    ZipEntry zipEntry = inputStream.nextEntry
+                    if (zipEntry == null) break
+
+                    if (zipEntry.name.contains('/shaded/')) continue
+
+                    if (!zipEntry.name.contains('sonar') && !zipEntry.name.startsWith('META-INF/')) continue
+
+                    outputStream.putNextEntry(zipEntry)
+                    outputStream << inputStream
+                }
+            }
+        }
+    }
+
 }

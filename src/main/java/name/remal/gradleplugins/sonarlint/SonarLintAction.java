@@ -5,8 +5,8 @@ import static java.util.stream.Collectors.toList;
 import static name.remal.gradleplugins.sonarlint.internal.SonarLintCommand.ANALYSE;
 import static name.remal.gradleplugins.sonarlint.internal.SonarLintCommand.HELP_PROPERTIES;
 import static name.remal.gradleplugins.sonarlint.internal.SonarLintCommand.HELP_RULES;
-import static name.remal.gradleplugins.toolkit.CrossCompileServices.loadCrossCompileService;
-import static name.remal.gradleplugins.toolkit.CrossCompileVersionComparator.CrossCompileVersionComparisonResult.compareDependencyVersionToCurrentVersionObjects;
+import static name.remal.gradleplugins.sonarlint.internal.SonarLintServices.loadSonarLintService;
+import static name.remal.gradleplugins.toolkit.ObjectUtils.defaultValue;
 import static name.remal.gradleplugins.toolkit.ObjectUtils.isNotEmpty;
 import static name.remal.gradleplugins.toolkit.ProxyUtils.toDynamicInterface;
 
@@ -16,10 +16,10 @@ import lombok.CustomLog;
 import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.val;
-import name.remal.gradleplugins.sonarlint.internal.Documentation;
+import name.remal.gradleplugins.sonarlint.internal.SonarLintAnalyzer;
 import name.remal.gradleplugins.sonarlint.internal.SonarLintExecutionParams;
-import name.remal.gradleplugins.sonarlint.internal.SonarLintExecutor;
-import name.remal.gradleplugins.toolkit.Version;
+import name.remal.gradleplugins.sonarlint.internal.SonarLintPropertiesDocumentationCollector;
+import name.remal.gradleplugins.sonarlint.internal.SonarLintRulesDocumentationCollector;
 import name.remal.gradleplugins.toolkit.issues.CheckstyleHtmlIssuesRenderer;
 import name.remal.gradleplugins.toolkit.issues.CheckstyleXmlIssuesRenderer;
 import name.remal.gradleplugins.toolkit.issues.Issue;
@@ -36,23 +36,13 @@ abstract class SonarLintAction implements WorkAction<SonarLintExecutionParams> {
     public void execute() {
         val params = getParameters();
 
-        val sonarLintExecutor = loadCrossCompileService(SonarLintExecutor.class, (dependency, versionString) -> {
-            if (dependency.equals("sonarlint")) {
-                val version = Version.parse(versionString);
-                long majorVersion = version.getNumber(0);
-                long currentMajorVersion = params.getSonarLintMajorVersion().get();
-                return compareDependencyVersionToCurrentVersionObjects(majorVersion, currentMajorVersion);
-
-            } else {
-                return null;
-            }
-        });
-
-        sonarLintExecutor.init(params);
-
         val command = params.getCommand().get();
         if (command == ANALYSE) {
-            val untypedIssues = sonarLintExecutor.analyze();
+            val sonarLintAnalyzer = loadSonarLintService(
+                SonarLintAnalyzer.class,
+                params.getSonarLintVersion().get()
+            );
+            val untypedIssues = sonarLintAnalyzer.analyze(params);
             val issues = untypedIssues.stream()
                 .filter(Objects::nonNull)
                 .map(untypedIssue -> toDynamicInterface(untypedIssue, Issue.class))
@@ -80,13 +70,34 @@ abstract class SonarLintAction implements WorkAction<SonarLintExecutionParams> {
             }
 
         } else if (command == HELP_RULES) {
-            val untypedRulesDoc = sonarLintExecutor.collectRulesDocumentation();
-            val rulesDoc = toDynamicInterface(untypedRulesDoc, Documentation.class);
+            val rulesDocumentationCollector = loadSonarLintService(
+                SonarLintRulesDocumentationCollector.class,
+                params.getSonarLintVersion().get()
+            );
+            val rulesDoc = rulesDocumentationCollector.collectRulesDocumentation(params);
             logger.warn(rulesDoc.renderToText());
 
         } else if (command == HELP_PROPERTIES) {
-            val untypedPropertiesDoc = sonarLintExecutor.collectPropertiesDocumentation();
-            val propertiesDoc = toDynamicInterface(untypedPropertiesDoc, Documentation.class);
+            val propertiesDocumentationCollector = loadSonarLintService(
+                SonarLintPropertiesDocumentationCollector.class,
+                params.getSonarLintVersion().get()
+            );
+            val propertiesDoc = propertiesDocumentationCollector.collectPropertiesDocumentation(params);
+
+            propertiesDoc.property("sonar.nodejs.executable", propDef -> {
+                propDef.setName("Absolute path to Node.js executable");
+                propDef.setType("STRING");
+            });
+
+            propertiesDoc.property("sonar.nodejs.version", propDef -> {
+                propDef.setName("Node.js executable version");
+                propDef.setType("STRING");
+                propDef.setDescription("If 'sonar.nodejs.executable' property is not set or empty"
+                    + ", a value of this property will be taken as Node.js version"
+                );
+                propDef.setDefaultValue(defaultValue(params.getDefaultNodeJsVersion().getOrNull()));
+            });
+
             logger.warn(propertiesDoc.renderToText());
 
         } else {
