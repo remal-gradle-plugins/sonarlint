@@ -6,7 +6,7 @@ import static name.remal.gradleplugins.sonarlint.internal.RulesDocumentation.Rul
 import static name.remal.gradleplugins.sonarlint.internal.RulesDocumentation.RuleStatus.DISABLED_EXPLICITLY;
 import static name.remal.gradleplugins.sonarlint.internal.RulesDocumentation.RuleStatus.ENABLED_BY_DEFAULT;
 import static name.remal.gradleplugins.sonarlint.internal.RulesDocumentation.RuleStatus.ENABLED_EXPLICITLY;
-import static name.remal.gradleplugins.toolkit.ObjectUtils.isNotEmpty;
+import static name.remal.gradle_plugins.toolkit.ObjectUtils.isNotEmpty;
 
 import java.util.Collection;
 import java.util.LinkedHashSet;
@@ -19,7 +19,7 @@ import javax.annotation.Nullable;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
 import lombok.val;
-import name.remal.gradleplugins.toolkit.ObjectUtils;
+import name.remal.gradle_plugins.toolkit.ObjectUtils;
 
 public class RulesDocumentation implements Documentation {
 

@@ -8,11 +8,11 @@ import java.util.zip.ZipOutputStream
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 buildscript {
-    String pluginRootGroupId = project.ext.pluginRootGroupId = "name.remal.gradle-plugins.${rootProject.name}"
-    String pluginRootArtifactId = project.ext.pluginRootArtifactId = rootProject.name
-    String pluginRootSnapshotVersion = project.ext.pluginRootSnapshotVersion = '2-SNAPSHOT'
+    String rootGroupId = project.ext.rootGroupId = "name.remal.gradle-plugins.${rootProject.name}"
+    String rootArtifactId = project.ext.rootArtifactId = rootProject.name
+    String rootSnapshotVersion = project.ext.rootSnapshotVersion = '2-SNAPSHOT'
     dependencies {
-        //classpath("$pluginRootGroupId:$pluginRootArtifactId:$pluginRootSnapshotVersion") { version { strictly(pluginRootSnapshotVersion) } }
+        //classpath("$rootGroupId:$rootArtifactId:$rootSnapshotVersion") { version { strictly(rootSnapshotVersion) } }
         classpath 'name.remal.gradle-plugins.toolkit:build-logic:0.52.0'
     }
     repositories {
@@ -24,8 +24,8 @@ buildscript {
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 allprojects {
-    group = project.pluginRootGroupId
-    version = project.pluginRootSnapshotVersion
+    group = project.rootGroupId
+    version = project.rootSnapshotVersion
 }
 
 apply plugin: 'name.remal.toolkit.build-logic'
@@ -66,7 +66,7 @@ gradlePlugin {
     plugins {
         'name.remal.sonarlint' {
             id = 'name.remal.sonarlint'
-            implementationClass = 'name.remal.gradleplugins.sonarlint.SonarLintPlugin'
+            implementationClass = 'name.remal.gradle_plugins.sonarlint.SonarLintPlugin'
             displayName = 'SonarLint'
             description = property('repository-description')
         }
@@ -80,7 +80,7 @@ project.nonJavaApiDependencies.add(project.provider { 'Node.js:lts:' + ltsNodeJs
 
 tasks.named('generateJava') {
     inputs.property('ltsNodeJsVersion', ltsNodeJsVersion)
-    classFile('name.remal.gradleplugins.sonarlint', 'NodeJsVersions') {
+    classFile(project.calculateBaseJavaPackage(), 'NodeJsVersions') {
         it.writePackage()
         it.println("")
         it.writeBlock("interface ${it.simpleName}") {
@@ -155,7 +155,7 @@ dependencies {
 tasks.named('generateJava') { Task task ->
     inputs.files(configurations.sonarCoreArtifacts).withPropertyName('sonarCoreArtifacts').optional()
     inputs.files(configurations.sonarPluginArtifacts).withPropertyName('sonarPluginArtifacts').optional()
-    classFile('name.remal.gradleplugins.sonarlint', 'SonarDependencyType') {
+    classFile(project.calculateBaseJavaPackage(), 'SonarDependencyType') {
         it.writePackage()
         it.println("")
         it.writeBlock("enum ${it.simpleName}") {
@@ -164,7 +164,7 @@ tasks.named('generateJava') { Task task ->
             it.println(";")
         }
     }
-    classFile('name.remal.gradleplugins.sonarlint', 'SonarDependency') {
+    classFile(project.calculateBaseJavaPackage(), 'SonarDependency') {
         it.writePackage()
         it.println("")
         it.writeImport("lombok.Builder")
@@ -179,7 +179,7 @@ tasks.named('generateJava') { Task task ->
             it.println("String version;")
         }
     }
-    classFile('name.remal.gradleplugins.sonarlint', 'SonarDependencies') {
+    classFile(project.calculateBaseJavaPackage(), 'SonarDependencies') {
         it.writePackage()
         it.println("")
         it.writeStaticImport("lombok.AccessLevel", "PRIVATE")

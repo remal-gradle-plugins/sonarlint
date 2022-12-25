@@ -6,9 +6,9 @@ import static name.remal.gradleplugins.sonarlint.internal.SonarLintCommand.ANALY
 import static name.remal.gradleplugins.sonarlint.internal.SonarLintCommand.HELP_PROPERTIES;
 import static name.remal.gradleplugins.sonarlint.internal.SonarLintCommand.HELP_RULES;
 import static name.remal.gradleplugins.sonarlint.internal.SonarLintServices.loadSonarLintService;
-import static name.remal.gradleplugins.toolkit.ObjectUtils.defaultValue;
-import static name.remal.gradleplugins.toolkit.ObjectUtils.isNotEmpty;
-import static name.remal.gradleplugins.toolkit.ProxyUtils.toDynamicInterface;
+import static name.remal.gradle_plugins.toolkit.ObjectUtils.defaultValue;
+import static name.remal.gradle_plugins.toolkit.ObjectUtils.isNotEmpty;
+import static name.remal.gradle_plugins.toolkit.ProxyUtils.toDynamicInterface;
 
 import java.util.Objects;
 import javax.inject.Inject;
@@ -20,10 +20,10 @@ import name.remal.gradleplugins.sonarlint.internal.SonarLintAnalyzer;
 import name.remal.gradleplugins.sonarlint.internal.SonarLintExecutionParams;
 import name.remal.gradleplugins.sonarlint.internal.SonarLintPropertiesDocumentationCollector;
 import name.remal.gradleplugins.sonarlint.internal.SonarLintRulesDocumentationCollector;
-import name.remal.gradleplugins.toolkit.issues.CheckstyleHtmlIssuesRenderer;
-import name.remal.gradleplugins.toolkit.issues.CheckstyleXmlIssuesRenderer;
-import name.remal.gradleplugins.toolkit.issues.Issue;
-import name.remal.gradleplugins.toolkit.issues.TextIssuesRenderer;
+import name.remal.gradle_plugins.toolkit.issues.CheckstyleHtmlIssuesRenderer;
+import name.remal.gradle_plugins.toolkit.issues.CheckstyleXmlIssuesRenderer;
+import name.remal.gradle_plugins.toolkit.issues.Issue;
+import name.remal.gradle_plugins.toolkit.issues.TextIssuesRenderer;
 import org.gradle.workers.WorkAction;
 
 @NoArgsConstructor(onConstructor_ = {@Inject})

@@ -1,8 +1,8 @@
 package name.remal.gradleplugins.sonarlint.internal;
 
 import static lombok.AccessLevel.PRIVATE;
-import static name.remal.gradleplugins.toolkit.FunctionUtils.toIndentedString;
-import static name.remal.gradleplugins.toolkit.ObjectUtils.isNotEmpty;
+import static name.remal.gradle_plugins.toolkit.FunctionUtils.toIndentedString;
+import static name.remal.gradle_plugins.toolkit.ObjectUtils.isNotEmpty;
 
 import java.util.Optional;
 import java.util.SortedMap;
@@ -12,7 +12,7 @@ import javax.annotation.Nullable;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
 import lombok.val;
-import name.remal.gradleplugins.toolkit.ObjectUtils;
+import name.remal.gradle_plugins.toolkit.ObjectUtils;
 
 public class PropertiesDocumentation implements Documentation {
 

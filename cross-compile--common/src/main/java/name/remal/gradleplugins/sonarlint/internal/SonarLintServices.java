@@ -1,8 +1,8 @@
 package name.remal.gradleplugins.sonarlint.internal;
 
 import static lombok.AccessLevel.PRIVATE;
-import static name.remal.gradleplugins.toolkit.CrossCompileServices.loadCrossCompileService;
-import static name.remal.gradleplugins.toolkit.CrossCompileVersionComparator.standardVersionCrossCompileVersionComparator;
+import static name.remal.gradle_plugins.toolkit.CrossCompileServices.loadCrossCompileService;
+import static name.remal.gradle_plugins.toolkit.CrossCompileVersionComparator.standardVersionCrossCompileVersionComparator;
 
 import lombok.NoArgsConstructor;
 

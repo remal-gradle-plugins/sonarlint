@@ -4,7 +4,7 @@ import static java.lang.Math.floor;
 import static java.lang.Math.round;
 import static java.lang.Math.toIntExact;
 import static java.lang.String.format;
-import static name.remal.gradleplugins.toolkit.ObjectUtils.isNotEmpty;
+import static name.remal.gradle_plugins.toolkit.ObjectUtils.isNotEmpty;
 
 import javax.annotation.Nullable;
 import lombok.CustomLog;

@@ -9,9 +9,9 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.val;
-import name.remal.gradleplugins.toolkit.issues.CheckstyleXmlIssuesParser;
-import name.remal.gradleplugins.toolkit.issues.Issue;
-import name.remal.gradleplugins.toolkit.testkit.functional.GradleProject;
+import name.remal.gradle_plugins.toolkit.issues.CheckstyleXmlIssuesParser;
+import name.remal.gradle_plugins.toolkit.issues.Issue;
+import name.remal.gradle_plugins.toolkit.testkit.functional.GradleProject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

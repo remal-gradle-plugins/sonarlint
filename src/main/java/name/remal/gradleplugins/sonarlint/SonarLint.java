@@ -1,14 +1,14 @@
 package name.remal.gradleplugins.sonarlint;
 
 import static name.remal.gradleplugins.sonarlint.internal.SonarLintCommand.ANALYSE;
-import static name.remal.gradleplugins.toolkit.ExtensionContainerUtils.findExtension;
-import static name.remal.gradleplugins.toolkit.ReportContainerUtils.setTaskReportDestinationsAutomatically;
+import static name.remal.gradle_plugins.toolkit.ExtensionContainerUtils.findExtension;
+import static name.remal.gradle_plugins.toolkit.ReportContainerUtils.setTaskReportDestinationsAutomatically;
 import static org.gradle.language.base.plugins.LifecycleBasePlugin.VERIFICATION_GROUP;
 
 import java.io.File;
 import java.util.concurrent.Callable;
 import lombok.val;
-import name.remal.gradleplugins.toolkit.tasks.BaseSourceVerificationReportingTask;
+import name.remal.gradle_plugins.toolkit.tasks.BaseSourceVerificationReportingTask;
 import org.gradle.api.tasks.CacheableTask;
 import org.gradle.api.tasks.TaskAction;
 

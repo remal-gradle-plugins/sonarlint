@@ -5,8 +5,8 @@ import static java.lang.String.format;
 import static java.lang.String.join;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MINUTES;
-import static name.remal.gradleplugins.toolkit.InputOutputStreamUtils.readStringFromStream;
-import static name.remal.gradleplugins.toolkit.ObjectUtils.isEmpty;
+import static name.remal.gradle_plugins.toolkit.InputOutputStreamUtils.readStringFromStream;
+import static name.remal.gradle_plugins.toolkit.ObjectUtils.isEmpty;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -16,7 +16,7 @@ import lombok.CustomLog;
 import lombok.SneakyThrows;
 import lombok.Value;
 import lombok.val;
-import name.remal.gradleplugins.toolkit.PathUtils;
+import name.remal.gradle_plugins.toolkit.PathUtils;
 
 @Value
 @Builder

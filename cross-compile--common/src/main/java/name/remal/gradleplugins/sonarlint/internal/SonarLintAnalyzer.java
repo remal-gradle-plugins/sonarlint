@@ -1,7 +1,7 @@
 package name.remal.gradleplugins.sonarlint.internal;
 
 import java.util.List;
-import name.remal.gradleplugins.toolkit.issues.Issue;
+import name.remal.gradle_plugins.toolkit.issues.Issue;
 
 public interface SonarLintAnalyzer {
 

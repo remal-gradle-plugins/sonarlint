@@ -2,7 +2,7 @@ package name.remal.gradleplugins.sonarlint.internal;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static name.remal.gradleplugins.sonarlint.internal.ErrorLogging.logError;
-import static name.remal.gradleplugins.toolkit.ObjectUtils.isNotEmpty;
+import static name.remal.gradle_plugins.toolkit.ObjectUtils.isNotEmpty;
 
 import java.io.Serializable;
 import java.nio.charset.Charset;

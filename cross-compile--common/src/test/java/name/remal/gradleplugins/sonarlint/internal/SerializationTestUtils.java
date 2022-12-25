@@ -3,12 +3,12 @@ package name.remal.gradleplugins.sonarlint.internal;
 import static java.lang.Math.multiplyExact;
 import static java.lang.reflect.Modifier.isAbstract;
 import static lombok.AccessLevel.PRIVATE;
-import static name.remal.gradleplugins.toolkit.FileUtils.normalizeFile;
-import static name.remal.gradleplugins.toolkit.reflection.MembersFinder.findStaticMethod;
-import static name.remal.gradleplugins.toolkit.reflection.ReflectionUtils.isNotStatic;
-import static name.remal.gradleplugins.toolkit.reflection.ReflectionUtils.isStatic;
-import static name.remal.gradleplugins.toolkit.reflection.ReflectionUtils.packageNameOf;
-import static name.remal.gradleplugins.toolkit.reflection.ReflectionUtils.tryLoadClass;
+import static name.remal.gradle_plugins.toolkit.FileUtils.normalizeFile;
+import static name.remal.gradle_plugins.toolkit.reflection.MembersFinder.findStaticMethod;
+import static name.remal.gradle_plugins.toolkit.reflection.ReflectionUtils.isNotStatic;
+import static name.remal.gradle_plugins.toolkit.reflection.ReflectionUtils.isStatic;
+import static name.remal.gradle_plugins.toolkit.reflection.ReflectionUtils.packageNameOf;
+import static name.remal.gradle_plugins.toolkit.reflection.ReflectionUtils.tryLoadClass;
 
 import com.google.common.reflect.TypeToken;
 import java.io.File;

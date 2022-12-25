@@ -3,9 +3,9 @@ package name.remal.gradleplugins.sonarlint;
 import static com.google.common.collect.Maps.immutableEntry;
 import static java.util.Map.Entry.comparingByKey;
 import static lombok.AccessLevel.PRIVATE;
-import static name.remal.gradleplugins.toolkit.ObjectUtils.isNotEmpty;
-import static name.remal.gradleplugins.toolkit.ObjectUtils.unwrapProviders;
-import static name.remal.gradleplugins.toolkit.PredicateUtils.not;
+import static name.remal.gradle_plugins.toolkit.ObjectUtils.isNotEmpty;
+import static name.remal.gradle_plugins.toolkit.ObjectUtils.unwrapProviders;
+import static name.remal.gradle_plugins.toolkit.PredicateUtils.not;
 
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -14,7 +14,7 @@ import java.util.Map;
 import java.util.Objects;
 import javax.annotation.Nullable;
 import lombok.NoArgsConstructor;
-import name.remal.gradleplugins.toolkit.ObjectUtils;
+import name.remal.gradle_plugins.toolkit.ObjectUtils;
 
 @NoArgsConstructor(access = PRIVATE)
 abstract class CanonizationUtils {
