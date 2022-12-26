@@ -74,4 +74,4 @@ Two additional help tasks are created:
 
 ### Version 2.* to 3.*
 
-All package names were changed from `name.remal.gradleplugins.sonarlint` to `name.remal.gradle_plugins.sonarlint`.
+Package name was changed from `name.remal.gradleplugins.sonarlint` to `name.remal.gradle_plugins.sonarlint`.
