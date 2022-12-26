@@ -70,8 +70,8 @@ Two additional help tasks are created:
 1. `sonarLintProperties` - displays Sonar properties that can be configured via `sonarLint.sonarProperties`.
 2. `sonarLintRules` - displays all Sonar rules available, their description and their properties.
 
-## Migration guide
+# Migration guide
 
-### Version 2.* to 3.*
+## Version 2.* to 3.*
 
 Package name was changed from `name.remal.gradleplugins.sonarlint` to `name.remal.gradle_plugins.sonarlint`.
