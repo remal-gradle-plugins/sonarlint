@@ -1,0 +1,8 @@
+- name: .gitignore
+  format: text
+  includes:
+  - .gitignore
+  script: |
+    return content
+        .replace(/(^|\n)!\/\.idea\/externalDependencies\.xml(\n|$)/, '$1')
+        .replace(/(^|\n)!\/\.idea\/saveactions_settings\.xml(\n|$)/, '$1')

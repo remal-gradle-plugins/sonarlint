@@ -28,9 +28,9 @@ jobs:
 
     steps:
     - name: Sync with template repository
-      uses: remal-github-actions/sync-with-template@v2
+      uses: remal-github-actions/sync-with-template@v3
       if: ${{env.PUSH_BACK_TOKEN}}
       with:
+        dryRun: 'true'
         githubToken: '${{env.PUSH_BACK_TOKEN}}'
         templateRepository: '${{secrets.TEMPLATE_REPOSITORY}}'
-        additionalPatch: '${{secrets.SYNC_WITH_TEMPLATE_ADDITIONAL_PATCH}}'
