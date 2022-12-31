@@ -5,6 +5,7 @@ on:
     paths:
     - '.github/sync-with-template.yml'
     - '.github/workflows/sync-with-template.yml'
+    - '.github/workflows/sync-with-template-local-transformations.yml'
     branches:
     - 'main'
     - 'master'
@@ -31,5 +32,5 @@ jobs:
       uses: remal-github-actions/sync-with-template@v3
       if: ${{env.PUSH_BACK_TOKEN}}
       with:
-        githubToken: '${{env.PUSH_BACK_TOKEN}}'
-        templateRepository: '${{secrets.TEMPLATE_REPOSITORY}}'
+        githubToken: ${{env.PUSH_BACK_TOKEN}}
+        templateRepository: ${{secrets.TEMPLATE_REPOSITORY || ''}}
