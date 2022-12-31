@@ -39,7 +39,7 @@ pull_request_rules:
 - name: Merge by authors automatically
   conditions:
   - author=remal
-  #- label!=sync-with-template
+  - label!=sync-with-template
   - -conflict
   - -closed
   - -merged
