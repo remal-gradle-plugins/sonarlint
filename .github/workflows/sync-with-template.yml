@@ -31,6 +31,5 @@ jobs:
       uses: remal-github-actions/sync-with-template@v3
       if: ${{env.PUSH_BACK_TOKEN}}
       with:
-        dryRun: 'true'
         githubToken: '${{env.PUSH_BACK_TOKEN}}'
         templateRepository: '${{secrets.TEMPLATE_REPOSITORY}}'
