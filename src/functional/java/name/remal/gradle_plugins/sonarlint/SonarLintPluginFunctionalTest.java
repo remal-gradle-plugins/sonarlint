@@ -28,7 +28,6 @@ class SonarLintPluginFunctionalTest {
             build.append("repositories { mavenCentral() }");
             build.appendBuildDirMavenRepositories();
             build.append("sonarLint.ignoreFailures = true");
-            build.registerDefaultTask("sonarlintMain");
         });
 
         project.withoutConfigurationCache();
@@ -57,11 +56,14 @@ class SonarLintPluginFunctionalTest {
 
     @Test
     void emptyBuildPerformsSuccessfully() {
+        project.getBuildFile().registerDefaultTask("sonarlintMain");
         project.assertBuildSuccessfully();
     }
 
     @Test
     void java() {
+        project.getBuildFile().registerDefaultTask("sonarlintMain");
+
         project.getBuildFile().append("sonarLint.rules.enable('java:S1171')");
 
         val sourceFileRelativePath = "src/main/java/pkg/TestMap.java";
@@ -84,6 +86,18 @@ class SonarLintPluginFunctionalTest {
         assertThat(issues)
             .extracting(Issue::getRule)
             .contains("java:S1171");
+    }
+
+    @Test
+    void sonarLintProperties() {
+        project.getBuildFile().registerDefaultTask("sonarLintProperties");
+        project.assertBuildSuccessfully();
+    }
+
+    @Test
+    void sonarLintRules() {
+        project.getBuildFile().registerDefaultTask("sonarLintRules");
+        project.assertBuildSuccessfully();
     }
 
 }
