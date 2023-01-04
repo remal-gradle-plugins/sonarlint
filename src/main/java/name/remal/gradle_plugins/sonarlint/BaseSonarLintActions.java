@@ -52,10 +52,10 @@ import name.remal.gradle_plugins.sonarlint.internal.SourceFile;
 import name.remal.gradle_plugins.toolkit.EditorConfig;
 import name.remal.gradle_plugins.toolkit.FileUtils;
 import name.remal.gradle_plugins.toolkit.ObjectUtils;
+import name.remal.gradle_plugins.toolkit.ReportUtils;
 import org.gradle.api.JavaVersion;
 import org.gradle.api.artifacts.ResolvedDependency;
 import org.gradle.api.file.Directory;
-import org.gradle.api.file.FileSystemLocation;
 import org.gradle.api.file.FileTree;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.reporting.Report;
@@ -402,9 +402,7 @@ abstract class BaseSonarLintActions {
         return getSonarLintReports(task)
             .map(reportGetter)
             .filter(report -> !FALSE.equals(report.getRequired().getOrNull()))
-            .map(Report::getOutputLocation)
-            .map(Provider::getOrNull)
-            .map(FileSystemLocation::getAsFile)
+            .map(ReportUtils::getReportDestination)
             .map(FileUtils::normalizeFile)
             .orElse(null);
     }
