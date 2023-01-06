@@ -1,0 +1,27 @@
+name: Rebase Dependabot pull requests
+
+on:
+  push:
+    paths:
+    - '.github/workflows/rebase-dependabot-pull-requests.yml'
+    branches:
+    - 'main'
+    - 'master'
+  schedule:
+  - cron: '19 */4 * * *'
+  workflow_dispatch: { }
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  rebase-dependabot-pull-requests:
+    name: Rebase Dependabot pull requests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency: rebase-dependabot-pull-requests
+
+    steps:
+    - name: Rebase Dependabot pull requests
+      uses: remal-github-actions/rebase-dependabot-pull-requests@v1
