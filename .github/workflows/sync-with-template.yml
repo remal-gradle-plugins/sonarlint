@@ -3,9 +3,9 @@ name: Sync with template repository
 on:
   push:
     paths:
-    - '.github/sync-with-template.yml'
     - '.github/workflows/sync-with-template.yml'
-    - '.github/workflows/sync-with-template-local-transformations.yml'
+    - '.github/sync-with-template.yml'
+    - '.github/sync-with-template-local-transformations.yml'
     branches:
     - 'main'
     - 'master'
