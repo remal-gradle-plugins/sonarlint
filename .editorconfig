@@ -263,6 +263,7 @@ ij_java_use_single_class_imports = true
 ij_java_visibility = public
 
 ij_groovy_imports_layout = $*, |, *
+ij_groovy_align_named_args_in_map = false
 
 ij_kotlin_align_in_columns_case_branch = false
 ij_kotlin_blank_lines_around_block_when_branches = 0
