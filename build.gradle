@@ -34,8 +34,8 @@ apply plugin: 'name.remal.toolkit.build-logic'
 
 project.registerCrossCompileDependencyInfo(
     [
-        name               : 'sonarlint',
-        maxVersionNumbers  : 3,
+        name: 'sonarlint',
+        maxVersionNumbers: 3,
         dependencyNotations: [
             'org.sonarsource.sonarlint.core:sonarlint-core',
         ],
@@ -280,8 +280,8 @@ allprojects {
     }
     */
 
-    def artifactType = Attribute.of('artifactType', String)
-    def unshadedSonar = Attribute.of('unshaded', Boolean)
+    Attribute<String> artifactType = Attribute.of('artifactType', String)
+    Attribute<Boolean> unshadedSonar = Attribute.of('unshaded', Boolean)
     dependencies {
         attributesSchema {
             attribute(unshadedSonar)
