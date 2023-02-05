@@ -1,7 +1,7 @@
 # This file is generated automatically by `collectAllGradlePluginApiDependencies` Gradle task.
 # Do not modify it yourself unless you know what you are doing.
 
-Node.js:lts:18.13.0
+Node.js:lts:18.14.0
 classes-that-rely-on-gradle-internal-api:531bdafe2e04c9585416ac947925af1cccb68f881e6f789643053f98d2f1d611
 org.ow2.asm:asm-bom:9.4:@pom
 org.sonarsource.java:sonar-java-plugin:7.16.0.30901:@sonar-plugin
