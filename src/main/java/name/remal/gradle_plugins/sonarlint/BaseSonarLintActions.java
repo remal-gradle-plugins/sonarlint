@@ -1,10 +1,12 @@
 package name.remal.gradle_plugins.sonarlint;
 
+import static com.google.common.io.Files.getFileExtension;
 import static java.lang.Boolean.FALSE;
 import static java.lang.Boolean.TRUE;
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
 import static java.util.Collections.unmodifiableCollection;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
@@ -37,6 +39,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -52,6 +55,7 @@ import name.remal.gradle_plugins.sonarlint.internal.SourceFile;
 import name.remal.gradle_plugins.toolkit.EditorConfig;
 import name.remal.gradle_plugins.toolkit.FileUtils;
 import name.remal.gradle_plugins.toolkit.ObjectUtils;
+import name.remal.gradle_plugins.toolkit.PathIsOutOfRootPathException;
 import name.remal.gradle_plugins.toolkit.ReportUtils;
 import org.gradle.api.JavaVersion;
 import org.gradle.api.artifacts.ResolvedDependency;
@@ -298,7 +302,18 @@ abstract class BaseSonarLintActions {
 
             final String charsetName;
             {
-                val editorConfigProperties = editorConfig.getPropertiesFor(path);
+                Map<String, String> editorConfigProperties;
+                try {
+                    editorConfigProperties = editorConfig.getPropertiesFor(path);
+                } catch (PathIsOutOfRootPathException e) {
+                    val extension = getFileExtension(path.getFileName().toString());
+                    if (isEmpty(extension)) {
+                        editorConfigProperties = emptyMap();
+                    } else {
+                        editorConfigProperties = editorConfig.getPropertiesForFileExtension(extension);
+                    }
+                }
+
                 val charsetString = editorConfigProperties.get("charset");
                 if (isNotEmpty(charsetString)) {
                     charsetName = charsetString.toUpperCase();
