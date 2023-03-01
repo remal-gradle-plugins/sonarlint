@@ -6,7 +6,7 @@ classes-that-rely-on-gradle-internal-api:531bdafe2e04c9585416ac947925af1cccb68f8
 org.ow2.asm:asm-bom:9.4:@pom
 org.sonarsource.java:sonar-java-plugin:7.17.0.31219:@sonar-plugin
 org.sonarsource.javascript:sonar-javascript-plugin:10.0.1.20755:@sonar-plugin
-org.sonarsource.kotlin:sonar-kotlin-plugin:2.12.0.1956
+org.sonarsource.kotlin:sonar-kotlin-plugin:2.13.0.2116
 org.sonarsource.slang:sonar-ruby-plugin:1.11.0.3905
 org.sonarsource.slang:sonar-scala-plugin:1.11.0.3905
 org.sonarsource.sonarlint.core:sonarlint-core:8.14.0.63103
