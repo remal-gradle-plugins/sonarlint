@@ -105,31 +105,29 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
     protected void createConfigurations() {
         super.createConfigurations();
 
-        {
-            val pluginsConfiguration = project.getConfigurations().create(getPluginsConfigurationName());
-            configureSonarLintConfiguration(pluginsConfiguration);
-            pluginsConfiguration.setDescription(getToolName() + " plugins to be used for this project.");
+        project.getConfigurations().create(getPluginsConfigurationName(), conf -> {
+            configureSonarLintConfiguration(conf);
+            conf.setDescription(getToolName() + " plugins to be used for this project.");
 
             getSonarDependencies().values().stream()
                 .filter(sonarDependency -> sonarDependency.getType() == SonarDependencyType.PLUGIN)
                 .forEach(sonarDependency -> {
-                    pluginsConfiguration.getDependencies().add(
+                    conf.getDependencies().add(
                         createDependency(sonarDependency)
                     );
                 });
-        }
+        });
 
-        {
-            val classpathConfiguration = project.getConfigurations().create(getClasspathConfigurationName());
-            configureSonarLintConfiguration(classpathConfiguration);
-            classpathConfiguration.setCanBeResolved(true);
-            classpathConfiguration.setDescription("Full " + getToolName() + " classpath to be used for this project.");
+        project.getConfigurations().create(getClasspathConfigurationName(), conf -> {
+            configureSonarLintConfiguration(conf);
+            conf.setCanBeResolved(true);
+            conf.setDescription("Full " + getToolName() + " classpath to be used for this project.");
 
-            classpathConfiguration.extendsFrom(
+            conf.extendsFrom(
                 project.getConfigurations().getByName(getConfigurationName()),
                 project.getConfigurations().getByName(getPluginsConfigurationName())
             );
-        }
+        });
     }
 
     @Override
@@ -385,8 +383,12 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
 
     private void configureSonarLintConfiguration(Configuration configuration) {
         configuration.setVisible(false);
-        configuration.setCanBeConsumed(false);
-        configuration.setCanBeResolved(false);
+
+
+        if (!configuration.getName().equals(getConfigurationName())) {
+            configuration.setCanBeConsumed(false);
+            configuration.setCanBeResolved(false);
+        }
 
 
         configuration.attributes(attrs -> {
