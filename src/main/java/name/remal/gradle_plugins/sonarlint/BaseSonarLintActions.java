@@ -38,10 +38,12 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.regex.Pattern;
@@ -290,6 +292,7 @@ abstract class BaseSonarLintActions {
         Path buildDirPath
     ) {
         val editorConfig = new EditorConfig(repositoryRootPath);
+        Set<Path> processedPaths = new LinkedHashSet<>();
         List<SourceFile> sourceFiles = new ArrayList<>();
         fileTree.visit(details -> {
             if (details.isDirectory()) {
@@ -297,6 +300,9 @@ abstract class BaseSonarLintActions {
             }
 
             val path = normalizePath(details.getFile().toPath());
+            if (!processedPaths.add(path)) {
+                return;
+            }
 
             val isGenerated = path.startsWith(buildDirPath);
 
