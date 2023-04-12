@@ -353,11 +353,11 @@ ij_editorconfig_space_before_colon = false
 ij_editorconfig_space_before_comma = false
 ij_editorconfig_spaces_around_assignment_operators = true
 
-[{spring.schemas, spring.handlers, *.properties}]
+[{spring.schemas,spring.handlers,*.properties}]
 charset = latin1
 max_line_length = 999
 
-[*.{yml, json, json5, yaml, xml, puml, md, svg, xsl, xslt}]
+[*.{yml,json,json5,yaml,xml,puml,md,svg,xsl,xslt}]
 max_line_length = 999
 tab_width = 2
 indent_size = 2
@@ -367,10 +367,10 @@ ij_continuation_indent_size = 2
 [*.sql]
 max_line_length = 999
 
-[*.{gradle, gradle.kts}]
+[*.{gradle,gradle.kts}]
 max_line_length = 999
 
-[*.{ps1, psm1}]
+[*.{ps1,psm1}]
 charset = utf-8-bom
 end_of_line = crlf
 max_line_length = 999
@@ -388,6 +388,6 @@ indent_size = 2
 continuation_indent_size = 2
 ij_continuation_indent_size = 2
 
-[*.{cmd, bat}]
+[*.{cmd,bat}]
 end_of_line = crlf
 max_line_length = 999
