@@ -43,6 +43,7 @@ import lombok.CustomLog;
 import lombok.val;
 import name.remal.gradle_plugins.toolkit.ObjectUtils;
 import name.remal.gradle_plugins.toolkit.annotations.ReliesOnInternalGradleApi;
+import org.gradle.api.Project;
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.Dependency;
 import org.gradle.api.attributes.Category;
@@ -65,6 +66,15 @@ import org.jetbrains.annotations.Unmodifiable;
 @CustomLog
 @ReliesOnInternalGradleApi
 public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLint> {
+
+    @SuppressWarnings({"HidingField", "java:S2387"})
+    protected Project project;
+
+    @Override
+    protected void beforeApply() {
+        this.project = super.project;
+    }
+
 
     @Override
     protected String getToolName() {
