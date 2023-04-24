@@ -302,7 +302,7 @@ ij_typescript_import_sort_members = true
 ij_typescript_import_sort_module_name = true
 ij_typescript_use_double_quotes = false
 ij_typescript_use_semicolon_after_statement = false
-ij_typescript_enforce_trailing_comma = keep
+ij_typescript_enforce_trailing_comma = whenmultiline
 
 ij_properties_align_group_field_declarations = false
 ij_properties_keep_blank_lines = true
