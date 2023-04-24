@@ -25,3 +25,5 @@ jobs:
     steps:
     - name: Rebase Dependabot pull requests
       uses: remal-github-actions/rebase-dependabot-pull-requests@v1
+      with:
+        githubToken: ${{secrets.PUSH_BACK_TOKEN || github.token}}
