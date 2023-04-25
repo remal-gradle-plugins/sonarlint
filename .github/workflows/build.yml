@@ -58,7 +58,7 @@ jobs:
       uses: actions/setup-java@v3
       with:
         java-version: 11
-        distribution: zulu
+        distribution: temurin
     - name: Create Gradle wrapper cache content
       if: ${{steps.cache-gradle.outputs.gradle-wrapper-cache-hit != 'true'}}
       run: |
@@ -78,13 +78,13 @@ jobs:
       repository-isTemplate: ${{fromJSON(steps.repository-info.outputs.result).isTemplate}}
       publish-isGradlePlugin: ${{steps.publish-flags.outputs.isGradlePlugin}}
       publish-isMavenCentral: ${{steps.publish-flags.outputs.isMavenCentral}}
-      gradle-versions: ${{steps.gradle-versions.outputs.unstableMinors}}
+      allMatrixIncludes: ${{steps.matrixVersions.outputs.allMatrixIncludes}}
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
       with:
         submodules: recursive
-        fetch-depth: 100
+        fetch-depth: 1
     - name: Cache Gradle
       uses: remal-github-actions/cache-gradle@main
       with:
@@ -93,7 +93,7 @@ jobs:
       uses: actions/setup-java@v3
       with:
         java-version: 11
-        distribution: zulu
+        distribution: temurin
     - name: Retrieve repository info
       id: repository-info
       uses: remal-github-actions/retrieve-repository-info@v1
@@ -121,6 +121,7 @@ jobs:
         echo "REPOSITORY_LICENSE_NAME=$REPOSITORY_LICENSE_NAME" >> "$GITHUB_ENV"
         echo "REPOSITORY_LICENSE_HTML_URL=$REPOSITORY_LICENSE_HTML_URL" >> "$GITHUB_ENV"
     - name: Submit dependencies to GitHub
+      if: ${{(github.event_name == 'push' || github.event_name == 'workflow_dispatch') && startsWith(github.ref, 'refs/heads/')}}
       run: |
         ./gradlew-retry-connection-timeouts githubSubmitDependencies
     - name: Compile classes
@@ -165,16 +166,25 @@ jobs:
       with:
         file: gradle.properties
         property: 'gradle-api.min-version'
-    - name: Retrieve Gradle versions for testing
-      id: gradle-versions
-      uses: remal-github-actions/retrieve-maven-artifact-versions@v1
+    - name: Retrieve matrix versions for testing
+      id: matrixVersions
+      uses: remal-github-actions/matrix-versions@v1
       with:
-        group: name.remal.gradle-api
-        name: gradle-api
-        repository: https://maven.pkg.github.com/remal-gradle-api/packages
-        user: ${{github.actor}}
-        password: ${{github.token}}
-        min: ${{steps.min-gradle-version.outputs.value}}
+        matrix: |
+          java:
+            dependency: java
+            only:
+            - lts
+            include:
+            - '[11,)'
+          gradle:
+            dependency: 'maven:name.remal.gradle-api:gradle-api'
+            repositories:
+            - 'https://maven.pkg.github.com/remal-gradle-api/packages'
+            only:
+            - stable-minors+current-unstable
+            include:
+            - '[${{steps.min-gradle-version.outputs.value}},)'
 
 
   cross-versions-tests:
@@ -185,7 +195,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        gradle-version: ${{fromJSON(needs.build.outputs.gradle-versions)}}
+        include: ${{fromJSON(needs.build.outputs.allMatrixIncludes)}}
     env:
       DISABLE_COMPILATION: 'true'
       DISABLE_VERIFICATION_EXCEPT_TESTS: 'true'
@@ -199,11 +209,11 @@ jobs:
       uses: remal-github-actions/cache-gradle@main
       with:
         build-cache-for-branches-only: 'true'
-    - name: Setup Java 11
+    - name: Setup Java ${{matrix.java}}
       uses: actions/setup-java@v3
       with:
-        java-version: 11
-        distribution: zulu
+        java-version: ${{matrix.java}}
+        distribution: temurin
     - name: Download workspace archive
       id: download-workspace
       uses: actions/download-artifact@v3
@@ -215,7 +225,7 @@ jobs:
         tar -xz -f "${{steps.download-workspace.outputs.download-path}}/workspace-${{github.run_id}}.tar.gz"
     - name: Execute tests
       run: |
-        ./gradlew-retry-connection-timeouts allTests "-Pgradle-api.version=${{matrix.gradle-version}}"
+        ./gradlew-retry-connection-timeouts allTests "-Pgradle-api.version=${{matrix.gradle}}"
 
   cross-versions-tests-success:
     needs:
@@ -253,7 +263,7 @@ jobs:
       uses: actions/setup-java@v3
       with:
         java-version: 11
-        distribution: zulu
+        distribution: temurin
     - name: Download workspace archive
       id: download-workspace
       uses: actions/download-artifact@v3
@@ -348,7 +358,7 @@ jobs:
       uses: actions/setup-java@v3
       with:
         java-version: 11
-        distribution: zulu
+        distribution: temurin
     - name: Download workspace archive
       id: download-workspace
       uses: actions/download-artifact@v3
@@ -405,7 +415,7 @@ jobs:
       uses: actions/setup-java@v3
       with:
         java-version: 11
-        distribution: zulu
+        distribution: temurin
     - name: Download workspace archive
       id: download-workspace
       uses: actions/download-artifact@v3
