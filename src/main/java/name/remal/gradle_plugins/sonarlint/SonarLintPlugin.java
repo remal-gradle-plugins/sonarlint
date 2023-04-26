@@ -8,6 +8,8 @@ import static java.util.Collections.singletonList;
 import static java.util.Collections.unmodifiableCollection;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
+import static name.remal.gradle_plugins.sonarlint.BaseSonarLintActions.SONAR_JAVA_SOURCE_PROPERTY;
+import static name.remal.gradle_plugins.sonarlint.BaseSonarLintActions.SONAR_JAVA_TARGET_PROPERTY;
 import static name.remal.gradle_plugins.sonarlint.CanonizationUtils.canonizeProperties;
 import static name.remal.gradle_plugins.sonarlint.CanonizationUtils.canonizeRules;
 import static name.remal.gradle_plugins.sonarlint.CanonizationUtils.canonizeRulesProperties;
@@ -142,7 +144,7 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
 
     @Override
     protected CodeQualityExtension createExtension() {
-        val extension = project.getExtensions().create("sonarLint", SonarLintExtension.class, project);
+        val extension = project.getExtensions().create("sonarLint", SonarLintExtension.class);
         this.extension = extension;
 
         extension.setToolVersion(getSonarDependency("sonarlint-core").getVersion());
@@ -175,22 +177,28 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
             defaultTrue(extension.getIsGeneratedCodeIgnored().getOrNull())
         ));
         task.getEnabledRules().convention(project.provider(() ->
-            canonizeRules(extension.getRules().getEnabled())
+            canonizeRules(extension.getRules().getEnabled().get())
         ));
         task.getDisabledRules().convention(project.provider(() ->
-            canonizeRules(extension.getRules().getDisabled())
+            canonizeRules(extension.getRules().getDisabled().get())
         ));
         task.getSonarProperties().convention(project.provider(() ->
-            canonizeProperties(extension.getSonarProperties())
+            canonizeProperties(extension.getSonarProperties().get())
         ));
         task.getRulesProperties().convention(project.provider(() ->
-            canonizeRulesProperties(extension.getRules().getProperties())
+            canonizeRulesProperties(extension.getRules().buildProperties())
+        ));
+        task.getIgnoredPaths().convention(
+            extension.getIgnoredPaths()
+        );
+        task.getRuleIgnoredPaths().convention(project.provider(() ->
+            extension.getRules().buildIgnoredPaths()
         ));
         task.getCheckstyleConfig().convention(project.getLayout().file(project.provider(
             this::getCheckstyleConfigFile
         )));
         task.getDisableRulesConflictingWithLombok().convention(project.provider(() ->
-            TRUE.equals(extension.getRules().getDisableConflictingWithLombok())
+            TRUE.equals(extension.getRules().getDisableConflictingWithLombok().getOrNull())
         ));
     }
 
@@ -256,12 +264,12 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
             javaCompileTask.map(JavaCompile::getSourceCompatibility)
                 .filter(ObjectUtils::isNotEmpty)
                 .ifPresent(sourceCompatibility ->
-                    javaProps.put("sonar.java.source", sourceCompatibility)
+                    javaProps.put(SONAR_JAVA_SOURCE_PROPERTY, sourceCompatibility)
                 );
             javaCompileTask.map(JavaCompile::getTargetCompatibility)
                 .filter(ObjectUtils::isNotEmpty)
                 .ifPresent(targetCompatibility ->
-                    javaProps.put("sonar.java.target", targetCompatibility)
+                    javaProps.put(SONAR_JAVA_TARGET_PROPERTY, targetCompatibility)
                 );
 
 

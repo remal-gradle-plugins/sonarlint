@@ -2,6 +2,7 @@ package name.remal.gradle_plugins.sonarlint;
 
 import static org.gradle.api.tasks.PathSensitivity.RELATIVE;
 
+import java.util.List;
 import java.util.Map;
 import org.gradle.api.Task;
 import org.gradle.api.file.ConfigurableFileCollection;
@@ -44,6 +45,14 @@ interface BaseSonarLint extends Task {
     @org.gradle.api.tasks.Optional
     @Input
     MapProperty<String, Map<String, String>> getRulesProperties();
+
+    @org.gradle.api.tasks.Optional
+    @Input
+    ListProperty<String> getIgnoredPaths();
+
+    @org.gradle.api.tasks.Optional
+    @Input
+    MapProperty<String, List<String>> getRuleIgnoredPaths();
 
 
     @org.gradle.api.tasks.Optional

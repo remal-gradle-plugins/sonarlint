@@ -16,8 +16,8 @@ import static name.remal.gradle_plugins.toolkit.issues.IssueSeverity.WARNING;
 
 import com.google.auto.service.AutoService;
 import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -41,7 +41,7 @@ final class SonarLintAnalyzerLatest implements SonarLintAnalyzer {
 
     @Override
     @SuppressWarnings("java:S3776")
-    public List<?> analyze(SonarLintExecutionParams params) {
+    public Collection<?> analyze(SonarLintExecutionParams params) {
         val engineConfig = createEngineConfig(params);
 
         val analysisConfig = StandaloneAnalysisConfiguration.builder()
@@ -75,7 +75,7 @@ final class SonarLintAnalyzerLatest implements SonarLintAnalyzer {
 
         val engine = new StandaloneSonarLintEngineImpl(engineConfig);
         try {
-            List<Issue> issues = new ArrayList<>();
+            Collection<Issue> issues = new LinkedHashSet<>();
             IssueListener issueListener = sonarIssue -> {
                 synchronized (issues) {
                     val issue = newIssue(builder -> {

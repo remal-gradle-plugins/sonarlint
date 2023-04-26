@@ -32,7 +32,6 @@ import static name.remal.gradle_plugins.toolkit.git.GitUtils.findGitRepositoryRo
 import static name.remal.gradle_plugins.toolkit.xml.DomUtils.streamNodeList;
 import static name.remal.gradle_plugins.toolkit.xml.XmlUtils.parseXml;
 
-import com.google.common.collect.ImmutableList;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -44,7 +43,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import javax.annotation.Nullable;
@@ -80,6 +78,10 @@ import org.w3c.dom.Element;
 @NoArgsConstructor(access = PRIVATE)
 abstract class BaseSonarLintActions {
 
+    static final String SONAR_JAVA_JDK_HOME_PROPERTY = "sonar.java.jdkHome";
+    static final String SONAR_JAVA_SOURCE_PROPERTY = "sonar.java.source";
+    static final String SONAR_JAVA_TARGET_PROPERTY = "sonar.java.target";
+
     public static void init(BaseSonarLint task) {
         task.getIsGeneratedCodeIgnored().convention(true);
 
@@ -100,43 +102,18 @@ abstract class BaseSonarLintActions {
     @SneakyThrows
     @SuppressWarnings("java:S3776")
     public static void execute(BaseSonarLint task, SonarLintCommand command) {
-        val generatedCodeIgnored = defaultTrue(task.getIsGeneratedCodeIgnored().getOrNull());
-        val sourceFiles = collectSourceFiles(task);
-
-
         val sonarProperties = new LinkedHashMap<>(task.getSonarProperties().get());
 
-        if (generatedCodeIgnored) {
-            val ignoreMulticriteriaPrevNumber = new AtomicInteger(0);
-            sourceFiles.stream()
-                .filter(SourceFile::isGenerated)
-                .map(SourceFile::getRelativePath)
-                .forEach(sourceFileRelativePath -> {
-                    while (true) {
-                        val multicriteriaId = "_generated_" + ignoreMulticriteriaPrevNumber.incrementAndGet();
-                        val ruleKey = format("sonar.issue.ignore.multicriteria.%s.ruleKey", multicriteriaId);
-                        val resourceKey = format("sonar.issue.ignore.multicriteria.%s.resourceKey", multicriteriaId);
-                        if (sonarProperties.containsKey(ruleKey) || sonarProperties.containsKey(resourceKey)) {
-                            continue;
-                        }
+        task.getIgnoredPaths().get().forEach(ignoredPath ->
+            addRuleByPathIgnore(sonarProperties, "ignore_all", "*", ignoredPath)
+        );
+        task.getRuleIgnoredPaths().get().forEach((ruleId, ignoredPaths) ->
+            ignoredPaths.forEach(ignoredPath ->
+                addRuleByPathIgnore(sonarProperties, "ignore_rule", ruleId, ignoredPath)
+            )
+        );
 
-                        String multicriteria = sonarProperties.get("sonar.issue.ignore.multicriteria");
-                        if (isEmpty(multicriteria)) {
-                            multicriteria = multicriteriaId;
-                        } else {
-                            multicriteria += ',' + multicriteriaId;
-                        }
-                        sonarProperties.put("sonar.issue.ignore.multicriteria", multicriteria);
-
-                        sonarProperties.put(ruleKey, "*");
-                        sonarProperties.put(resourceKey, sourceFileRelativePath);
-
-                        break;
-                    }
-                });
-        }
-
-        sonarProperties.computeIfAbsent("sonar.java.jdkHome", __ ->
+        sonarProperties.computeIfAbsent(SONAR_JAVA_JDK_HOME_PROPERTY, __ ->
             Optional.ofNullable(task.getJavaLauncher().getOrNull())
                 .map(JavaLauncher::getMetadata)
                 .map(JavaInstallationMetadata::getInstallationPath)
@@ -145,7 +122,7 @@ abstract class BaseSonarLintActions {
                 .map(File::getAbsolutePath)
                 .orElse(null)
         );
-        sonarProperties.computeIfAbsent("sonar.java.source", __ ->
+        sonarProperties.computeIfAbsent(SONAR_JAVA_SOURCE_PROPERTY, __ ->
             Optional.ofNullable(task.getJavaLauncher().getOrNull())
                 .map(JavaLauncher::getMetadata)
                 .map(JavaInstallationMetadata::getLanguageVersion)
@@ -154,7 +131,9 @@ abstract class BaseSonarLintActions {
                 .map(JavaVersion::toString)
                 .orElse(null)
         );
-        sonarProperties.computeIfAbsent("sonar.java.target", __ -> sonarProperties.get("sonar.java.source"));
+        sonarProperties.computeIfAbsent(SONAR_JAVA_TARGET_PROPERTY, __ ->
+            sonarProperties.get(SONAR_JAVA_SOURCE_PROPERTY)
+        );
 
         sonarProperties.values().removeIf(Objects::isNull);
 
@@ -199,7 +178,7 @@ abstract class BaseSonarLintActions {
             params.getCommand().set(command);
             params.getSonarLintVersion().set(getSonarLintVersion(task));
             params.getProjectDir().set(normalizeFile(project.getProjectDir()));
-            params.getIsGeneratedCodeIgnored().set(generatedCodeIgnored);
+            params.getIsGeneratedCodeIgnored().set(defaultTrue(task.getIsGeneratedCodeIgnored().getOrNull()));
             params.getBaseGeneratedDirs().add(project.getLayout().getBuildDirectory());
             params.getHomeDir().set(new File(tempDir, "home"));
             params.getWorkDir().set(new File(tempDir, "work"));
@@ -209,7 +188,7 @@ abstract class BaseSonarLintActions {
                 .distinct()
                 .collect(toList())
             );
-            params.getSourceFiles().set(sourceFiles);
+            params.getSourceFiles().set(collectSourceFiles(task));
             params.getEnabledRules().set(task.getEnabledRules());
             params.getDisabledRules().set(task.getDisabledRules());
             params.getDisabledRules().addAll(getDisabledRulesFromCheckstyleConfig(task));
@@ -220,6 +199,37 @@ abstract class BaseSonarLintActions {
             params.getXmlReportLocation().set(getSonarLintReportFile(task, SonarLintReports::getXml));
             params.getHtmlReportLocation().set(getSonarLintReportFile(task, SonarLintReports::getHtml));
         });
+    }
+
+    private static void addRuleByPathIgnore(
+        Map<String, String> sonarProperties,
+        String scope,
+        String rule,
+        String path
+    ) {
+        int multicriteriaNumber = 0;
+        while (true) {
+            ++multicriteriaNumber;
+            val multicriteriaId = format("_%s_%d", scope, multicriteriaNumber);
+            val ruleKey = format("sonar.issue.ignore.multicriteria.%s.ruleKey", multicriteriaId);
+            val resourceKey = format("sonar.issue.ignore.multicriteria.%s.resourceKey", multicriteriaId);
+            if (sonarProperties.containsKey(ruleKey) || sonarProperties.containsKey(resourceKey)) {
+                continue;
+            }
+
+            sonarProperties.put(ruleKey, rule);
+            sonarProperties.put(resourceKey, path);
+
+            String multicriteria = sonarProperties.get("sonar.issue.ignore.multicriteria");
+            if (isEmpty(multicriteria)) {
+                multicriteria = multicriteriaId;
+            } else {
+                multicriteria += ',' + multicriteriaId;
+            }
+            sonarProperties.put("sonar.issue.ignore.multicriteria", multicriteria);
+
+            break;
+        }
     }
 
     private static Path getRepositoryRootPath(BaseSonarLint task) {
@@ -371,38 +381,39 @@ abstract class BaseSonarLintActions {
         Collection<String> disabledRules = new ArrayList<>();
 
         if (moduleNames.contains("MethodName")) {
-            disabledRules.add("java:S100");
+            disabledRules.add("java:S100"); // Method names should comply with a naming convention
         }
         if (moduleNames.contains("TypeName")) {
-            disabledRules.add("java:S101");
-            disabledRules.add("java:S114");
+            disabledRules.add("java:S101"); // Class names should comply with a naming convention
+            disabledRules.add("java:S114"); // Interface names should comply with a naming convention
         }
         if (moduleNames.contains("LineLength")) {
-            disabledRules.add("java:S103");
+            disabledRules.add("java:S103"); // Lines should not be too long
         }
         if (moduleNames.contains("FileTabCharacter")) {
-            disabledRules.add("java:S105");
+            disabledRules.add("java:S105"); // Tabulation characters should not be used
         }
         if (moduleNames.contains("MemberName")) {
-            disabledRules.add("java:S116");
+            disabledRules.add("java:S116"); // Field names should comply with a naming convention
         }
         if (moduleNames.contains("LocalVariableName")) {
+            // Local variable and method parameter names should comply with a naming convention
             disabledRules.add("java:S117");
         }
         if (moduleNames.contains("ClassTypeParameterName")
             || moduleNames.contains("InterfaceTypeParameterName")
             || moduleNames.contains("MethodTypeParameterName")
         ) {
-            disabledRules.add("java:S119");
+            disabledRules.add("java:S119"); // Type parameter names should comply with a naming convention
         }
         if (moduleNames.contains("PackageName")) {
-            disabledRules.add("java:S120");
+            disabledRules.add("java:S120"); // Package names should comply with a naming convention
         }
         if (moduleNames.contains("NeedBraces")) {
-            disabledRules.add("java:S121");
+            disabledRules.add("java:S121"); // Control structures should use curly braces
         }
         if (moduleNames.contains("OneStatementPerLine")) {
-            disabledRules.add("java:S122");
+            disabledRules.add("java:S122"); // Statements should be on separate lines
         }
 
         return unmodifiableCollection(disabledRules);
@@ -413,9 +424,31 @@ abstract class BaseSonarLintActions {
             return emptyList();
         }
 
-        return ImmutableList.of(
-            "java:S4838" // An iteration on a Collection should be performed on the type handled by the Collection
-        );
+        Collection<String> disabledRules = new ArrayList<>();
+
+        val sourceJavaVersion = getSourceJavaVersion(task);
+        if (!sourceJavaVersion.isJava10Compatible()) {
+            // An iteration on a Collection should be performed on the type handled by the Collection
+            disabledRules.add("java:S4838");
+        }
+
+        return unmodifiableCollection(disabledRules);
+    }
+
+    private static JavaVersion getSourceJavaVersion(BaseSonarLint task) {
+        val properties = task.getSonarProperties().get();
+        return Optional.ofNullable(properties.get(SONAR_JAVA_SOURCE_PROPERTY))
+            .filter(ObjectUtils::isNotEmpty)
+            .map(version -> {
+                try {
+                    return JavaVersion.toVersion(version);
+                } catch (IllegalArgumentException e) {
+                    logger.warn("Illegal value of {} Sonar property: {}", SONAR_JAVA_SOURCE_PROPERTY, version);
+                    return null;
+                }
+            })
+            .orElse(JavaVersion.current());
+
     }
 
     @Nullable

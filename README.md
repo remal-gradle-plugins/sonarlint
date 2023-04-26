@@ -48,6 +48,13 @@ sonarLint {
   sonarProperty('sonar.nodejs.executable', '/usr/bin/node') // configure Node.js executable path via `sonar.nodejs.executable` Sonar property
   sonarProperties = ['sonar.nodejs.executable': '/usr/bin/node'] // `sonarProperties` - a mutable map of Sonar properties
 
+  ignoredPaths.add('**/dto/**') // ignore all files which relative path matches `**/dto/**` glob for all rules
+  rules {
+    rule('java:S100') {
+      ignoredPaths.add('**/dto/**') // ignore all files which relative path matches `**/dto/**` glob for rule `java:S100`
+    }
+  }
+
   testSourceSets = sourceSets.matching { true } // Which source-sets contain test sources. Source-sets created by plugins like `name.remal.test-source-sets` are automatically integrated. Most probably, you don't have to configure anything yourself.
 
   // `sonarLint` extension extends `CodeQualityExtension` (see https://docs.gradle.org/current/javadoc/org/gradle/api/plugins/quality/CodeQualityExtension.html).

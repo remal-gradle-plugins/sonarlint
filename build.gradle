@@ -32,6 +32,20 @@ apply plugin: 'name.remal.toolkit.build-logic'
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+allprojects {
+    pluginManager.withPlugin('name.remal.sonarlint') {
+        sonarLint {
+            boolean hasCurrentSnapshotBuildscriptDependency = rootProject.buildscript.configurations.classpath.dependencies
+                .any { "${it.group}:${it.name}:${it.version}" == "$rootGroupId:$rootArtifactId:$rootSnapshotVersion" }
+            if (hasCurrentSnapshotBuildscriptDependency) {
+                fork.enabled = false
+            }
+        }
+    }
+}
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 project.registerCrossCompileDependencyInfo(
     [
         name: 'sonarlint',
