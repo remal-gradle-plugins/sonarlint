@@ -5,7 +5,7 @@ Node.js:lts:18.16.0
 classes-that-rely-on-gradle-internal-api:2b6eea029b37420f5a7fef40af3677558712de72b2b74069b844b0f4e6b8216d
 org.ow2.asm:asm-bom:9.5:@pom
 org.sonarsource.java:sonar-java-plugin:7.18.0.31443:@sonar-plugin
-org.sonarsource.javascript:sonar-javascript-plugin:10.1.0.21143:@sonar-plugin
+org.sonarsource.javascript:sonar-javascript-plugin:10.2.0.21568:@sonar-plugin
 org.sonarsource.kotlin:sonar-kotlin-plugin:2.14.0.2352
 org.sonarsource.slang:sonar-ruby-plugin:1.12.0.4259
 org.sonarsource.slang:sonar-scala-plugin:1.12.0.4259
