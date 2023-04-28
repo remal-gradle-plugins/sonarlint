@@ -176,7 +176,7 @@ jobs:
             only:
             - lts
             include:
-            - '[11,)'
+            - '[8,)'
           gradle:
             dependency: 'maven:name.remal.gradle-api:gradle-api'
             repositories:
