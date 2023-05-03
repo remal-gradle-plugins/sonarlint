@@ -81,6 +81,7 @@ abstract class BaseSonarLintActions {
     static final String SONAR_JAVA_JDK_HOME_PROPERTY = "sonar.java.jdkHome";
     static final String SONAR_JAVA_SOURCE_PROPERTY = "sonar.java.source";
     static final String SONAR_JAVA_TARGET_PROPERTY = "sonar.java.target";
+    static final String SONAR_JAVA_ENABLE_PREVIEW_PROPERTY = "sonar.java.enablePreview";
 
     public static void init(BaseSonarLint task) {
         task.getIsGeneratedCodeIgnored().convention(true);

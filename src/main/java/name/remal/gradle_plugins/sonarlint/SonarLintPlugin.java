@@ -8,6 +8,7 @@ import static java.util.Collections.singletonList;
 import static java.util.Collections.unmodifiableCollection;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
+import static name.remal.gradle_plugins.sonarlint.BaseSonarLintActions.SONAR_JAVA_ENABLE_PREVIEW_PROPERTY;
 import static name.remal.gradle_plugins.sonarlint.BaseSonarLintActions.SONAR_JAVA_SOURCE_PROPERTY;
 import static name.remal.gradle_plugins.sonarlint.BaseSonarLintActions.SONAR_JAVA_TARGET_PROPERTY;
 import static name.remal.gradle_plugins.sonarlint.CanonizationUtils.canonizeProperties;
@@ -271,6 +272,15 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
                 .ifPresent(targetCompatibility ->
                     javaProps.put(SONAR_JAVA_TARGET_PROPERTY, targetCompatibility)
                 );
+            javaCompileTask.map(JavaCompile::getOptions)
+                .map(CompileOptions::getCompilerArgs)
+                .filter(ObjectUtils::isNotEmpty)
+                .ifPresent(args -> {
+                    val isPreviewEnabled = args.stream().anyMatch("--enable-preview"::equals);
+                    if (isPreviewEnabled) {
+                        javaProps.put(SONAR_JAVA_ENABLE_PREVIEW_PROPERTY, "true");
+                    }
+                });
 
 
             final Collection<File> mainOutputDirs;
