@@ -8,6 +8,7 @@ import static java.util.Collections.emptySet;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 import static name.remal.gradle_plugins.sonarlint.internal.StandaloneGlobalConfigurationFactory.createEngineConfig;
+import static name.remal.gradle_plugins.toolkit.ObjectUtils.isNotEmpty;
 import static name.remal.gradle_plugins.toolkit.PredicateUtils.not;
 import static name.remal.gradle_plugins.toolkit.issues.Issue.newIssue;
 import static name.remal.gradle_plugins.toolkit.issues.IssueSeverity.ERROR;
@@ -78,37 +79,29 @@ final class SonarLintAnalyzerLatest implements SonarLintAnalyzer {
             Collection<Issue> issues = new LinkedHashSet<>();
             IssueListener issueListener = sonarIssue -> {
                 synchronized (issues) {
+                    val sourceFile = Optional.ofNullable(sonarIssue.getInputFile())
+                        .map(ClientInputFile::getClientObject)
+                        .filter(SourceFile.class::isInstance)
+                        .map(SourceFile.class::cast)
+                        .filter(not(isIgnoredSourceFile))
+                        .map(SourceFile::getAbsolutePath)
+                        .map(File::new)
+                        .orElse(null);
+                    if (sourceFile == null) {
+                        return;
+                    }
+
+                    val message = Optional.ofNullable(sonarIssue.getMessage())
+                        .filter(ObjectUtils::isNotEmpty)
+                        .map(TextMessage::textMessageOf)
+                        .orElse(null);
+                    if (message == null) {
+                        return;
+                    }
+
                     val issue = newIssue(builder -> {
-                        val sourceFile = Optional.ofNullable(sonarIssue.getInputFile())
-                            .map(ClientInputFile::getClientObject)
-                            .filter(SourceFile.class::isInstance)
-                            .map(SourceFile.class::cast)
-                            .filter(not(isIgnoredSourceFile))
-                            .map(SourceFile::getAbsolutePath)
-                            .map(File::new)
-                            .orElse(null);
-                        if (sourceFile == null) {
-                            return;
-                        } else {
-                            builder.sourceFile(sourceFile);
-                        }
-
-                        val message = Optional.ofNullable(sonarIssue.getMessage())
-                            .filter(ObjectUtils::isNotEmpty)
-                            .map(TextMessage::textMessageOf)
-                            .orElse(null);
-                        if (message == null) {
-                            return;
-                        } else {
-                            builder.message(message);
-                        }
-
-                        val ruleKey = sonarIssue.getRuleKey();
-                        if (ruleKey == null) {
-                            return;
-                        } else {
-                            builder.rule(ruleKey);
-                        }
+                        builder.sourceFile(sourceFile);
+                        builder.message(message);
 
                         Optional.ofNullable(sonarIssue.getSeverity())
                             .map(Enum::name)
@@ -138,10 +131,15 @@ final class SonarLintAnalyzerLatest implements SonarLintAnalyzer {
                         builder.endLine(sonarIssue.getEndLine());
                         builder.endColumn(sonarIssue.getEndLineOffset());
 
-                        engine.getRuleDetails(ruleKey)
-                            .map(StandaloneRuleDetails::getHtmlDescription)
-                            .map(HtmlMessage::htmlMessageOf)
-                            .ifPresent(builder::description);
+                        val ruleKey = sonarIssue.getRuleKey();
+                        if (isNotEmpty(ruleKey)) {
+                            builder.rule(sonarIssue.getRuleKey());
+
+                            engine.getRuleDetails(ruleKey)
+                                .map(StandaloneRuleDetails::getHtmlDescription)
+                                .map(HtmlMessage::htmlMessageOf)
+                                .ifPresent(builder::description);
+                        }
                     });
                     issues.add(issue);
                 }
