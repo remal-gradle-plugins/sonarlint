@@ -8,6 +8,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.unmodifiableCollection;
+import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static lombok.AccessLevel.PRIVATE;
@@ -17,7 +18,6 @@ import static name.remal.gradle_plugins.sonarlint.CanonizationUtils.canonizeRule
 import static name.remal.gradle_plugins.sonarlint.NodeJsVersions.LATEST_NODEJS_LTS_VERSION;
 import static name.remal.gradle_plugins.sonarlint.SonarDependencies.getSonarDependency;
 import static name.remal.gradle_plugins.sonarlint.internal.SourceFile.newSourceFileBuilder;
-import static name.remal.gradle_plugins.toolkit.ExtensionContainerUtils.findExtension;
 import static name.remal.gradle_plugins.toolkit.FileUtils.normalizeFile;
 import static name.remal.gradle_plugins.toolkit.JavaLauncherUtils.getJavaLauncherProviderFor;
 import static name.remal.gradle_plugins.toolkit.ObjectUtils.defaultFalse;
@@ -26,9 +26,6 @@ import static name.remal.gradle_plugins.toolkit.ObjectUtils.isEmpty;
 import static name.remal.gradle_plugins.toolkit.ObjectUtils.isNotEmpty;
 import static name.remal.gradle_plugins.toolkit.PathUtils.normalizePath;
 import static name.remal.gradle_plugins.toolkit.PredicateUtils.not;
-import static name.remal.gradle_plugins.toolkit.ProjectUtils.getTopLevelDirOf;
-import static name.remal.gradle_plugins.toolkit.ServiceRegistryUtils.getService;
-import static name.remal.gradle_plugins.toolkit.git.GitUtils.findGitRepositoryRootFor;
 import static name.remal.gradle_plugins.toolkit.xml.DomUtils.streamNodeList;
 import static name.remal.gradle_plugins.toolkit.xml.XmlUtils.parseXml;
 
@@ -58,7 +55,6 @@ import name.remal.gradle_plugins.toolkit.ObjectUtils;
 import name.remal.gradle_plugins.toolkit.PathIsOutOfRootPathException;
 import name.remal.gradle_plugins.toolkit.ReportUtils;
 import org.gradle.api.JavaVersion;
-import org.gradle.api.artifacts.ResolvedDependency;
 import org.gradle.api.file.Directory;
 import org.gradle.api.file.FileTree;
 import org.gradle.api.provider.Provider;
@@ -70,7 +66,6 @@ import org.gradle.jvm.toolchain.JavaInstallationMetadata;
 import org.gradle.jvm.toolchain.JavaLanguageVersion;
 import org.gradle.jvm.toolchain.JavaLauncher;
 import org.gradle.workers.WorkQueue;
-import org.gradle.workers.WorkerExecutor;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
@@ -139,13 +134,10 @@ abstract class BaseSonarLintActions {
         sonarProperties.values().removeIf(Objects::isNull);
 
 
-        val project = task.getProject();
-
         final WorkQueue workQueue;
         {
-            val workerExecutor = getService(task.getProject(), WorkerExecutor.class);
-            val forkParams = Optional.ofNullable(findExtension(project, SonarLintExtension.class))
-                .map(SonarLintExtension::getFork);
+            val workerExecutor = task.get$internals().getWorkerExecutor().get();
+            val forkParams = Optional.ofNullable(task.getForkOptions().getOrNull());
             val isForkEnabled = forkParams
                 .map(SonarLintForkOptions::getEnabled)
                 .map(Provider::getOrNull)
@@ -177,10 +169,10 @@ abstract class BaseSonarLintActions {
 
             params.getIsIgnoreFailures().set(isIgnoreFailures(task));
             params.getCommand().set(command);
-            params.getSonarLintVersion().set(getSonarLintVersion(task));
-            params.getProjectDir().set(normalizeFile(project.getProjectDir()));
+            params.getSonarLintVersion().set(getSonarLintVersionFor(task));
+            params.getProjectDir().set(task.get$internals().getProjectDir());
             params.getIsGeneratedCodeIgnored().set(defaultTrue(task.getIsGeneratedCodeIgnored().getOrNull()));
-            params.getBaseGeneratedDirs().add(project.getLayout().getBuildDirectory());
+            params.getBaseGeneratedDirs().add(task.get$internals().getBuildDir());
             params.getHomeDir().set(new File(tempDir, "home"));
             params.getWorkDir().set(new File(tempDir, "work"));
             params.getToolClasspath().from(task.getToolClasspath().getFiles().stream()
@@ -233,16 +225,6 @@ abstract class BaseSonarLintActions {
         }
     }
 
-    private static Path getRepositoryRootPath(BaseSonarLint task) {
-        val topLevelDir = getTopLevelDirOf(task.getProject());
-        val repositoryRoot = findGitRepositoryRootFor(topLevelDir);
-        if (repositoryRoot != null) {
-            return repositoryRoot;
-        }
-
-        return topLevelDir;
-    }
-
     private static boolean isIgnoreFailures(BaseSonarLint task) {
         if (task instanceof VerificationTask) {
             return ((VerificationTask) task).getIgnoreFailures();
@@ -255,28 +237,11 @@ abstract class BaseSonarLintActions {
     );
 
     @SneakyThrows
-    private static String getSonarLintVersion(BaseSonarLint task) {
+    private static String getSonarLintVersionFor(BaseSonarLint task) {
         for (val classpathFile : task.getToolClasspath().getFiles()) {
             val matcher = SONARLINT_CORE_FILE_NAME.matcher(classpathFile.getName());
             if (matcher.matches()) {
-                return matcher.group(1);
-            }
-        }
-
-        val configuration = task.getProject().getConfigurations().findByName("sonarlint");
-        if (configuration != null) {
-            val version = configuration.getResolvedConfiguration()
-                .getLenientConfiguration()
-                .getAllModuleDependencies()
-                .stream()
-                .filter(dep -> Objects.equals(dep.getModuleGroup(), "org.sonarsource.sonarlint.core"))
-                .filter(dep -> Objects.equals(dep.getModuleName(), "sonarlint-core"))
-                .map(ResolvedDependency::getModuleVersion)
-                .filter(ObjectUtils::isNotEmpty)
-                .findFirst()
-                .orElse(null);
-            if (version != null) {
-                return version;
+                return requireNonNull(matcher.group(1));
             }
         }
 
@@ -287,9 +252,9 @@ abstract class BaseSonarLintActions {
         if (task instanceof SourceTask) {
             return collectSourceFiles(
                 ((SourceTask) task).getSource(),
-                getRepositoryRootPath(task),
+                task.get$internals().getRootDir().get().getAsFile().toPath(),
                 defaultFalse(task.getIsTest().getOrNull()),
-                normalizePath(task.getProject().getBuildDir().toPath())
+                task.get$internals().getBuildDir().get().getAsFile().toPath()
             );
         }
 

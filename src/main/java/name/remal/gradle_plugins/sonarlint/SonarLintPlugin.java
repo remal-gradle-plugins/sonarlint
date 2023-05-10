@@ -201,6 +201,7 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
         task.getDisableRulesConflictingWithLombok().convention(project.provider(() ->
             TRUE.equals(extension.getRules().getDisableConflictingWithLombok().getOrNull())
         ));
+        task.getForkOptions().set(extension.getFork());
     }
 
     @Override

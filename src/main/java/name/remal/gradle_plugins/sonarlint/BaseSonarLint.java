@@ -68,4 +68,13 @@ interface BaseSonarLint extends Task {
     @org.gradle.api.tasks.Optional
     Property<JavaLauncher> getJavaLauncher();
 
+    @Nested
+    @org.gradle.api.tasks.Optional
+    Property<SonarLintForkOptions> getForkOptions();
+
+
+    @Nested
+    @SuppressWarnings({"java:S100", "checkstyle:MethodName"})
+    BaseSonarLintInternals get$internals();
+
 }

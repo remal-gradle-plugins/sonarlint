@@ -45,8 +45,6 @@ class SonarLintPluginFunctionalTest {
                 ))
             );
         });
-
-        project.withoutConfigurationCache();
     }
 
     private List<Issue> parseSonarLintIssues() {

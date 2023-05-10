@@ -7,6 +7,7 @@ import static org.gradle.language.base.plugins.LifecycleBasePlugin.VERIFICATION_
 
 import java.io.File;
 import java.util.concurrent.Callable;
+import lombok.Getter;
 import lombok.val;
 import name.remal.gradle_plugins.toolkit.tasks.BaseSourceVerificationReportingTask;
 import org.gradle.api.tasks.CacheableTask;
@@ -26,6 +27,13 @@ public abstract class SonarLint
             return sonarLintExtension != null ? sonarLintExtension.getReportsDir() : null;
         });
     }
+
+    @Getter
+    @SuppressWarnings("checkstyle:MemberName")
+    private final BaseSonarLintInternals $internals = getProject().getObjects().newInstance(
+        BaseSonarLintInternals.class,
+        this
+    );
 
     @TaskAction
     public void execute() {
