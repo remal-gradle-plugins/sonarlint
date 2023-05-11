@@ -5,6 +5,9 @@ import org.gradle.api.tasks.Internal;
 
 public abstract class SonarLintForkOptions {
 
+    static final boolean IS_FORK_ENABLED_DEFAULT = true;
+
+
     @Internal
     public abstract Property<Boolean> getEnabled();
 
@@ -12,7 +15,7 @@ public abstract class SonarLintForkOptions {
     public abstract Property<String> getMaxHeapSize();
 
     {
-        getEnabled().convention(true);
+        getEnabled().convention(IS_FORK_ENABLED_DEFAULT);
     }
 
 }

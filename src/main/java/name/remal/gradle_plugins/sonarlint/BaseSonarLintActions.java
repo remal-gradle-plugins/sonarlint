@@ -17,6 +17,7 @@ import static name.remal.gradle_plugins.sonarlint.CanonizationUtils.canonizeRule
 import static name.remal.gradle_plugins.sonarlint.CanonizationUtils.canonizeRulesProperties;
 import static name.remal.gradle_plugins.sonarlint.NodeJsVersions.LATEST_NODEJS_LTS_VERSION;
 import static name.remal.gradle_plugins.sonarlint.SonarDependencies.getSonarDependency;
+import static name.remal.gradle_plugins.sonarlint.SonarLintForkOptions.IS_FORK_ENABLED_DEFAULT;
 import static name.remal.gradle_plugins.sonarlint.internal.SourceFile.newSourceFileBuilder;
 import static name.remal.gradle_plugins.toolkit.FileUtils.normalizeFile;
 import static name.remal.gradle_plugins.toolkit.JavaLauncherUtils.getJavaLauncherProviderFor;
@@ -73,6 +74,8 @@ import org.w3c.dom.Element;
 @NoArgsConstructor(access = PRIVATE)
 abstract class BaseSonarLintActions {
 
+    static final JavaVersion MIN_SUPPORTED_SOAR_JAVA_VERSION = JavaVersion.VERSION_11;
+
     static final String SONAR_JAVA_JDK_HOME_PROPERTY = "sonar.java.jdkHome";
     static final String SONAR_JAVA_SOURCE_PROPERTY = "sonar.java.source";
     static final String SONAR_JAVA_TARGET_PROPERTY = "sonar.java.target";
@@ -83,7 +86,18 @@ abstract class BaseSonarLintActions {
 
         task.getIsTest().convention(false);
 
-        task.getJavaLauncher().convention(getJavaLauncherProviderFor(task.getProject()));
+        task.getJavaLauncher().convention(getJavaLauncherProviderFor(task.getProject(), spec -> {
+            val minSupportedJavaLanguageVersion = JavaLanguageVersion.of(
+                MIN_SUPPORTED_SOAR_JAVA_VERSION.getMajorVersion()
+            );
+            val javaMajorVersion = spec.getLanguageVersion()
+                .orElse(JavaLanguageVersion.of(JavaVersion.current().getMajorVersion()))
+                .map(JavaLanguageVersion::asInt)
+                .get();
+            if (javaMajorVersion < minSupportedJavaLanguageVersion.asInt()) {
+                spec.getLanguageVersion().set(minSupportedJavaLanguageVersion);
+            }
+        }));
 
         task.onlyIf(__ -> {
             task.getEnabledRules().set(canonizeRules(task.getEnabledRules().getOrNull()));
@@ -138,10 +152,19 @@ abstract class BaseSonarLintActions {
         {
             val workerExecutor = task.get$internals().getWorkerExecutor().get();
             val forkParams = Optional.ofNullable(task.getForkOptions().getOrNull());
-            val isForkEnabled = forkParams
+            boolean isForkEnabled = forkParams
                 .map(SonarLintForkOptions::getEnabled)
                 .map(Provider::getOrNull)
-                .orElse(true);
+                .orElse(IS_FORK_ENABLED_DEFAULT);
+            if (!isForkEnabled && JavaVersion.current().compareTo(MIN_SUPPORTED_SOAR_JAVA_VERSION) < 0) {
+                logger.warn(
+                    "The current Java version ({}) is less than {}, enabling forking for task {}",
+                    JavaVersion.current().getMajorVersion(),
+                    MIN_SUPPORTED_SOAR_JAVA_VERSION.getMajorVersion(),
+                    task.getPath()
+                );
+                isForkEnabled = true;
+            }
             if (isForkEnabled) {
                 workQueue = workerExecutor.processIsolation(spec -> {
                     spec.getForkOptions().setExecutable(task.getJavaLauncher().get()

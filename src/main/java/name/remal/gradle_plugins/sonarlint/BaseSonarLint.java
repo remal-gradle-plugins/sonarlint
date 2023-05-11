@@ -66,11 +66,11 @@ interface BaseSonarLint extends Task {
 
     @Nested
     @org.gradle.api.tasks.Optional
-    Property<JavaLauncher> getJavaLauncher();
+    Property<SonarLintForkOptions> getForkOptions();
 
     @Nested
     @org.gradle.api.tasks.Optional
-    Property<SonarLintForkOptions> getForkOptions();
+    Property<JavaLauncher> getJavaLauncher();
 
 
     @Nested
