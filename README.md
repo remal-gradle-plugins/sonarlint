@@ -1,4 +1,4 @@
-**Min supported Java version: <!--property:java-runtime.min-version-->11<!--/property-->**
+**Min supported Java version: <!--property:java-runtime.min-version-->8<!--/property-->**
 
 **Min supported Gradle version: <!--property:gradle-api.min-version-->6.7<!--/property-->**
 
