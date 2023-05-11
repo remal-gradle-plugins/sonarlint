@@ -35,7 +35,7 @@ jobs:
       }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    concurrency: populate-cache
+    concurrency: populate-cache-${{github.ref}}
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
@@ -160,6 +160,12 @@ jobs:
         path: '/tmp/workspace-${{github.run_id}}.tar.gz'
         if-no-files-found: error
         retention-days: 90
+    - name: Read min supported Java version
+      id: min-java-version
+      uses: remal-github-actions/read-property@v1
+      with:
+        file: gradle.properties
+        property: 'java-runtime.min-version'
     - name: Read min supported Gradle version
       id: min-gradle-version
       uses: remal-github-actions/read-property@v1
@@ -176,7 +182,7 @@ jobs:
             only:
             - lts
             include:
-            - '[11,)'
+            - '[${{steps.min-java-version.outputs.value}},)'
           gradle:
             dependency: 'maven:name.remal.gradle-api:gradle-api'
             repositories:
@@ -209,10 +215,12 @@ jobs:
       uses: remal-github-actions/cache-gradle@main
       with:
         build-cache-for-branches-only: 'true'
-    - name: Setup Java ${{matrix.java}}
+    - name: Setup Java
       uses: actions/setup-java@v3
       with:
-        java-version: ${{matrix.java}}
+        java-version: |
+          ${{matrix.java != '11' && matrix.java || ''}}
+          11
         distribution: temurin
     - name: Download workspace archive
       id: download-workspace
@@ -225,7 +233,7 @@ jobs:
         tar -xz -f "${{steps.download-workspace.outputs.download-path}}/workspace-${{github.run_id}}.tar.gz"
     - name: Execute tests
       run: |
-        ./gradlew-retry-connection-timeouts allTests "-Pgradle-api.version=${{matrix.gradle}}"
+        ./gradlew-retry-connection-timeouts allTests "-Pjava-runtime.version=${{matrix.java}}" "-Pgradle-api.version=${{matrix.gradle}}"
 
   cross-versions-tests-success:
     needs:
