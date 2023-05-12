@@ -2,7 +2,6 @@
 # Do not modify it yourself unless you know what you are doing.
 
 Node.js:lts:18.16.0
-classes-that-rely-on-gradle-internal-api:d5489ef6b9c4b609a4674a68860e66c1bdb94775671632dd84ec7e7be599d6c5
 org.ow2.asm:asm-bom:9.5:@pom
 org.sonarsource.java:sonar-java-plugin:7.19.0.31550:@sonar-plugin
 org.sonarsource.javascript:sonar-javascript-plugin:10.2.0.21568:@sonar-plugin
@@ -11,3 +10,18 @@ org.sonarsource.slang:sonar-ruby-plugin:1.12.0.4259
 org.sonarsource.slang:sonar-scala-plugin:1.12.0.4259
 org.sonarsource.sonarlint.core:sonarlint-core:8.16.0.67686
 org.sonarsource.xml:sonar-xml-plugin:2.7.0.3820:@sonar-plugin
+zzzz-classes-that-rely-on-gradle-internal-api:name.remal.gradle_plugins.sonarlint.SonarLintPlugin:a05f70756cb2b663e30f6892982fdc4d4d66ec83b8260e4e5b6ec3eac2ba5125
+zzzz-classes-that-rely-on-gradle-internal-api:name.remal.gradle_plugins.sonarlint.internal._relocated.name.remal.gradle_plugins.toolkit.ClosureUtils:bb14e8fec3efc2cf5c47ae3ab51baee5859bd34a15de65db095f0b6cc87ab69b
+zzzz-classes-that-rely-on-gradle-internal-api:name.remal.gradle_plugins.sonarlint.internal._relocated.name.remal.gradle_plugins.toolkit.DebugUtils$1:5ecc5eecbcfd5dc24f8f230262cc1c1109f7c9776e9c7a899a2cd8ad0080f2c5
+zzzz-classes-that-rely-on-gradle-internal-api:name.remal.gradle_plugins.sonarlint.internal._relocated.name.remal.gradle_plugins.toolkit.DebugUtils$IfDebugEnabled:8bb322723d88a7ec244a69821ddd036f5aac55a2532dd1f309ffdc7cc57f72b7
+zzzz-classes-that-rely-on-gradle-internal-api:name.remal.gradle_plugins.sonarlint.internal._relocated.name.remal.gradle_plugins.toolkit.DebugUtils:b6d906eb30e2a34e51195b32701128618edf289b810cc3fecc80dfa2d62104f8
+zzzz-classes-that-rely-on-gradle-internal-api:name.remal.gradle_plugins.sonarlint.internal._relocated.name.remal.gradle_plugins.toolkit.FileTreeElementUtils:1af85fbfa51ee7ad7a5b76f0f2ebfd2e1f6c944f71b18efc9b32a7105f3de7aa
+zzzz-classes-that-rely-on-gradle-internal-api:name.remal.gradle_plugins.sonarlint.internal._relocated.name.remal.gradle_plugins.toolkit.PropertiesConventionUtils:b88cb6c5a417a7be061e8594a44c1f3dcb9c0ece4e43293d964a37ad2edcd154
+zzzz-classes-that-rely-on-gradle-internal-api:name.remal.gradle_plugins.sonarlint.internal._relocated.name.remal.gradle_plugins.toolkit.ReportContainerUtils$ReportInfo$ReportInfoBuilder:cc8becdbfa25ede1c2f8033e57d892de3b45bce576ad8ddbc029d01561c4b790
+zzzz-classes-that-rely-on-gradle-internal-api:name.remal.gradle_plugins.sonarlint.internal._relocated.name.remal.gradle_plugins.toolkit.ReportContainerUtils$ReportInfo:b9e27dfd35609cd5c6bfb1c4295bbdaf8bf44e981a1776b70bebf080e45a9347
+zzzz-classes-that-rely-on-gradle-internal-api:name.remal.gradle_plugins.sonarlint.internal._relocated.name.remal.gradle_plugins.toolkit.ReportContainerUtils:75c0229ef45968db6e721c89428a727555b3e5a21ad7d320bc9028649130343b
+zzzz-classes-that-rely-on-gradle-internal-api:name.remal.gradle_plugins.sonarlint.internal._relocated.name.remal.gradle_plugins.toolkit.ServiceRegistryUtils:6738f7534236020ea246b50d4022e464db191cfc625e3755080928f15bab4f77
+zzzz-classes-that-rely-on-gradle-internal-api:name.remal.gradle_plugins.sonarlint.internal._relocated.name.remal.gradle_plugins.toolkit.SourceSetUtils$1:bbeb57aea83f4a898511ee8c5cb51f5527071c649a55436eb63cd3c11c6d9585
+zzzz-classes-that-rely-on-gradle-internal-api:name.remal.gradle_plugins.sonarlint.internal._relocated.name.remal.gradle_plugins.toolkit.SourceSetUtils:ec3127dda4d9bbb31bba97ad874b233f0da71ae8f358308a8c8683fb2df50252
+zzzz-classes-that-rely-on-gradle-internal-api:name.remal.gradle_plugins.sonarlint.internal._relocated.name.remal.gradle_plugins.toolkit.Version:95dbe8046df31a4235b79f4c7a88e306b2ed6bc8b01d81532f57a066df4da73d
+zzzz-classes-that-rely-on-gradle-internal-api:name.remal.gradle_plugins.sonarlint.internal._relocated.name.remal.gradle_plugins.toolkit.reflection.ReflectionUtils:f20a51ca4aa6682af6d35fe5b7bf285efdffb3e43b3182db2bc015bd489af23d
