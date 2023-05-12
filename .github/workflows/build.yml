@@ -16,6 +16,7 @@ defaults:
     shell: bash
 
 env:
+  DEFAULT_JAVA_VERSION: 17
   GRADLE_OPTS: -Dorg.gradle.parallel=true -Dorg.gradle.workers.max=4 -Dorg.gradle.warning.mode=all -Dorg.gradle.daemon=true -Dhttp.keepAlive=false -Dsun.net.client.defaultConnectTimeout=15000 -Dsun.net.client.defaultReadTimeout=600000 -Dsun.net.http.retryPost=false -Dsun.io.useCanonCaches=false -Djava.awt.headless=true -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
   GIT_REF: ${{github.ref}}
   GIT_SHA: ${{github.sha}}
@@ -53,11 +54,11 @@ jobs:
       uses: remal-github-actions/cache-gradle@main
       with:
         build-cache-enabled: 'false'
-    - name: Setup Java 11
+    - name: Setup Java ${{env.DEFAULT_JAVA_VERSION}}
       if: ${{steps.cache-gradle.outputs.gradle-wrapper-cache-hit != 'true' || steps.cache-gradle.outputs.gradle-caches-cache-hit != 'true'}}
       uses: actions/setup-java@v3
       with:
-        java-version: 11
+        java-version: ${{env.DEFAULT_JAVA_VERSION}}
         distribution: temurin
     - name: Create Gradle wrapper cache content
       if: ${{steps.cache-gradle.outputs.gradle-wrapper-cache-hit != 'true'}}
@@ -89,10 +90,18 @@ jobs:
       uses: remal-github-actions/cache-gradle@main
       with:
         build-cache-for-branches-only: 'true'
-    - name: Setup Java 11
+    - name: Read min supported Java version
+      id: min-java-version
+      uses: remal-github-actions/read-property@v1
+      with:
+        file: gradle.properties
+        property: 'java-runtime.min-version'
+    - name: Setup Java ${{steps.min-java-version.outputs.value != env.DEFAULT_JAVA_VERSION && format('{0} and {1}', steps.min-java-version.outputs.value, env.DEFAULT_JAVA_VERSION) || env.DEFAULT_JAVA_VERSION}}
       uses: actions/setup-java@v3
       with:
-        java-version: 11
+        java-version: |
+          ${{steps.min-java-version.outputs.value != env.DEFAULT_JAVA_VERSION && steps.min-java-version.outputs.value || ''}}
+          ${{env.DEFAULT_JAVA_VERSION}}
         distribution: temurin
     - name: Retrieve repository info
       id: repository-info
@@ -160,12 +169,6 @@ jobs:
         path: '/tmp/workspace-${{github.run_id}}.tar.gz'
         if-no-files-found: error
         retention-days: 90
-    - name: Read min supported Java version
-      id: min-java-version
-      uses: remal-github-actions/read-property@v1
-      with:
-        file: gradle.properties
-        property: 'java-runtime.min-version'
     - name: Read min supported Gradle version
       id: min-gradle-version
       uses: remal-github-actions/read-property@v1
@@ -215,12 +218,12 @@ jobs:
       uses: remal-github-actions/cache-gradle@main
       with:
         build-cache-for-branches-only: 'true'
-    - name: Setup Java
+    - name: Setup Java ${{matrix.java != env.DEFAULT_JAVA_VERSION && format('{0} and {1}', matrix.java, env.DEFAULT_JAVA_VERSION) || env.DEFAULT_JAVA_VERSION}}
       uses: actions/setup-java@v3
       with:
         java-version: |
-          ${{matrix.java != '11' && matrix.java || ''}}
-          11
+          ${{matrix.java != env.DEFAULT_JAVA_VERSION && matrix.java || ''}}
+          ${{env.DEFAULT_JAVA_VERSION}}
         distribution: temurin
     - name: Download workspace archive
       id: download-workspace
@@ -267,10 +270,10 @@ jobs:
       uses: remal-github-actions/cache-gradle@main
       with:
         build-cache-for-branches-only: 'true'
-    - name: Setup Java 11
+    - name: Setup Java ${{env.DEFAULT_JAVA_VERSION}}
       uses: actions/setup-java@v3
       with:
-        java-version: 11
+        java-version: ${{env.DEFAULT_JAVA_VERSION}}
         distribution: temurin
     - name: Download workspace archive
       id: download-workspace
@@ -362,10 +365,10 @@ jobs:
       uses: remal-github-actions/cache-gradle@main
       with:
         build-cache-for-branches-only: 'true'
-    - name: Setup Java 11
+    - name: Setup Java ${{env.DEFAULT_JAVA_VERSION}}
       uses: actions/setup-java@v3
       with:
-        java-version: 11
+        java-version: ${{env.DEFAULT_JAVA_VERSION}}
         distribution: temurin
     - name: Download workspace archive
       id: download-workspace
@@ -419,10 +422,10 @@ jobs:
       uses: remal-github-actions/cache-gradle@main
       with:
         build-cache-for-branches-only: 'true'
-    - name: Setup Java 11
+    - name: Setup Java ${{env.DEFAULT_JAVA_VERSION}}
       uses: actions/setup-java@v3
       with:
-        java-version: 11
+        java-version: ${{env.DEFAULT_JAVA_VERSION}}
         distribution: temurin
     - name: Download workspace archive
       id: download-workspace
