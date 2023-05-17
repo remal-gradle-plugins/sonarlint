@@ -2,6 +2,7 @@ package name.remal.gradle_plugins.sonarlint.internal;
 
 import static java.lang.Math.multiplyExact;
 import static java.lang.reflect.Modifier.isAbstract;
+import static java.util.Objects.requireNonNull;
 import static lombok.AccessLevel.PRIVATE;
 import static name.remal.gradle_plugins.toolkit.FileUtils.normalizeFile;
 import static name.remal.gradle_plugins.toolkit.reflection.MembersFinder.findStaticMethod;
@@ -19,6 +20,7 @@ import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
 import java.lang.reflect.WildcardType;
 import java.math.BigInteger;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -121,7 +123,7 @@ abstract class SerializationTestUtils {
             return nextEnumConstants(rawType);
 
         } else if (rawType.isArray()) {
-            val elementType = rawType.getComponentType();
+            val elementType = requireNonNull(rawType.getComponentType());
             val elementsCount = ThreadLocalRandom.current().nextInt(2, 10);
             val values = Array.newInstance(elementType, elementsCount);
             for (int i = 0; i < elementsCount; ++i) {
@@ -173,7 +175,7 @@ abstract class SerializationTestUtils {
             val valueType = getActualTypeArgument(type, 1);
             val key = createValue(keyType);
             val value = createValue(valueType);
-            return Map.entry(key, value);
+            return new SimpleEntry<>(key, value);
         }
 
         if (rawType.isInterface() || isAbstract(rawType.getModifiers())) {
@@ -205,7 +207,7 @@ abstract class SerializationTestUtils {
     }
 
     private static Object nextEnumConstants(Class<?> enumType) {
-        val enumConstants = enumType.getEnumConstants();
+        val enumConstants = requireNonNull(enumType.getEnumConstants());
         val index = ThreadLocalRandom.current().nextInt(0, enumConstants.length);
         return enumConstants[index];
     }
