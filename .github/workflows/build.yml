@@ -8,7 +8,7 @@ on:
     - 'v*'
   pull_request: { }
   schedule:
-  - cron: '28 21 * * *' # sync-with-template: adjust
+  - cron: '53 22 * * *' # sync-with-template: adjust
   workflow_dispatch: { }
 
 defaults:
@@ -236,7 +236,15 @@ jobs:
         tar -xz -f "${{steps.download-workspace.outputs.download-path}}/workspace-${{github.run_id}}.tar.gz"
     - name: Execute tests
       run: |
-        ./gradlew-retry-connection-timeouts allTests "-Pjava-runtime.version=${{matrix.java}}" "-Pgradle-api.version=${{matrix.gradle}}"
+        ./gradlew-retry-connection-timeouts allTests jacocoReportMerged displayTotalCodeCoverage "-Pjava-runtime.version=${{matrix.java}}" "-Pgradle-api.version=${{matrix.gradle}}"
+    - name: Upload Jacoco merged report
+      if: ${{strategy.job-index == '0'}}
+      uses: actions/upload-artifact@v3
+      with:
+        name: jacoco-merged-report-${{matrix.java}}-${{matrix.gradle}}
+        path: build/reports/jacoco/jacocoReportMerged/
+        if-no-files-found: error
+        retention-days: 30
 
   cross-versions-tests-success:
     needs:
