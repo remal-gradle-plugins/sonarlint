@@ -73,7 +73,7 @@ apply plugin: 'java-gradle-plugin'
 apply plugin: 'name.remal.generate-sources'
 
 dependencies {
-    optional('org.sonarsource.sonarlint.core:sonarlint-core:8.16.0.67686') { transitive = false }
+    optional('org.sonarsource.sonarlint.core:sonarlint-core:8.17.0.70351') { transitive = false }
 }
 
 gradlePlugin {
@@ -132,7 +132,7 @@ createSonarArtifactsConfiguration('sonarPluginArtifacts')
 
 dependencies {
     // Core:
-    sonarCoreArtifacts 'org.sonarsource.sonarlint.core:sonarlint-core:8.16.0.67686'
+    sonarCoreArtifacts 'org.sonarsource.sonarlint.core:sonarlint-core:8.17.0.70351'
 
 
     // Plugins:
