@@ -119,6 +119,10 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
         super.createConfigurations();
 
         project.getConfigurations().create(getPluginsConfigurationName(), conf -> {
+            if (conf.isCanBeResolved()) {
+                conf.setCanBeResolved(false);
+            }
+
             configureSonarLintConfiguration(conf);
             conf.setDescription(getToolName() + " plugins to be used for this project.");
 
@@ -132,8 +136,11 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
         });
 
         project.getConfigurations().create(getClasspathConfigurationName(), conf -> {
+            if (!conf.isCanBeResolved()) {
+                conf.setCanBeResolved(true);
+            }
+
             configureSonarLintConfiguration(conf);
-            conf.setCanBeResolved(true);
             conf.setDescription("Full " + getToolName() + " classpath to be used for this project.");
 
             conf.extendsFrom(
@@ -414,22 +421,18 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
         configuration.setVisible(false);
 
 
-        if (!configuration.getName().equals(getConfigurationName())) {
-            configuration.setCanBeConsumed(false);
-            configuration.setCanBeResolved(false);
+        if (configuration.isCanBeResolved() || configuration.isCanBeConsumed()) {
+            configuration.attributes(attrs -> {
+                attrs.attribute(
+                    USAGE_ATTRIBUTE,
+                    project.getObjects().named(Usage.class, JAVA_RUNTIME)
+                );
+                attrs.attribute(
+                    CATEGORY_ATTRIBUTE,
+                    project.getObjects().named(Category.class, LIBRARY)
+                );
+            });
         }
-
-
-        configuration.attributes(attrs -> {
-            attrs.attribute(
-                USAGE_ATTRIBUTE,
-                project.getObjects().named(Usage.class, JAVA_RUNTIME)
-            );
-            attrs.attribute(
-                CATEGORY_ATTRIBUTE,
-                project.getObjects().named(Category.class, LIBRARY)
-            );
-        });
 
 
         configuration.exclude(ImmutableMap.of(
