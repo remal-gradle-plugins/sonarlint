@@ -44,7 +44,7 @@ jobs:
         submodules: recursive
         fetch-depth: 1
     - name: Validate Gradle Wrapper
-      uses: Wandalen/wretry.action@v1.0.39
+      uses: Wandalen/wretry.action@v1.0.41
       with:
         action: gradle/wrapper-validation-action@v1
         attempt_limit: 3
