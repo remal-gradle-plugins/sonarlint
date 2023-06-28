@@ -89,8 +89,9 @@ gradlePlugin {
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-Provider<String> ltsNodeJsVersion = project.provider { project.getLtsNodeJsVersions()[0] }
+Provider<String> ltsNodeJsVersion = project.provider { project.file('.nvmrc').getText('UTF-8').trim().replaceFirst(/^v/, '') }
 project.nonJavaApiDependencies.add(project.provider { 'Node.js:lts:' + ltsNodeJsVersion.get() })
+tasks.collectGradlePluginApiDependencies.inputs.file('.nvmrc')
 
 tasks.named('generateJava') {
     inputs.property('ltsNodeJsVersion', ltsNodeJsVersion)
