@@ -10,7 +10,7 @@ org.sonarsource.slang:sonar-ruby-plugin:1.13.0.4374
 org.sonarsource.slang:sonar-scala-plugin:1.13.0.4374
 org.sonarsource.sonarlint.core:sonarlint-core:8.19.0.72745
 org.sonarsource.xml:sonar-xml-plugin:2.9.0.4055:@sonar-plugin
-zzzz-classes-that-rely-on-gradle-internal-api:name.remal.gradle_plugins.sonarlint.SonarLintPlugin:e736911542bdbb99f794bb319138be3ec6671104e5c3e48c053fc8fd5bc0032e
+zzzz-classes-that-rely-on-gradle-internal-api:name.remal.gradle_plugins.sonarlint.SonarLintPlugin:183ad40486dc0ede0f49b01d03eb170bf80ab0d659536165c4babed3f5d7e6a3
 zzzz-classes-that-rely-on-gradle-internal-api:name.remal.gradle_plugins.sonarlint.internal._relocated.name.remal.gradle_plugins.toolkit.ClosureUtils:6f8c425f05c5e8ceebf0151172e6f84858d4f283505a389204c452650fa558a4
 zzzz-classes-that-rely-on-gradle-internal-api:name.remal.gradle_plugins.sonarlint.internal._relocated.name.remal.gradle_plugins.toolkit.DebugUtils$1:c2e62d142a6d7eb391507658fe0156a169ecc53e1ead07cdfc86de446524cfd9
 zzzz-classes-that-rely-on-gradle-internal-api:name.remal.gradle_plugins.sonarlint.internal._relocated.name.remal.gradle_plugins.toolkit.DebugUtils$IfDebugEnabled:1e65ea35cd065a9ecb8a9e9f69b369934f53564ad309f86b653ff0c7371b10a4
