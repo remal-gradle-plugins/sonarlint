@@ -40,6 +40,14 @@ interface BaseSonarLint extends Task {
 
     @org.gradle.api.tasks.Optional
     @Input
+    ListProperty<String> getIncludedLanguages();
+
+    @org.gradle.api.tasks.Optional
+    @Input
+    ListProperty<String> getExcludedLanguages();
+
+    @org.gradle.api.tasks.Optional
+    @Input
     MapProperty<String, String> getSonarProperties();
 
     @org.gradle.api.tasks.Optional

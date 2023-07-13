@@ -12,6 +12,7 @@ import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static lombok.AccessLevel.PRIVATE;
+import static name.remal.gradle_plugins.sonarlint.CanonizationUtils.canonizeLanguages;
 import static name.remal.gradle_plugins.sonarlint.CanonizationUtils.canonizeProperties;
 import static name.remal.gradle_plugins.sonarlint.CanonizationUtils.canonizeRules;
 import static name.remal.gradle_plugins.sonarlint.CanonizationUtils.canonizeRulesProperties;
@@ -102,6 +103,8 @@ abstract class BaseSonarLintActions {
         task.onlyIf(__ -> {
             task.getEnabledRules().set(canonizeRules(task.getEnabledRules().getOrNull()));
             task.getDisabledRules().set(canonizeRules(task.getDisabledRules().getOrNull()));
+            task.getIncludedLanguages().set(canonizeLanguages(task.getIncludedLanguages().getOrNull()));
+            task.getExcludedLanguages().set(canonizeLanguages(task.getExcludedLanguages().getOrNull()));
             task.getSonarProperties().set(canonizeProperties(task.getSonarProperties().getOrNull()));
             task.getRulesProperties().set(canonizeRulesProperties(task.getRulesProperties().getOrNull()));
 
@@ -209,6 +212,8 @@ abstract class BaseSonarLintActions {
             params.getDisabledRules().set(task.getDisabledRules());
             params.getDisabledRules().addAll(getDisabledRulesFromCheckstyleConfig(task));
             params.getDisabledRules().addAll(getDisabledRulesConflictingWithLombok(task));
+            params.getIncludedLanguages().addAll(task.getIncludedLanguages());
+            params.getExcludedLanguages().addAll(task.getExcludedLanguages());
             params.getSonarProperties().set(sonarProperties);
             params.getDefaultNodeJsVersion().set(LATEST_NODEJS_LTS_VERSION);
             params.getRulesProperties().set(task.getRulesProperties());

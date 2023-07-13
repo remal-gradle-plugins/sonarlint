@@ -10,7 +10,7 @@ import name.remal.gradle_plugins.sonarlint.internal.SonarLintExecutionParams;
 import name.remal.gradle_plugins.sonarlint.internal.SonarLintPropertiesDocumentationCollector;
 
 @AutoService(SonarLintPropertiesDocumentationCollector.class)
-final class SonarLintPropertiesDocumentationCollectorImpl implements SonarLintPropertiesDocumentationCollector {
+final class SonarLintPropertiesDocumentationCollector_8_11 implements SonarLintPropertiesDocumentationCollector {
 
     @Override
     public PropertiesDocumentation collectPropertiesDocumentation(SonarLintExecutionParams params) {

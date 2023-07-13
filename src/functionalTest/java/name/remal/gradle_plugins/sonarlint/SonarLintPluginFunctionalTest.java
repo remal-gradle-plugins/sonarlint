@@ -16,6 +16,7 @@ import name.remal.gradle_plugins.toolkit.issues.CheckstyleXmlIssuesParser;
 import name.remal.gradle_plugins.toolkit.issues.Issue;
 import name.remal.gradle_plugins.toolkit.testkit.functional.GradleProject;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 @RequiredArgsConstructor
@@ -162,6 +163,68 @@ class SonarLintPluginFunctionalTest {
         assertThat(parseSonarLintIssuesOf("src/main/java/" + javaS1133SourceRelativePath))
             .extracting(Issue::getRule)
             .contains("java:S1133");
+    }
+
+    @Nested
+    class LanguagesInclusion {
+
+        private String sourceFileRelativePath;
+
+        @BeforeEach
+        void beforeEach() {
+            project.getBuildFile().registerDefaultTask("sonarlintMain");
+            sourceFileRelativePath = addJavaS1171RuleExample("src/main/java");
+        }
+
+
+        @Test
+        void includedLanguage() {
+            project.getBuildFile().append("sonarLint.languages.include('java')");
+
+            project.assertBuildSuccessfully();
+
+            val issues = parseSonarLintIssuesOf("src/main/java/" + sourceFileRelativePath);
+            assertThat(issues)
+                .extracting(Issue::getRule)
+                .contains("java:S1171");
+        }
+
+        @Test
+        void includedOtherLanguage() {
+            project.getBuildFile().append("sonarLint.languages.include('kotlin')");
+
+            project.assertBuildSuccessfully();
+
+            val issues = parseSonarLintIssuesOf("src/main/java/" + sourceFileRelativePath);
+            assertThat(issues)
+                .extracting(Issue::getRule)
+                .doesNotContain("java:S1171");
+        }
+
+        @Test
+        void excludedLanguage() {
+            project.getBuildFile().append("sonarLint.languages.exclude('java')");
+
+            project.assertBuildSuccessfully();
+
+            val issues = parseSonarLintIssuesOf("src/main/java/" + sourceFileRelativePath);
+            assertThat(issues)
+                .extracting(Issue::getRule)
+                .doesNotContain("java:S1171");
+        }
+
+        @Test
+        void excludedOtherLanguage() {
+            project.getBuildFile().append("sonarLint.languages.exclude('kotlin')");
+
+            project.assertBuildSuccessfully();
+
+            val issues = parseSonarLintIssuesOf("src/main/java/" + sourceFileRelativePath);
+            assertThat(issues)
+                .extracting(Issue::getRule)
+                .contains("java:S1171");
+        }
+
     }
 
 

@@ -37,6 +37,10 @@ public interface SonarLintExecutionParams extends WorkParameters {
 
     SetProperty<String> getDisabledRules();
 
+    SetProperty<String> getIncludedLanguages();
+
+    SetProperty<String> getExcludedLanguages();
+
     MapProperty<String, String> getSonarProperties();
 
     MapProperty<String, Map<String, String>> getRulesProperties();

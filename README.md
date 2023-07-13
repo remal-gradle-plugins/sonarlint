@@ -47,6 +47,11 @@ sonarLint {
     }
   }
 
+  languages {
+    include('java', 'kotlin') // Enable Java and Kotlin languages only, all other languages become disabled
+    exclude('java', 'kotlin') // Disable Java and Kotlin languages, all other languages remain enabled
+  }
+
   sonarProperty('sonar.nodejs.executable', '/usr/bin/node') // configure Node.js executable path via `sonar.nodejs.executable` Sonar property
   sonarProperties = ['sonar.nodejs.executable': '/usr/bin/node'] // `sonarProperties` - a mutable map of Sonar properties
 

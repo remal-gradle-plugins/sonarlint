@@ -34,6 +34,22 @@ abstract class CanonizationUtils {
         return result;
     }
 
+    public static Collection<String> canonizeLanguages(@Nullable Collection<?> languages) {
+        Collection<String> result = new LinkedHashSet<>();
+        if (isNotEmpty(languages)) {
+            languages.stream()
+                .filter(Objects::nonNull)
+                .map(ObjectUtils::unwrapProviders)
+                .filter(Objects::nonNull)
+                .map(Object::toString)
+                .filter(not(String::isEmpty))
+                .map(String::toLowerCase)
+                .sorted()
+                .forEach(result::add);
+        }
+        return result;
+    }
+
     public static Map<String, String> canonizeProperties(
         @Nullable Map<?, ?> properties
     ) {

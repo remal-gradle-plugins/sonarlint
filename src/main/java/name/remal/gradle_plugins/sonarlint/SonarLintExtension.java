@@ -33,6 +33,14 @@ public abstract class SonarLintExtension extends CodeQualityExtension {
     }
 
 
+    private final SonarLintLanguagesSettings languages =
+        getObjectFactory().newInstance(SonarLintLanguagesSettings.class);
+
+    public void languages(Action<SonarLintLanguagesSettings> action) {
+        action.execute(languages);
+    }
+
+
     public abstract MapProperty<String, Object> getSonarProperties();
 
     public void sonarProperty(String key, Object value) {

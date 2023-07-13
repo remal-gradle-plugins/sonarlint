@@ -11,6 +11,7 @@ import static java.util.stream.Collectors.toList;
 import static name.remal.gradle_plugins.sonarlint.BaseSonarLintActions.SONAR_JAVA_ENABLE_PREVIEW_PROPERTY;
 import static name.remal.gradle_plugins.sonarlint.BaseSonarLintActions.SONAR_JAVA_SOURCE_PROPERTY;
 import static name.remal.gradle_plugins.sonarlint.BaseSonarLintActions.SONAR_JAVA_TARGET_PROPERTY;
+import static name.remal.gradle_plugins.sonarlint.CanonizationUtils.canonizeLanguages;
 import static name.remal.gradle_plugins.sonarlint.CanonizationUtils.canonizeProperties;
 import static name.remal.gradle_plugins.sonarlint.CanonizationUtils.canonizeRules;
 import static name.remal.gradle_plugins.sonarlint.CanonizationUtils.canonizeRulesProperties;
@@ -189,6 +190,12 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
         ));
         task.getDisabledRules().convention(project.provider(() ->
             canonizeRules(extension.getRules().getDisabled().get())
+        ));
+        task.getIncludedLanguages().convention(project.provider(() ->
+            canonizeLanguages(extension.getLanguages().getIncludes().get())
+        ));
+        task.getExcludedLanguages().convention(project.provider(() ->
+            canonizeLanguages(extension.getLanguages().getExcludes().get())
         ));
         task.getSonarProperties().convention(project.provider(() ->
             canonizeProperties(extension.getSonarProperties().get())
