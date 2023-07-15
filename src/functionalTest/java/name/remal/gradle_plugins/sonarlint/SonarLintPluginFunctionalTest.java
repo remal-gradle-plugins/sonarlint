@@ -181,7 +181,10 @@ class SonarLintPluginFunctionalTest {
         void includedLanguage() {
             project.getBuildFile().append("sonarLint.languages.include('java')");
 
-            project.assertBuildSuccessfully();
+            val buildLog = project.assertBuildSuccessfully().getOutput();
+            assertThat(buildLog)
+                .doesNotContainPattern("^Plugin .+ is excluded because language")
+                .doesNotContainPattern("^Plugin .+ is excluded because none of languages");
 
             val issues = parseSonarLintIssuesOf("src/main/java/" + sourceFileRelativePath);
             assertThat(issues)
@@ -193,7 +196,10 @@ class SonarLintPluginFunctionalTest {
         void includedOtherLanguage() {
             project.getBuildFile().append("sonarLint.languages.include('kotlin')");
 
-            project.assertBuildSuccessfully();
+            val buildLog = project.assertBuildSuccessfully().getOutput();
+            assertThat(buildLog)
+                .doesNotContainPattern("^Plugin .+ is excluded because language")
+                .doesNotContainPattern("^Plugin .+ is excluded because none of languages");
 
             val issues = parseSonarLintIssuesOf("src/main/java/" + sourceFileRelativePath);
             assertThat(issues)
@@ -205,7 +211,10 @@ class SonarLintPluginFunctionalTest {
         void excludedLanguage() {
             project.getBuildFile().append("sonarLint.languages.exclude('java')");
 
-            project.assertBuildSuccessfully();
+            val buildLog = project.assertBuildSuccessfully().getOutput();
+            assertThat(buildLog)
+                .doesNotContainPattern("^Plugin .+ is excluded because language")
+                .doesNotContainPattern("^Plugin .+ is excluded because none of languages");
 
             val issues = parseSonarLintIssuesOf("src/main/java/" + sourceFileRelativePath);
             assertThat(issues)
@@ -217,7 +226,10 @@ class SonarLintPluginFunctionalTest {
         void excludedOtherLanguage() {
             project.getBuildFile().append("sonarLint.languages.exclude('kotlin')");
 
-            project.assertBuildSuccessfully();
+            val buildLog = project.assertBuildSuccessfully().getOutput();
+            assertThat(buildLog)
+                .doesNotContainPattern("^Plugin .+ is excluded because language")
+                .doesNotContainPattern("^Plugin .+ is excluded because none of languages");
 
             val issues = parseSonarLintIssuesOf("src/main/java/" + sourceFileRelativePath);
             assertThat(issues)
