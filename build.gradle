@@ -138,7 +138,7 @@ dependencies {
 
     // Plugins:
     sonarPluginArtifacts 'org.sonarsource.java:sonar-java-plugin:7.21.0.31796'
-    sonarPluginArtifacts 'org.sonarsource.kotlin:sonar-kotlin-plugin:2.15.0.2579'
+    sonarPluginArtifacts 'org.sonarsource.kotlin:sonar-kotlin-plugin:2.16.0.2832'
     sonarPluginArtifacts 'org.sonarsource.slang:sonar-ruby-plugin:1.13.0.4374'
     sonarPluginArtifacts 'org.sonarsource.slang:sonar-scala-plugin:1.13.0.4374'
     sonarPluginArtifacts 'org.sonarsource.xml:sonar-xml-plugin:2.9.0.4055'
