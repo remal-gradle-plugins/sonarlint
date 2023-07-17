@@ -28,6 +28,7 @@ node_modules/
 
 # IntelliJ:
 /layout.json
+/__placeholder__.js
 /.idea/*
 !/.idea/.editorconfig
 !/.idea/groovyc.xml
