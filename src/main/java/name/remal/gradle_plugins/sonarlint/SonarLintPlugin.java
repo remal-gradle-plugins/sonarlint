@@ -15,6 +15,7 @@ import static name.remal.gradle_plugins.sonarlint.CanonizationUtils.canonizeLang
 import static name.remal.gradle_plugins.sonarlint.CanonizationUtils.canonizeProperties;
 import static name.remal.gradle_plugins.sonarlint.CanonizationUtils.canonizeRules;
 import static name.remal.gradle_plugins.sonarlint.CanonizationUtils.canonizeRulesProperties;
+import static name.remal.gradle_plugins.sonarlint.ResolvedNonReproducibleSonarDependencies.getResolvedNonReproducibleSonarDependency;
 import static name.remal.gradle_plugins.sonarlint.SonarDependencies.getSonarDependencies;
 import static name.remal.gradle_plugins.sonarlint.SonarDependencies.getSonarDependency;
 import static name.remal.gradle_plugins.toolkit.ExtensionContainerUtils.findExtension;
@@ -462,6 +463,16 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
                     ));
                 });
         }
+
+
+        configuration.getResolutionStrategy().eachDependency(details -> {
+            val target = details.getTarget();
+            val notation = target.getGroup() + ':' + target.getName() + ':' + target.getVersion();
+            val nonReproducibleDependency = getResolvedNonReproducibleSonarDependency(notation);
+            if (nonReproducibleDependency != null) {
+                details.useVersion(nonReproducibleDependency.getVersion());
+            }
+        });
     }
 
     private Dependency createDependency(SonarDependency sonarDependency) {

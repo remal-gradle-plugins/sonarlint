@@ -239,6 +239,23 @@ class SonarLintPluginFunctionalTest {
 
     }
 
+    @Test
+    void doesNotUseNonReproducibleVersions() {
+        project.getBuildFile().registerDefaultTask("sonarlintMain");
+
+        project.getBuildFile().append(
+            "configurations.configureEach { "
+                + "resolutionStrategy { "
+                + "failOnNonReproducibleResolution()"
+                + " }"
+                + " }"
+        );
+
+        addJavaS1171RuleExample("src/main/java");
+
+        project.assertBuildSuccessfully();
+    }
+
 
     private String addJavaS1171RuleExample(String srcDir) {
         project.getBuildFile().append(format(

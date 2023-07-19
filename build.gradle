@@ -106,14 +106,28 @@ tasks.named('generateJava') {
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-Configuration sonarArtifactsToDownloadForBuildCacheConf = project.configurations.create('sonarArtifactsToDownloadForBuildCache')
+Configuration allSonarArtifactsConf = project.configurations.create('allSonarArtifacts')
+
+Map<String, String> nonReproducibleSonarDependencyVersions = new TreeMap<>().asSynchronized()
+allSonarArtifactsConf.resolutionStrategy.eachDependency { DependencyResolveDetails details ->
+    ModuleVersionSelector target = details.target
+
+    String version = target.version
+    if (version == null) return
+    boolean isReproducible = version.endsWith('-SNAPSHOT') || ['(', '[', ']', ')'].any { version.contains(it) }
+    if (!isReproducible) return
+
+    String id = "${target.group}:${target.name}".toString()
+    nonReproducibleSonarDependencyVersions.put(id, version)
+}
 
 Closure<Configuration> createSonarArtifactsConfiguration = { String name, boolean addToIndirectApi = true ->
     return project.configurations.create(name) { Configuration conf ->
         conf.transitive = false
         conf.extendsFrom = []
         conf.dependencies.all { Dependency dep ->
-            sonarArtifactsToDownloadForBuildCacheConf.dependencies.add(dep.copy())
+            allSonarArtifactsConf.dependencies.add(dep.copy())
+
             if (dep instanceof ModuleDependency) {
                 dep.transitive = false
             }
@@ -168,17 +182,19 @@ dependencies {
 }
 
 tasks.named('generateJava') { Task task ->
-    inputs.files(configurations.sonarCoreArtifacts).withPropertyName('sonarCoreArtifacts').optional()
-    inputs.files(configurations.sonarPluginArtifacts).withPropertyName('sonarPluginArtifacts').optional()
+    inputs.files(allSonarArtifactsConf).withPropertyName(allSonarArtifactsConf.name + 'Conf').optional()
+
     classFile(project.calculateBaseJavaPackage(), 'SonarDependencyType') {
         it.writePackage()
         it.println("")
         it.writeBlock("enum ${it.simpleName}") {
             it.println("CORE,")
             it.println("PLUGIN,")
+            it.println("OTHER,")
             it.println(";")
         }
     }
+
     classFile(project.calculateBaseJavaPackage(), 'SonarDependency') {
         it.writePackage()
         it.println("")
@@ -192,8 +208,14 @@ tasks.named('generateJava') { Task task ->
             it.println("String group;")
             it.println("String name;")
             it.println("String version;")
+
+            it.println("")
+            it.writeBlock("public String getNotation()") {
+                it.println("return getGroup() + ':' + getName() + ':' + getVersion();")
+            }
         }
     }
+
     classFile(project.calculateBaseJavaPackage(), 'SonarDependencies') {
         it.writePackage()
         it.println("")
@@ -240,6 +262,48 @@ tasks.named('generateJava') { Task task ->
                     it.println("throw new IllegalStateException(\"Sonar dependency is not registered: \" + id);")
                 }
                 it.println("return dependency;")
+            }
+        }
+    }
+
+    classFile(project.calculateBaseJavaPackage(), 'ResolvedNonReproducibleSonarDependencies') {
+        it.writePackage()
+        it.println("")
+        it.writeStaticImport("lombok.AccessLevel", "PRIVATE")
+        it.println("")
+        it.writeImport("com.google.common.collect.ImmutableMap")
+        it.writeImport("java.util.Map")
+        it.writeImport("javax.annotation.Nullable")
+        it.writeImport("lombok.NoArgsConstructor")
+        it.println("")
+        it.println("@NoArgsConstructor(access = PRIVATE)")
+        it.writeBlock("abstract class ${it.simpleName}") {
+            it.println("")
+            it.println("private static final Map<String, SonarDependency> MAPPING = ImmutableMap.<String, SonarDependency>builder()")
+            allSonarArtifactsConf.resolvedConfiguration.lenientConfiguration.allModuleDependencies.forEach { ResolvedDependency dep ->
+                String depId = "${dep.moduleGroup}:${dep.moduleName}".toString()
+                String nonReproducibleVersion = nonReproducibleSonarDependencyVersions[depId]
+                if (nonReproducibleVersion != null) {
+                    it.println("    .put(\"${it.escapeJava("${depId}:${nonReproducibleVersion}")}\", SonarDependency.builder()")
+                    it.println("        .type(SonarDependencyType.OTHER)")
+                    it.println("        .group(\"${it.escapeJava(dep.moduleGroup)}\")")
+                    it.println("        .name(\"${it.escapeJava(dep.moduleName)}\")")
+                    it.println("        .version(\"${it.escapeJava(dep.moduleVersion)}\")")
+                    it.println("        .build()")
+                    it.println("    )")
+                }
+            }
+            it.println("    .build();")
+
+            it.println("")
+            it.writeBlock("public static Map<String, SonarDependency> getResolvedNonReproducibleSonarDependencies()") {
+                it.println("return MAPPING;")
+            }
+
+            it.println("")
+            it.println("@Nullable")
+            it.writeBlock("public static SonarDependency getResolvedNonReproducibleSonarDependency(String notation)") {
+                it.println("return getResolvedNonReproducibleSonarDependencies().get(notation);")
             }
         }
     }
@@ -308,6 +372,7 @@ allprojects {
 
     configurations
         .matching { !it.name.startsWith('sonar') }
+        .matching { !it.name.startsWith('allSonar') }
         .all { Configuration conf ->
             if (conf.state != Configuration.State.UNRESOLVED) return
 
