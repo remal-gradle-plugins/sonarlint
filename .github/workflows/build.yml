@@ -335,7 +335,7 @@ jobs:
           return result
 
 
-  evaluate-gradle-plugin-publish-conditions:
+  publish-to-gradle-plugins-portal:
     if: >-
       ${{
         github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
@@ -347,16 +347,6 @@ jobs:
     - build
     - cross-versions-tests
     - parse-git-tag
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-    - name: Display success message
-      run: |
-        echo "All Gradle Plugin publish conditions evaluated successfully"
-
-  publish-to-gradle-plugins-portal:
-    needs:
-    - evaluate-gradle-plugin-publish-conditions
     runs-on: ubuntu-latest
     timeout-minutes: 15
     concurrency: publish-to-gradle-plugins-portal
@@ -392,7 +382,7 @@ jobs:
         ./gradlew-retry-connection-timeouts publishPlugins "-Pgradle.publish.key=${{secrets.GRADLE_PLUGINS_PORTAL_KEY}}" "-Pgradle.publish.secret=${{secrets.GRADLE_PLUGINS_PORTAL_SECRET}}"
 
 
-  evaluate-maven-central-publish-conditions:
+  publish-to-maven-central:
     if: >-
       ${{
         github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
@@ -404,16 +394,6 @@ jobs:
     - build
     - cross-versions-tests
     - parse-git-tag
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-    - name: Display success message
-      run: |
-        echo "All Maven Central publish conditions evaluated successfully"
-
-  publish-to-maven-central:
-    needs:
-    - evaluate-maven-central-publish-conditions
     runs-on: ubuntu-latest
     timeout-minutes: 30
     concurrency: publish-to-maven-central
