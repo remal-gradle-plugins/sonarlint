@@ -8,9 +8,15 @@ import static java.util.Collections.singletonList;
 import static java.util.Collections.unmodifiableCollection;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
+import static name.remal.gradle_plugins.sonarlint.BaseSonarLintActions.SONAR_JAVA_BINARIES;
 import static name.remal.gradle_plugins.sonarlint.BaseSonarLintActions.SONAR_JAVA_ENABLE_PREVIEW_PROPERTY;
+import static name.remal.gradle_plugins.sonarlint.BaseSonarLintActions.SONAR_JAVA_LIBRARIES;
 import static name.remal.gradle_plugins.sonarlint.BaseSonarLintActions.SONAR_JAVA_SOURCE_PROPERTY;
 import static name.remal.gradle_plugins.sonarlint.BaseSonarLintActions.SONAR_JAVA_TARGET_PROPERTY;
+import static name.remal.gradle_plugins.sonarlint.BaseSonarLintActions.SONAR_JAVA_TEST_BINARIES;
+import static name.remal.gradle_plugins.sonarlint.BaseSonarLintActions.SONAR_JAVA_TEST_LIBRARIES;
+import static name.remal.gradle_plugins.sonarlint.BaseSonarLintActions.SONAR_LIST_PROPERTY_DELIMITER;
+import static name.remal.gradle_plugins.sonarlint.BaseSonarLintActions.SONAR_SOURCE_ENCODING;
 import static name.remal.gradle_plugins.sonarlint.CanonizationUtils.canonizeLanguages;
 import static name.remal.gradle_plugins.sonarlint.CanonizationUtils.canonizeProperties;
 import static name.remal.gradle_plugins.sonarlint.CanonizationUtils.canonizeRules;
@@ -46,6 +52,7 @@ import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
 import lombok.CustomLog;
 import lombok.val;
+import name.remal.gradle_plugins.toolkit.FileUtils;
 import name.remal.gradle_plugins.toolkit.ObjectUtils;
 import name.remal.gradle_plugins.toolkit.annotations.ReliesOnInternalGradleApi;
 import org.gradle.api.Project;
@@ -173,7 +180,7 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
         return extension;
     }
 
-    protected void configureTaskDefaults(BaseSonarLint task) {
+    private void configureTaskDefaults(BaseSonarLint task) {
         if (task instanceof VerificationTask) {
             setPropertyConvention(task, "ignoreFailures", extension::isIgnoreFailures);
         }
@@ -252,11 +259,11 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
             getTestSourceSets().contains(sourceSet)
         ));
 
-        val testSourceSets = getTestSourceSets();
-        val mainSourceSets = getExtension(project, SourceSetContainer.class).stream()
-            .filter(not(testSourceSets::contains))
-            .collect(toList());
         task.dependsOn(project.provider(() -> {
+            val testSourceSets = getTestSourceSets();
+            val mainSourceSets = getExtension(project, SourceSetContainer.class).stream()
+                .filter(not(testSourceSets::contains))
+                .collect(toList());
             if (mainSourceSets.contains(sourceSet)) {
                 return testSourceSets.stream()
                     .map(SourceSet::getClassesTaskName)
@@ -278,6 +285,12 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
                 .stream()
                 .filter(it -> it.getName().equals(sourceSet.getCompileJavaTaskName()))
                 .findFirst();
+            javaCompileTask.map(JavaCompile::getOptions)
+                .map(CompileOptions::getEncoding)
+                .filter(ObjectUtils::isNotEmpty)
+                .ifPresent(encoding ->
+                    javaProps.put(SONAR_SOURCE_ENCODING, encoding)
+                );
             javaCompileTask.map(JavaCompile::getSourceCompatibility)
                 .filter(ObjectUtils::isNotEmpty)
                 .ifPresent(sourceCompatibility ->
@@ -299,6 +312,10 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
                 });
 
 
+            val testSourceSets = getTestSourceSets();
+            val mainSourceSets = getExtension(project, SourceSetContainer.class).stream()
+                .filter(not(testSourceSets::contains))
+                .collect(toList());
             final Collection<File> mainOutputDirs;
             final Collection<File> mainLibraries;
             final Collection<File> testOutputDirs;
@@ -308,20 +325,14 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
                 mainLibraries = getLibraries(singletonList(sourceSet));
 
                 testOutputDirs = getOutputDirs(testSourceSets);
-                testLibraries = getLibraries(testSourceSets).stream()
-                    .filter(not(mainOutputDirs::contains))
-                    .filter(not(mainLibraries::contains))
-                    .collect(toList());
+                testLibraries = getLibraries(testSourceSets);
 
             } else if (testSourceSets.contains(sourceSet)) {
                 mainOutputDirs = getOutputDirs(mainSourceSets);
                 mainLibraries = getLibraries(mainSourceSets);
 
                 testOutputDirs = getOutputDirs(singletonList(sourceSet));
-                testLibraries = getLibraries(singletonList(sourceSet)).stream()
-                    .filter(not(mainOutputDirs::contains))
-                    .filter(not(mainLibraries::contains))
-                    .collect(toList());
+                testLibraries = getLibraries(singletonList(sourceSet));
 
             } else {
                 mainOutputDirs = getOutputDirs(singletonList(sourceSet));
@@ -331,21 +342,21 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
                 testLibraries = mainLibraries;
             }
 
-            javaProps.put("sonar.java.binaries", mainOutputDirs.stream()
+            javaProps.put(SONAR_JAVA_BINARIES, mainOutputDirs.stream()
                 .map(File::getPath)
-                .collect(joining(","))
+                .collect(joining(SONAR_LIST_PROPERTY_DELIMITER))
             );
-            javaProps.put("sonar.java.libraries", mainLibraries.stream()
+            javaProps.put(SONAR_JAVA_LIBRARIES, mainLibraries.stream()
                 .map(File::getPath)
-                .collect(joining(","))
+                .collect(joining(SONAR_LIST_PROPERTY_DELIMITER))
             );
-            javaProps.put("sonar.java.test.binaries", testOutputDirs.stream()
+            javaProps.put(SONAR_JAVA_TEST_BINARIES, testOutputDirs.stream()
                 .map(File::getPath)
-                .collect(joining(","))
+                .collect(joining(SONAR_LIST_PROPERTY_DELIMITER))
             );
-            javaProps.put("sonar.java.test.libraries", testLibraries.stream()
+            javaProps.put(SONAR_JAVA_TEST_LIBRARIES, testLibraries.stream()
                 .map(File::getPath)
-                .collect(joining(","))
+                .collect(joining(SONAR_LIST_PROPERTY_DELIMITER))
             );
 
             return javaProps;
@@ -388,9 +399,8 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
                     output.getDirs()
                 ).flatMap(files -> StreamSupport.stream(files.spliterator(), false))
             )
-            .map(File::getAbsoluteFile)
+            .map(FileUtils::normalizeFile)
             .distinct()
-            .filter(File::exists)
             .collect(toList());
     }
 
@@ -398,9 +408,8 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
         return StreamSupport.stream(sourceSets.spliterator(), false)
             .map(SourceSet::getCompileClasspath)
             .flatMap(files -> StreamSupport.stream(files.spliterator(), false))
-            .map(File::getAbsoluteFile)
+            .map(FileUtils::normalizeFile)
             .distinct()
-            .filter(File::exists)
             .collect(toList());
     }
 

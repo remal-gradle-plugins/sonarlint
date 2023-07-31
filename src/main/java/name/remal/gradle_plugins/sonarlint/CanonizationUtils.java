@@ -56,6 +56,7 @@ abstract class CanonizationUtils {
         Map<String, String> result = new LinkedHashMap<>();
         if (isNotEmpty(properties)) {
             properties.entrySet().stream()
+                .filter(entry -> entry.getKey() != null)
                 .map(entry -> immutableEntry(String.valueOf(entry.getKey()), unwrapProviders(entry.getValue())))
                 .filter(entry -> entry.getValue() != null)
                 .sorted(comparingByKey())

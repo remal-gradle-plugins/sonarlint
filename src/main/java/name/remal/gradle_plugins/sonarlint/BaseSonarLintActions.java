@@ -5,10 +5,12 @@ import static java.lang.Boolean.FALSE;
 import static java.lang.Boolean.TRUE;
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.nio.file.Files.exists;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.unmodifiableCollection;
 import static java.util.Objects.requireNonNull;
+import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static lombok.AccessLevel.PRIVATE;
@@ -31,8 +33,10 @@ import static name.remal.gradle_plugins.toolkit.PredicateUtils.not;
 import static name.remal.gradle_plugins.toolkit.xml.DomUtils.streamNodeList;
 import static name.remal.gradle_plugins.toolkit.xml.XmlUtils.parseXml;
 
+import com.google.common.base.Splitter;
 import java.io.File;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -68,6 +72,7 @@ import org.gradle.jvm.toolchain.JavaInstallationMetadata;
 import org.gradle.jvm.toolchain.JavaLanguageVersion;
 import org.gradle.jvm.toolchain.JavaLauncher;
 import org.gradle.workers.WorkQueue;
+import org.jetbrains.annotations.Contract;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
@@ -77,10 +82,16 @@ abstract class BaseSonarLintActions {
 
     static final JavaVersion MIN_SUPPORTED_SOAR_JAVA_VERSION = JavaVersion.VERSION_11;
 
+    static final String SONAR_LIST_PROPERTY_DELIMITER = ",";
+    static final String SONAR_SOURCE_ENCODING = "sonar.sourceEncoding";
     static final String SONAR_JAVA_JDK_HOME_PROPERTY = "sonar.java.jdkHome";
     static final String SONAR_JAVA_SOURCE_PROPERTY = "sonar.java.source";
     static final String SONAR_JAVA_TARGET_PROPERTY = "sonar.java.target";
     static final String SONAR_JAVA_ENABLE_PREVIEW_PROPERTY = "sonar.java.enablePreview";
+    static final String SONAR_JAVA_BINARIES = "sonar.java.binaries";
+    static final String SONAR_JAVA_LIBRARIES = "sonar.java.libraries";
+    static final String SONAR_JAVA_TEST_BINARIES = "sonar.java.test.binaries";
+    static final String SONAR_JAVA_TEST_LIBRARIES = "sonar.java.test.libraries";
 
     public static void init(BaseSonarLint task) {
         task.getIsGeneratedCodeIgnored().convention(true);
@@ -149,6 +160,21 @@ abstract class BaseSonarLintActions {
         );
 
         sonarProperties.values().removeIf(Objects::isNull);
+
+
+        sonarProperties.keySet().stream()
+            .filter(key -> key.endsWith(".binaries")
+                || key.endsWith(".libraries")
+            )
+            .forEach(key -> {
+                val value = sonarProperties.get(key);
+                val processedValue = Splitter.on(SONAR_LIST_PROPERTY_DELIMITER).splitToStream(value)
+                    .map(String::trim)
+                    .filter(ObjectUtils::isNotEmpty)
+                    .filter(item -> exists(Paths.get(item)))
+                    .collect(joining(SONAR_LIST_PROPERTY_DELIMITER));
+                sonarProperties.put(key, processedValue);
+            });
 
 
         final WorkQueue workQueue;
@@ -222,6 +248,8 @@ abstract class BaseSonarLintActions {
         });
     }
 
+    @Contract(mutates = "param1")
+    @SuppressWarnings("UnstableApiUsage")
     private static void addRuleByPathIgnore(
         Map<String, String> sonarProperties,
         String scope,

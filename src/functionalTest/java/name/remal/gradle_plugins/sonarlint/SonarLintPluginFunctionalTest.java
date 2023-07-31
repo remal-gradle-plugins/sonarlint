@@ -3,12 +3,18 @@ package name.remal.gradle_plugins.sonarlint;
 import static java.lang.String.format;
 import static java.lang.String.join;
 import static java.util.Arrays.asList;
+import static name.remal.gradle_plugins.toolkit.SneakyThrowUtils.sneakyThrows;
 import static name.remal.gradle_plugins.toolkit.StringUtils.escapeGroovy;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.File;
+import java.net.URL;
+import java.security.CodeSource;
+import java.security.ProtectionDomain;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
+import javax.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.val;
@@ -48,18 +54,26 @@ class SonarLintPluginFunctionalTest {
         });
     }
 
-    private List<Issue> parseSonarLintIssues() {
+    private List<Issue> parseSonarLintIssues(@Nullable String reportRelativePath) {
+        if (reportRelativePath == null) {
+            reportRelativePath = "build/reports/sonarlint/sonarlintMain/sonarlintMain.xml";
+        }
         val reportFile = project.getProjectDir().toPath()
-            .resolve("build/reports/sonarlint/sonarlintMain/sonarlintMain.xml");
+            .resolve(reportRelativePath);
         return new CheckstyleXmlIssuesParser().parseIssuesFrom(reportFile);
     }
 
+    private List<Issue> parseSonarLintIssuesOf(String sourceFileRelativePath) {
+        return parseSonarLintIssuesOf(null, sourceFileRelativePath);
+    }
+
     @SneakyThrows
-    private List<Issue> parseSonarLintIssuesOf(String relativePath) {
-        val fileToMatch = new File(project.getProjectDir(), relativePath).getCanonicalFile();
+    private List<Issue> parseSonarLintIssuesOf(@Nullable String reportRelativePath, String sourceFileRelativePath) {
+        val issues = parseSonarLintIssues(reportRelativePath);
+        val fileToMatch = new File(project.getProjectDir(), sourceFileRelativePath).getCanonicalFile();
 
         List<Issue> fileIssues = new ArrayList<>();
-        for (val issue : parseSonarLintIssues()) {
+        for (val issue : issues) {
             val sourceFile = issue.getSourceFile().getCanonicalFile();
             if (sourceFile.equals(fileToMatch)) {
                 fileIssues.add(issue);
@@ -165,6 +179,76 @@ class SonarLintPluginFunctionalTest {
             .contains("java:S1133");
     }
 
+    @Test
+    void javaLibrariesCorrectedDefinedForTestSourceSet() {
+        Stream.of(
+                org.junit.jupiter.api.Assertions.class,
+                org.junit.jupiter.api.Test.class
+            )
+            .map(Class::getProtectionDomain)
+            .map(ProtectionDomain::getCodeSource)
+            .map(CodeSource::getLocation)
+            .distinct()
+            .map(sneakyThrows(URL::toURI))
+            .map(File::new)
+            .map(File::getAbsoluteFile)
+            .forEach(file -> {
+                project.getBuildFile().append(
+                    "dependencies { testImplementation files('" + escapeGroovy(file.getPath()) + "') }"
+                );
+            });
+
+        project.getBuildFile().append(join("\n", new String[]{
+            "tasks.withType(JavaCompile).configureEach {",
+            "    options.compilerArgs.add('-Xlint:none')",
+            "}"
+        }));
+
+        project.writeTextFile("src/main/java/pkg/JavaDependency.java", join("\n", new String[]{
+            "package pkg;",
+            "",
+            "public class JavaDependency {",
+            "",
+            "    public String hello() {",
+            "        return \"hello\";",
+            "    }",
+            "",
+            "}",
+        }));
+
+        project.writeTextFile("src/test/java/pkg/JavaDependencyTest.java", join("\n", new String[]{
+            "package pkg;",
+            "",
+            "import static org.junit.jupiter.api.Assertions.assertTrue;",
+            "",
+            "import org.junit.jupiter.api.Test;",
+            "",
+            "class JavaDependencyTest {",
+            "",
+            "    JavaDependency dependency;",
+            "",
+            "    @Test",
+            "    void testHello() {",
+            "        assertTrue(\"hello\".equals(dependency.hello()));",
+            "    }",
+            "",
+            "}",
+        }));
+
+        project.getBuildFile().append("sonarLint.rules.enable('java:S5785')");
+
+        project.getBuildFile().registerDefaultTask("sonarlintTest");
+
+        project.assertBuildSuccessfully();
+
+        assertThat(parseSonarLintIssuesOf(
+            "build/reports/sonarlint/sonarlintTest/sonarlintTest.xml",
+            "src/test/java/pkg/JavaDependencyTest.java"
+        ))
+            .extracting(Issue::getRule)
+            .contains("java:S5785");
+    }
+
     @Nested
     class LanguagesInclusion {
 
@@ -243,13 +327,13 @@ class SonarLintPluginFunctionalTest {
     void doesNotUseNonReproducibleVersions() {
         project.getBuildFile().registerDefaultTask("sonarlintMain");
 
-        project.getBuildFile().append(
-            "configurations.configureEach { "
-                + "resolutionStrategy { "
-                + "failOnNonReproducibleResolution()"
-                + " }"
-                + " }"
-        );
+        project.getBuildFile().append(join("\n", new String[]{
+            "configurations.configureEach {",
+            "    resolutionStrategy {",
+            "        failOnNonReproducibleResolution()",
+            "    }",
+            "}"
+        }));
 
         addJavaS1171RuleExample("src/main/java");
 
@@ -278,7 +362,7 @@ class SonarLintPluginFunctionalTest {
             "    }",
             "",
             "}",
-            }));
+        }));
 
         return sourceFileRelativePath;
     }
@@ -303,7 +387,7 @@ class SonarLintPluginFunctionalTest {
             "    }",
             "",
             "}",
-            }));
+        }));
 
         return sourceFileRelativePath;
     }
