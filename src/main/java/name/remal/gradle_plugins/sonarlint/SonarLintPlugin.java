@@ -21,6 +21,7 @@ import static name.remal.gradle_plugins.sonarlint.CanonizationUtils.canonizeLang
 import static name.remal.gradle_plugins.sonarlint.CanonizationUtils.canonizeProperties;
 import static name.remal.gradle_plugins.sonarlint.CanonizationUtils.canonizeRules;
 import static name.remal.gradle_plugins.sonarlint.CanonizationUtils.canonizeRulesProperties;
+import static name.remal.gradle_plugins.sonarlint.DependencyWithBrokenPomSubstitutions.getVersionWithFixedPom;
 import static name.remal.gradle_plugins.sonarlint.ResolvedNonReproducibleSonarDependencies.getResolvedNonReproducibleSonarDependency;
 import static name.remal.gradle_plugins.sonarlint.SonarDependencies.getSonarDependencies;
 import static name.remal.gradle_plugins.sonarlint.SonarDependencies.getSonarDependency;
@@ -29,6 +30,7 @@ import static name.remal.gradle_plugins.toolkit.ExtensionContainerUtils.getExten
 import static name.remal.gradle_plugins.toolkit.ObjectUtils.defaultTrue;
 import static name.remal.gradle_plugins.toolkit.PredicateUtils.not;
 import static name.remal.gradle_plugins.toolkit.PropertiesConventionUtils.setPropertyConvention;
+import static name.remal.gradle_plugins.toolkit.ResolutionStrategyUtils.configureGlobalResolutionStrategy;
 import static name.remal.gradle_plugins.toolkit.SourceSetUtils.isSourceSetTask;
 import static name.remal.gradle_plugins.toolkit.SourceSetUtils.whenTestSourceSetRegistered;
 import static org.gradle.api.artifacts.ExcludeRule.GROUP_KEY;
@@ -125,6 +127,23 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
 
     @Override
     protected void createConfigurations() {
+        configureGlobalResolutionStrategy(project, resolutionStrategy -> {
+            try {
+                resolutionStrategy.eachDependency(details -> {
+                    val target = details.getTarget();
+                    val targetNotation = target.getGroup() + ':' + target.getName() + ':' + target.getVersion();
+                    val fixedVersion = getVersionWithFixedPom(targetNotation);
+                    if (fixedVersion != null) {
+                        details.because("Fix dependency with broken POM")
+                            .useVersion(fixedVersion);
+                    }
+                });
+
+            } catch (Throwable e) {
+                logger.trace(e.toString(), e);
+            }
+        });
+
         super.createConfigurations();
 
         project.getConfigurations().create(getPluginsConfigurationName(), conf -> {
@@ -479,7 +498,8 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
             val notation = target.getGroup() + ':' + target.getName() + ':' + target.getVersion();
             val nonReproducibleDependency = getResolvedNonReproducibleSonarDependency(notation);
             if (nonReproducibleDependency != null) {
-                details.useVersion(nonReproducibleDependency.getVersion());
+                details.because("Replace non-reproducible version with predefined one")
+                    .useVersion(nonReproducibleDependency.getVersion());
             }
         });
     }
