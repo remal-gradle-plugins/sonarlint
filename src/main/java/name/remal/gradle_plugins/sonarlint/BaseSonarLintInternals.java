@@ -9,7 +9,9 @@ import static org.gradle.api.tasks.PathSensitivity.RELATIVE;
 import javax.inject.Inject;
 import lombok.Getter;
 import lombok.val;
+import name.remal.gradle_plugins.toolkit.FileUtils;
 import org.gradle.api.file.ConfigurableFileCollection;
+import org.gradle.api.file.Directory;
 import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.provider.Property;
 import org.gradle.api.tasks.InputFiles;
@@ -43,7 +45,11 @@ abstract class BaseSonarLintInternals {
         getWorkerExecutor().set(getService(project, WorkerExecutor.class));
         getRootDir().set(getRootDirOf(project));
         getProjectDir().set(normalizeFile(project.getProjectDir()));
-        getBuildDir().set(normalizeFile(project.getBuildDir()));
+        getBuildDir().fileProvider(
+            project.getLayout().getBuildDirectory()
+                .map(Directory::getAsFile)
+                .map(FileUtils::normalizeFile)
+        );
         getCodeFormattingFiles().setFrom(getCodeFormattingPathsFor(project));
     }
 
