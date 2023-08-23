@@ -1,0 +1,40 @@
+name: 'codespell'
+
+on:
+  push:
+    branches:
+    - 'main' # default branch
+  pull_request: { }
+  workflow_dispatch: { }
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  codespell:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        submodules: recursive
+        fetch-depth: 0
+    - name: Find ignore words file
+      id: find-ignore-words-file
+      run: |
+        if [ -f ".codespellignore" ]; then
+          echo "ignoreWordsFile = '.codespellignore'"
+          echo 'ignoreWordsFile=true' >> $GITHUB_OUTPUT
+        else
+          echo "ignoreWordsFile = ''"
+          echo 'ignoreWordsFile=' >> $GITHUB_OUTPUT
+        fi
+    - name: Execute codespell
+      uses: codespell-project/actions-codespell@v2
+      with:
+        only_warn: 'true'
+        ignore_words_file: ${{steps.find-ignore-words-file.outputs.ignoreWordsFile}}
+        check_filenames: 'true'
+        check_hidden: 'true'

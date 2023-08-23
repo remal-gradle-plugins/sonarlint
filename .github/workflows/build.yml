@@ -157,12 +157,20 @@ jobs:
           echo "isMavenCentral = false"
           echo 'isMavenCentral=false' >> $GITHUB_OUTPUT
         fi
+    - name: Publish tests report
+      if: ${{always()}}
+      uses: mikepenz/action-junit-report@v3
+      with:
+        report_paths: '**/build/test-results/*/TEST-*.xml'
+        check_name: "Tests of ${{matrix && format('{0} #{1}', github.job, strategy.job-index || '0') || github.job}}"
+        check_retries: 'true'
+        detailed_summary: 'true'
     - name: Archive workspace
-      if: ${{ always() }}
+      if: ${{always()}}
       run: |
         tar -cz -f "/tmp/workspace-${{github.run_id}}.tar.gz" `git ls-files -m -o`
     - name: Upload workspace archive
-      if: ${{ always() }}
+      if: ${{always()}}
       uses: actions/upload-artifact@v3
       with:
         name: workspace
@@ -245,6 +253,14 @@ jobs:
         path: build/reports/jacoco/jacocoReportMerged/
         if-no-files-found: error
         retention-days: 30
+    - name: Publish tests report
+      if: ${{always()}}
+      uses: mikepenz/action-junit-report@v3
+      with:
+        report_paths: '**/build/test-results/*/TEST-*.xml'
+        check_name: "Tests of ${{matrix && format('{0} #{1}', github.job, strategy.job-index || '0') || github.job}}"
+        check_retries: 'true'
+        detailed_summary: 'true'
 
   cross-versions-tests-success:
     needs:
