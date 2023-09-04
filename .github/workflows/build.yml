@@ -39,7 +39,7 @@ jobs:
     concurrency: populate-cache-${{github.ref}}
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4
       with:
         submodules: recursive
         fetch-depth: 1
@@ -82,7 +82,7 @@ jobs:
       allMatrixIncludes: ${{steps.matrixVersions.outputs.allMatrixIncludes}}
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4
       with:
         submodules: recursive
         fetch-depth: 1
@@ -218,7 +218,7 @@ jobs:
       DISABLE_VERIFICATION_EXCEPT_TESTS: 'true'
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4
       with:
         submodules: recursive
         fetch-depth: 1
@@ -286,7 +286,7 @@ jobs:
       DISABLE_VERIFICATION: 'true'
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4
       with:
         submodules: recursive
         fetch-depth: 1
@@ -371,7 +371,7 @@ jobs:
       DISABLE_VERIFICATION: 'true'
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4
       with:
         submodules: recursive
         fetch-depth: 1
@@ -418,7 +418,7 @@ jobs:
       DISABLE_VERIFICATION: 'true'
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4
       with:
         submodules: recursive
         fetch-depth: 1
