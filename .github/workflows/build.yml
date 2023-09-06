@@ -159,7 +159,7 @@ jobs:
         fi
     - name: Publish tests report
       if: ${{always()}}
-      uses: mikepenz/action-junit-report@v3
+      uses: mikepenz/action-junit-report@v4
       with:
         report_paths: '**/build/test-results/*/TEST-*.xml'
         check_name: "Tests of ${{matrix && format('{0} #{1}', github.job, strategy.job-index || '0') || github.job}}"
@@ -255,7 +255,7 @@ jobs:
         retention-days: 30
     - name: Publish tests report
       if: ${{always()}}
-      uses: mikepenz/action-junit-report@v3
+      uses: mikepenz/action-junit-report@v4
       with:
         report_paths: '**/build/test-results/*/TEST-*.xml'
         check_name: "Tests of ${{matrix && format('{0} #{1}', github.job, strategy.job-index || '0') || github.job}}"
