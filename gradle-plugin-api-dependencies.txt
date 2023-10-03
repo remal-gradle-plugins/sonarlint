@@ -6,8 +6,8 @@ org.ow2.asm:asm-bom:9.5:@pom
 org.sonarsource.java:sonar-java-plugin:7.24.0.32100:@sonar-plugin
 org.sonarsource.javascript:sonar-javascript-plugin:10.7.0.22914:@sonar-plugin
 org.sonarsource.kotlin:sonar-kotlin-plugin:2.18.0.2938
-org.sonarsource.slang:sonar-ruby-plugin:1.14.0.4481
-org.sonarsource.slang:sonar-scala-plugin:1.14.0.4481
+org.sonarsource.slang:sonar-ruby-plugin:1.15.0.4655
+org.sonarsource.slang:sonar-scala-plugin:1.15.0.4655
 org.sonarsource.sonarlint.core:sonarlint-core:9.2.0.74516
 org.sonarsource.xml:sonar-xml-plugin:2.10.0.4108:@sonar-plugin
 zzzz-classes-that-rely-on-gradle-internal-api:name.remal.gradle_plugins.sonarlint.SonarLintPlugin:4fa72b574b20910c6119c3f9c1b179efda77dc35ccf0c9f24874dfe424722da4
