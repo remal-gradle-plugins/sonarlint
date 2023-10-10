@@ -39,7 +39,7 @@ jobs:
     concurrency: populate-cache-${{github.ref}}
     steps:
     - name: Checkout repository
-      uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4
+      uses: actions/checkout@v4
       with:
         submodules: recursive
         fetch-depth: 1
@@ -82,7 +82,7 @@ jobs:
       allMatrixIncludes: ${{steps.matrixVersions.outputs.allMatrixIncludes}}
     steps:
     - name: Checkout repository
-      uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4
+      uses: actions/checkout@v4
       with:
         submodules: recursive
         fetch-depth: 1
@@ -90,17 +90,10 @@ jobs:
       uses: remal-github-actions/cache-gradle@main
       with:
         build-cache-for-branches-only: 'true'
-    - name: Read min supported Java version
-      id: min-java-version
-      uses: remal-github-actions/read-property@v1
-      with:
-        file: gradle.properties
-        property: 'java-runtime.min-version'
-    - name: Setup Java ${{steps.min-java-version.outputs.value != env.DEFAULT_JAVA_VERSION && format('{0} and {1}', steps.min-java-version.outputs.value, env.DEFAULT_JAVA_VERSION) || env.DEFAULT_JAVA_VERSION}}
+    - name: Setup Java ${{env.DEFAULT_JAVA_VERSION}}
       uses: actions/setup-java@v3
       with:
         java-version: |
-          ${{steps.min-java-version.outputs.value != env.DEFAULT_JAVA_VERSION && steps.min-java-version.outputs.value || ''}}
           ${{env.DEFAULT_JAVA_VERSION}}
         distribution: temurin
     - name: Retrieve repository info
@@ -177,6 +170,12 @@ jobs:
         path: '/tmp/workspace-${{github.run_id}}.tar.gz'
         if-no-files-found: error
         retention-days: 90
+    - name: Read min supported Java version
+      id: min-java-version
+      uses: remal-github-actions/read-property@v1
+      with:
+        file: gradle.properties
+        property: 'java-runtime.min-version'
     - name: Read min supported Gradle version
       id: min-gradle-version
       uses: remal-github-actions/read-property@v1
@@ -218,7 +217,7 @@ jobs:
       DISABLE_VERIFICATION_EXCEPT_TESTS: 'true'
     steps:
     - name: Checkout repository
-      uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4
+      uses: actions/checkout@v4
       with:
         submodules: recursive
         fetch-depth: 1
@@ -286,7 +285,7 @@ jobs:
       DISABLE_VERIFICATION: 'true'
     steps:
     - name: Checkout repository
-      uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4
+      uses: actions/checkout@v4
       with:
         submodules: recursive
         fetch-depth: 1
@@ -371,7 +370,7 @@ jobs:
       DISABLE_VERIFICATION: 'true'
     steps:
     - name: Checkout repository
-      uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4
+      uses: actions/checkout@v4
       with:
         submodules: recursive
         fetch-depth: 1
@@ -418,7 +417,7 @@ jobs:
       DISABLE_VERIFICATION: 'true'
     steps:
     - name: Checkout repository
-      uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4
+      uses: actions/checkout@v4
       with:
         submodules: recursive
         fetch-depth: 1

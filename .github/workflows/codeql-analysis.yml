@@ -6,6 +6,7 @@ on:
   workflow_dispatch: { }
 
 env:
+  DEFAULT_JAVA_VERSION: 17
   GRADLE_OPTS: -Dorg.gradle.parallel=true -Dorg.gradle.workers.max=4 -Dorg.gradle.warning.mode=all -Dorg.gradle.daemon=false -Dhttp.keepAlive=false -Dsun.net.client.defaultConnectTimeout=15000 -Dsun.net.client.defaultReadTimeout=600000 -Dsun.net.http.retryPost=false -Dsun.io.useCanonCaches=false -Djava.awt.headless=true -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
 
 jobs:
@@ -14,13 +15,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
-    - name: Setup Java 11
+    - name: Setup Java ${{env.DEFAULT_JAVA_VERSION}}
       uses: actions/setup-java@v3
       with:
-        java-version: 11
-        distribution: zulu
+        java-version: |
+          ${{env.DEFAULT_JAVA_VERSION}}
+        distribution: temurin
     - name: Checkout repository
-      uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4
+      uses: actions/checkout@v4
       with:
         submodules: recursive
         fetch-depth: 2
