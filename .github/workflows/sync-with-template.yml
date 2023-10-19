@@ -24,7 +24,7 @@ jobs:
   sync-with-template:
     name: Sync with template repository
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     concurrency: sync-with-template
 
     steps:
