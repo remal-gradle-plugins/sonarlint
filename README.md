@@ -1,6 +1,6 @@
-**Min supported Java version: <!--property:java-runtime.min-version-->8<!--/property-->**
+**Tested on LTS Java versions from <!--property:java-runtime.min-version-->8<!--/property--> to <!--property:java-runtime.max-version-->17<!--/property-->.**
 
-**Min supported Gradle version: <!--property:gradle-api.min-version-->6.7<!--/property-->**
+**Tested on Gradle versions from <!--property:gradle-api.min-version-->6.7<!--/property--> to <!--property:gradle-api.max-version-->8.4<!--/property-->.**
 
 # `name.remal.sonarlint` plugin
 
