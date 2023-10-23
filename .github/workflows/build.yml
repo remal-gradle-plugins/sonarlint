@@ -53,6 +53,7 @@ jobs:
       id: cache-gradle
       uses: remal-github-actions/cache-gradle@main
       with:
+        lookup-only: 'true'
         build-cache-enabled: 'false'
     - name: Setup Java ${{env.DEFAULT_JAVA_VERSION}}
       if: ${{steps.cache-gradle.outputs.gradle-wrapper-cache-hit != 'true' || steps.cache-gradle.outputs.gradle-caches-cache-hit != 'true'}}
@@ -150,14 +151,6 @@ jobs:
           echo "isMavenCentral = false"
           echo 'isMavenCentral=false' >> $GITHUB_OUTPUT
         fi
-    - name: Publish tests report
-      if: ${{always()}}
-      uses: mikepenz/action-junit-report@v4
-      with:
-        report_paths: '**/build/test-results/*/TEST-*.xml'
-        check_name: "Tests of ${{matrix && format('{0} #{1}', github.job, strategy.job-index || '0') || github.job}}"
-        check_retries: 'true'
-        detailed_summary: 'true'
     - name: Archive workspace
       if: ${{always()}}
       run: |
@@ -252,14 +245,6 @@ jobs:
         path: build/reports/jacoco/jacocoReportMerged/
         if-no-files-found: error
         retention-days: 30
-    - name: Publish tests report
-      if: ${{always()}}
-      uses: mikepenz/action-junit-report@v4
-      with:
-        report_paths: '**/build/test-results/*/TEST-*.xml'
-        check_name: "Tests of ${{matrix && format('{0} #{1}', github.job, strategy.job-index || '0') || github.job}}"
-        check_retries: 'true'
-        detailed_summary: 'true'
 
   cross-versions-tests-success:
     needs:
@@ -273,7 +258,12 @@ jobs:
 
 
   push-back:
-    if: ${{github.event_name == 'push' && github.ref == 'refs/heads/main'}}
+    if: >-
+      ${{
+        (github.event_name == 'push' && github.ref == 'refs/heads/main')
+        || github.event_name == 'schedule'
+        || github.event_name == 'workflow_dispatch'
+      }}
     needs:
     - build
     - cross-versions-tests
@@ -309,7 +299,7 @@ jobs:
         tar -xz -f "${{steps.download-workspace.outputs.download-path}}/workspace-${{github.run_id}}.tar.gz"
     - name: Update README
       run: |
-        ./gradlew-retry-connection-timeouts processReadme
+        ./gradlew-retry-connection-timeouts processReadme "-Pjava-runtime.max-version=${{fromJSON(needs.build.outputs.allMatrixIncludes)[0].java}}" "-Pgradle-api.max-version=${{fromJSON(needs.build.outputs.allMatrixIncludes)[0].gradle}}"
     - name: Collect all Gradle plugin API dependencies
       run: |
         ./gradlew-retry-connection-timeouts collectAllGradlePluginApiDependencies

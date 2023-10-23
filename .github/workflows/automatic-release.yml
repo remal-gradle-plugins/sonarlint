@@ -32,6 +32,9 @@ jobs:
           [release-later]
           [doc]
           [documentation]
+          Update README.md
+          Update renovate.json5
+          Update renovate.json
         allowedPullRequestLabels: |
           dependencies
           sync-with-template
