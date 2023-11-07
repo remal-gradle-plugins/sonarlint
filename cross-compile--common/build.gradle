@@ -1,7 +1,7 @@
 apply plugin: 'java-library'
 
 dependencies {
-    optional('org.sonarsource.sonarlint.core:sonarlint-core:9.4.0.76070') { transitive = false }
+    optional('org.sonarsource.sonarlint.core:sonarlint-core:9.4.1.76128') { transitive = false }
 
     testImplementation 'com.google.guava:guava'
 }
