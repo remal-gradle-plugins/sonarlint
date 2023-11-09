@@ -30,6 +30,9 @@ for ATTEMPT in $(seq 1 3); do
     elif STR="GradleConnectionException: Could not install Gradle distribution from" && grep -q "\b$STR\b" "$LOGFILE"; then
         echo "::warning::'$STR' found in $* command log file $LOGFILE"
 
+    elif STR="Timeout has been exceeded" && grep -q "\b$STR\b" "$LOGFILE"; then
+        echo "::warning::'$STR' found in $* command log file $LOGFILE"
+
     else
         break
     fi
