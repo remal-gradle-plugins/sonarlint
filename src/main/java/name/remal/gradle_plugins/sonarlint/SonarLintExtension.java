@@ -51,6 +51,13 @@ public abstract class SonarLintExtension extends CodeQualityExtension {
     public abstract ListProperty<String> getIgnoredPaths();
 
 
+    private final SonarLintLoggingOptions logging = getObjectFactory().newInstance(SonarLintLoggingOptions.class);
+
+    public void logging(Action<SonarLintLoggingOptions> action) {
+        action.execute(logging);
+    }
+
+
     private final SonarLintForkOptions fork = getObjectFactory().newInstance(SonarLintForkOptions.class);
 
     public void fork(Action<SonarLintForkOptions> action) {

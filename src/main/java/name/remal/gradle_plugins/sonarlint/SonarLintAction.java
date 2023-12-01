@@ -59,7 +59,11 @@ abstract class SonarLintAction implements WorkAction<SonarLintExecutionParams> {
             }
 
             if (isNotEmpty(issues)) {
-                logger.error(new TextIssuesRenderer().renderIssues(issues));
+                logger.error(
+                    new TextIssuesRenderer()
+                        .withDescription(params.getWithDescription().getOrElse(true))
+                        .renderIssues(issues)
+                );
 
                 if (!params.getIsIgnoreFailures().get()) {
                     throw new AssertionError(format(
@@ -75,7 +79,7 @@ abstract class SonarLintAction implements WorkAction<SonarLintExecutionParams> {
                 params.getSonarLintVersion().get()
             );
             val rulesDoc = rulesDocumentationCollector.collectRulesDocumentation(params);
-            logger.warn(rulesDoc.renderToText());
+            logger.quiet(rulesDoc.renderToText());
 
         } else if (command == HELP_PROPERTIES) {
             val propertiesDocumentationCollector = loadSonarLintService(
@@ -98,7 +102,7 @@ abstract class SonarLintAction implements WorkAction<SonarLintExecutionParams> {
                 propDef.setDefaultValue(defaultValue(params.getDefaultNodeJsVersion().getOrNull()));
             });
 
-            logger.warn(propertiesDoc.renderToText());
+            logger.quiet(propertiesDoc.renderToText());
 
         } else {
             throw new AssertionError("Unsupported SonarLint runner command: " + command);

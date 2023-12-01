@@ -52,17 +52,21 @@ sonarLint {
     exclude('java', 'kotlin') // Disable Java and Kotlin languages, all other languages remain enabled
   }
 
-  sonarProperty('sonar.nodejs.executable', '/usr/bin/node') // configure Node.js executable path via `sonar.nodejs.executable` Sonar property
+  sonarProperty('sonar.nodejs.executable', '/usr/bin/node') // Configure Node.js executable path via `sonar.nodejs.executable` Sonar property
   sonarProperties = ['sonar.nodejs.executable': '/usr/bin/node'] // `sonarProperties` - a mutable map of Sonar properties
 
-  ignoredPaths.add('**/dto/**') // ignore all files which relative path matches `**/dto/**` glob for all rules
+  ignoredPaths.add('**/dto/**') // Ignore all files which relative path matches `**/dto/**` glob for all rules
   rules {
     rule('java:S100') {
-      ignoredPaths.add('**/dto/**') // ignore all files which relative path matches `**/dto/**` glob for rule `java:S100`
+      ignoredPaths.add('**/dto/**') // Ignore all files which relative path matches `**/dto/**` glob for rule `java:S100`
     }
   }
 
   testSourceSets = sourceSets.matching { true } // Which source-sets contain test sources. Source-sets created by plugins like `name.remal.test-source-sets` are automatically integrated. Most probably, you don't have to configure anything yourself.
+
+  logging {
+    withDescription = false // Hide rule descriptions from console output
+  }
 
   // `sonarLint` extension extends `CodeQualityExtension` (see https://docs.gradle.org/current/javadoc/org/gradle/api/plugins/quality/CodeQualityExtension.html).
   // You can use all fields of `CodeQualityExtension` the same way as for `checkstyle`, for example.

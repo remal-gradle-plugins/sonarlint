@@ -51,4 +51,6 @@ public interface SonarLintExecutionParams extends WorkParameters {
 
     RegularFileProperty getHtmlReportLocation();
 
+    Property<Boolean> getWithDescription();
+
 }
