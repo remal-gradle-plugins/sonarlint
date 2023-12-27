@@ -17,6 +17,7 @@ The plugin uses these Sonar plugins:
 * [`scala`](https://rules.sonarsource.com/scala)
 * [`xml`](https://rules.sonarsource.com/xml)
 * [`javascript`](https://rules.sonarsource.com/javascript)
+* [`html`](https://rules.sonarsource.com/html)
 
 <!--/sonar-plugins-list-->
 
