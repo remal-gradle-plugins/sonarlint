@@ -1,4 +1,4 @@
-package name.remal.gradle_plugins.sonarlint.internal.latest;
+package name.remal.gradle_plugins.sonarlint.internal.v9_5;
 
 import java.util.Optional;
 import lombok.val;
@@ -18,7 +18,6 @@ abstract class AbstractExtractorContainer extends RulesDefinitionExtractorContai
         val config = new Configuration(
             globalConfig.getPluginPaths(),
             globalConfig.getEnabledLanguages(),
-            true,
             Optional.ofNullable(globalConfig.getNodeJsVersion())
         );
         return new PluginsLoader().load(config);
