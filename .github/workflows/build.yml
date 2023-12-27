@@ -157,7 +157,7 @@ jobs:
         tar -cz -f "/tmp/workspace-${{github.run_id}}.tar.gz" `git ls-files -m -o`
     - name: Upload workspace archive
       if: ${{always()}}
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: workspace
         path: '/tmp/workspace-${{github.run_id}}.tar.gz'
@@ -227,7 +227,7 @@ jobs:
         distribution: temurin
     - name: Download workspace archive
       id: download-workspace
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: workspace
         path: /tmp
@@ -239,7 +239,7 @@ jobs:
         ./gradlew-retry-connection-timeouts allTests jacocoReportMerged displayTotalCodeCoverage "-Pjava-runtime.version=${{matrix.java}}" "-Pgradle-api.version=${{matrix.gradle}}"
     - name: Upload Jacoco merged report
       if: ${{strategy.job-index == '0'}}
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: jacoco-merged-report-${{matrix.java}}-${{matrix.gradle}}
         path: build/reports/jacoco/jacocoReportMerged/
@@ -290,7 +290,7 @@ jobs:
         distribution: temurin
     - name: Download workspace archive
       id: download-workspace
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: workspace
         path: /tmp
@@ -375,7 +375,7 @@ jobs:
         distribution: temurin
     - name: Download workspace archive
       id: download-workspace
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: workspace
         path: /tmp
@@ -422,7 +422,7 @@ jobs:
         distribution: temurin
     - name: Download workspace archive
       id: download-workspace
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: workspace
         path: /tmp
