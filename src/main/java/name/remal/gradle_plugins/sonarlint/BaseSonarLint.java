@@ -74,6 +74,11 @@ interface BaseSonarLint extends Task {
 
     @Nested
     @org.gradle.api.tasks.Optional
+    Property<SonarLintLoggingOptions> getLoggingOptions();
+
+
+    @Nested
+    @org.gradle.api.tasks.Optional
     Property<SonarLintForkOptions> getForkOptions();
 
     @Nested

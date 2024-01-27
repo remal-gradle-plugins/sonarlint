@@ -5,6 +5,7 @@ import static java.lang.String.join;
 import static java.util.Arrays.asList;
 import static name.remal.gradle_plugins.toolkit.SneakyThrowUtils.sneakyThrows;
 import static name.remal.gradle_plugins.toolkit.StringUtils.escapeGroovy;
+import static name.remal.gradle_plugins.toolkit.StringUtils.normalizeString;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.File;
@@ -214,7 +215,7 @@ class SonarLintPluginFunctionalTest {
             "    }",
             "",
             "}",
-        }));
+            }));
 
         project.writeTextFile("src/test/java/pkg/JavaDependencyTest.java", join("\n", new String[]{
             "package pkg;",
@@ -233,7 +234,7 @@ class SonarLintPluginFunctionalTest {
             "    }",
             "",
             "}",
-        }));
+            }));
 
         project.getBuildFile().append("sonarLint.rules.enable('java:S5785')");
 
@@ -340,6 +341,35 @@ class SonarLintPluginFunctionalTest {
         project.assertBuildSuccessfully();
     }
 
+    @Nested
+    class Logging {
+
+        @Test
+        void issueDescriptionIsDisplayedByDefault() {
+            project.getBuildFile().registerDefaultTask("sonarlintMain");
+            addJavaS1171RuleExample("src/main/java");
+
+            val buildResult = project.assertBuildSuccessfully();
+            val output = normalizeString(buildResult.getOutput());
+
+            assertThat(output).contains("\n  Why is this an issue?\n");
+        }
+
+        @Test
+        void issueDescriptionIsHidden() {
+            project.getBuildFile().registerDefaultTask("sonarlintMain");
+            addJavaS1171RuleExample("src/main/java");
+
+            project.getBuildFile().append("sonarLint { logging { withDescription = false } }");
+
+            val buildResult = project.assertBuildSuccessfully();
+            val output = normalizeString(buildResult.getOutput());
+
+            assertThat(output).doesNotContain("\n  Why is this an issue?\n");
+        }
+
+    }
+
 
     private String addJavaS1171RuleExample(String srcDir) {
         project.getBuildFile().append(format(
@@ -362,7 +392,7 @@ class SonarLintPluginFunctionalTest {
             "    }",
             "",
             "}",
-        }));
+            }));
 
         return sourceFileRelativePath;
     }
@@ -387,7 +417,7 @@ class SonarLintPluginFunctionalTest {
             "    }",
             "",
             "}",
-        }));
+            }));
 
         return sourceFileRelativePath;
     }

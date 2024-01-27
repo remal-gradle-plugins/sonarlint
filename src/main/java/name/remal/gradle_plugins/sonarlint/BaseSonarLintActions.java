@@ -245,6 +245,10 @@ abstract class BaseSonarLintActions {
             params.getRulesProperties().set(task.getRulesProperties());
             params.getXmlReportLocation().set(getSonarLintReportFile(task, SonarLintReports::getXml));
             params.getHtmlReportLocation().set(getSonarLintReportFile(task, SonarLintReports::getHtml));
+            params.getWithDescription().set(task.getLoggingOptions()
+                .flatMap(SonarLintLoggingOptions::getWithDescription)
+                .orElse(true)
+            );
         });
     }
 
