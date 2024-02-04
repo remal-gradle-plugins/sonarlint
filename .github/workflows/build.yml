@@ -46,7 +46,7 @@ jobs:
     - name: Validate Gradle Wrapper
       uses: Wandalen/wretry.action@v1.3.0
       with:
-        action: gradle/wrapper-validation-action@v1
+        action: gradle/wrapper-validation-action@v2
         attempt_limit: 3
         attempt_delay: 5000
     - name: Cache Gradle
