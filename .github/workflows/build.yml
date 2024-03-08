@@ -44,7 +44,7 @@ jobs:
         submodules: recursive
         fetch-depth: 1
     - name: Validate Gradle Wrapper
-      uses: Wandalen/wretry.action@v1.4.7
+      uses: Wandalen/wretry.action@v1.4.8
       with:
         action: gradle/wrapper-validation-action@v2
         attempt_limit: 3
@@ -227,7 +227,7 @@ jobs:
         distribution: temurin
     - name: Download workspace archive
       id: download-workspace
-      uses: Wandalen/wretry.action@v1.4.7
+      uses: Wandalen/wretry.action@v1.4.8
       with:
         action: actions/download-artifact@v4
         attempt_limit: 3
@@ -294,7 +294,7 @@ jobs:
         distribution: temurin
     - name: Download workspace archive
       id: download-workspace
-      uses: Wandalen/wretry.action@v1.4.7
+      uses: Wandalen/wretry.action@v1.4.8
       with:
         action: actions/download-artifact@v4
         attempt_limit: 3
@@ -383,7 +383,7 @@ jobs:
         distribution: temurin
     - name: Download workspace archive
       id: download-workspace
-      uses: Wandalen/wretry.action@v1.4.7
+      uses: Wandalen/wretry.action@v1.4.8
       with:
         action: actions/download-artifact@v4
         attempt_limit: 3
@@ -434,7 +434,7 @@ jobs:
         distribution: temurin
     - name: Download workspace archive
       id: download-workspace
-      uses: Wandalen/wretry.action@v1.4.7
+      uses: Wandalen/wretry.action@v1.4.8
       with:
         action: actions/download-artifact@v4
         attempt_limit: 3
