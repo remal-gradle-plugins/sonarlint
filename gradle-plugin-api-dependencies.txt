@@ -5,7 +5,7 @@ Node.js:lts:20.12.0
 org.ow2.asm:asm-bom:9.7:@pom
 org.sonarsource.html:sonar-html-plugin:3.14.0.5048:@sonar-plugin
 org.sonarsource.java:sonar-java-plugin:7.30.1.34514:@sonar-plugin
-org.sonarsource.javascript:sonar-javascript-plugin:10.12.0.25537:@sonar-plugin
+org.sonarsource.javascript:sonar-javascript-plugin:10.13.0.25911:@sonar-plugin
 org.sonarsource.kotlin:sonar-kotlin-plugin:2.20.0.4382
 org.sonarsource.slang:sonar-ruby-plugin:1.15.0.4655
 org.sonarsource.slang:sonar-scala-plugin:1.15.0.4655
