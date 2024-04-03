@@ -80,7 +80,7 @@ import org.w3c.dom.Element;
 @NoArgsConstructor(access = PRIVATE)
 abstract class BaseSonarLintActions {
 
-    static final JavaVersion MIN_SUPPORTED_SOAR_JAVA_VERSION = JavaVersion.VERSION_11;
+    static final JavaVersion MIN_SUPPORTED_SONAR_JAVA_VERSION = JavaVersion.VERSION_17;
 
     static final String SONAR_LIST_PROPERTY_DELIMITER = ",";
     static final String SONAR_SOURCE_ENCODING = "sonar.sourceEncoding";
@@ -100,7 +100,7 @@ abstract class BaseSonarLintActions {
 
         task.getJavaLauncher().convention(getJavaLauncherProviderFor(task.getProject(), spec -> {
             val minSupportedJavaLanguageVersion = JavaLanguageVersion.of(
-                MIN_SUPPORTED_SOAR_JAVA_VERSION.getMajorVersion()
+                MIN_SUPPORTED_SONAR_JAVA_VERSION.getMajorVersion()
             );
             val javaMajorVersion = spec.getLanguageVersion()
                 .orElse(JavaLanguageVersion.of(JavaVersion.current().getMajorVersion()))
@@ -185,11 +185,11 @@ abstract class BaseSonarLintActions {
                 .map(SonarLintForkOptions::getEnabled)
                 .map(Provider::getOrNull)
                 .orElse(IS_FORK_ENABLED_DEFAULT);
-            if (!isForkEnabled && JavaVersion.current().compareTo(MIN_SUPPORTED_SOAR_JAVA_VERSION) < 0) {
+            if (!isForkEnabled && JavaVersion.current().compareTo(MIN_SUPPORTED_SONAR_JAVA_VERSION) < 0) {
                 logger.warn(
                     "The current Java version ({}) is less than {}, enabling forking for task {}",
                     JavaVersion.current().getMajorVersion(),
-                    MIN_SUPPORTED_SOAR_JAVA_VERSION.getMajorVersion(),
+                    MIN_SUPPORTED_SONAR_JAVA_VERSION.getMajorVersion(),
                     task.getPath()
                 );
                 isForkEnabled = true;
