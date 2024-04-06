@@ -16,10 +16,49 @@ on:
 permissions:
   contents: read
 
+env:
+  VALIDATION_TOKEN: ${{secrets.CODEOWNERS_VALIDATOR_TOKEN && secrets.CODEOWNERS_VALIDATOR_TOKEN || github.token}}
+
 jobs:
+  rate-limits:
+    name: Check rate limits
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    concurrency:
+      group: codeowners-validation
+      cancel-in-progress: true
+    steps:
+    - name: Get rate limits
+      uses: remal-github-actions/get-rate-limits@v1
+      id: getRateLimits
+      with:
+        githubToken: ${{env.VALIDATION_TOKEN || github.token}}
+    - name: Make decision
+      id: decision
+      run: |
+        echo "Core rate limit usage: ${{steps.getRateLimits.outputs.coreUsage}}"
+        if [ "${{steps.getRateLimits.outputs.coreUsage < 75}}" == "true" ]; then
+          echo "Enough rate limits"
+          echo 'enough=true' >> $GITHUB_OUTPUT
+        else
+          echo "::warning::Not enough rate limits!"
+          if [ "${{github.event_name != 'schedule'}}" == "true" ]; then
+            echo "::warning::Executing anyway, as event is '${{github.event_name}}'"
+          fi
+          echo 'enough=false' >> $GITHUB_OUTPUT
+        fi
+    outputs:
+      enough: ${{steps.decision.outputs.enough}}
+
   codeowners-validation:
+    needs:
+    - rate-limits
+    if: ${{github.event_name != 'schedule' || fromJSON(needs.rate-limits.outputs.enough) == true}}
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    concurrency:
+      group: codeowners-validation
+      cancel-in-progress: true
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -29,7 +68,7 @@ jobs:
     - name: Get repository owner type
       id: owner-type
       run: |
-        REPO_JSON=$(curl -s "${{github.api_url}}/repos/${{github.repository}}" -H "Authorization: token ${{github.token}}")
+        REPO_JSON=$(curl -s "${{github.api_url}}/repos/${{github.repository}}" -H "Authorization: token ${{env.VALIDATION_TOKEN}}")
         OWNER_TYPE=$(echo $REPO_JSON | jq -r '.owner.type')
         OWNER_TYPE=$(echo "$OWNER_TYPE" | tr '[:upper:]' '[:lower:]')
         echo "Owner type: $OWNER_TYPE"
@@ -39,11 +78,11 @@ jobs:
       if: ${{steps.owner-type.outputs.owner-type != 'organization'}}
       uses: mszostok/codeowners-validator@v0.7.4
       with:
-        github_access_token: '${{secrets.CODEOWNERS_VALIDATOR_TOKEN && secrets.CODEOWNERS_VALIDATOR_TOKEN || github.token}}'
+        github_access_token: '${{env.VALIDATION_TOKEN}}'
         checks: 'syntax,duppatterns,files'
 
     - name: Full CODEOWNERS validation
       if: ${{steps.owner-type.outputs.owner-type == 'organization'}}
       uses: mszostok/codeowners-validator@v0.7.4
       with:
-        github_access_token: '${{secrets.CODEOWNERS_VALIDATOR_TOKEN && secrets.CODEOWNERS_VALIDATOR_TOKEN || github.token}}'
+        github_access_token: '${{env.VALIDATION_TOKEN}}'
