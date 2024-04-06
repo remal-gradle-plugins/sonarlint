@@ -10,7 +10,7 @@ on:
     - 'main'
     - 'master'
   schedule:
-  - cron: '15 * * * *' # sync-with-template: adjust
+  - cron: '15 0/2 * * *' # sync-with-template: adjust
   workflow_dispatch: { }
 
 defaults:
@@ -21,16 +21,50 @@ env:
   PUSH_BACK_TOKEN: ${{secrets.PUSH_BACK_TOKEN}}
 
 jobs:
+  rate-limits:
+    name: Check rate limits
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    concurrency:
+      group: sync-with-template
+      cancel-in-progress: true
+    steps:
+    - name: Get rate limits
+      uses: remal-github-actions/get-rate-limits@v1
+      id: getRateLimits
+      with:
+        githubToken: ${{env.PUSH_BACK_TOKEN || github.token}}
+    - name: Make decision
+      id: decision
+      run: |
+        echo "Core rate limit usage: ${{steps.getRateLimits.outputs.coreUsage}}"
+        if [ "${{steps.getRateLimits.outputs.coreUsage < 75}}" == "true" ]; then
+          echo "Enough rate limits"
+          echo 'enough=true' >> $GITHUB_OUTPUT
+        else
+          echo "::warning::Not enough rate limits!"
+          if [ "${{github.event_name != 'schedule'}}" == "true" ]; then
+            echo "::warning::Executing anyway, as event is '${{github.event_name}}'"
+          fi
+          echo 'enough=false' >> $GITHUB_OUTPUT
+        fi
+    outputs:
+      enough: ${{steps.decision.outputs.enough}}
+
   sync-with-template:
+    needs:
+    - rate-limits
+    if: ${{github.event_name != 'schedule' || fromJSON(needs.rate-limits.outputs.enough) == true}}
     name: Sync with template repository
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    concurrency: sync-with-template
-
+    concurrency:
+      group: sync-with-template
+      cancel-in-progress: true
     steps:
     - name: Sync with template repository
-      uses: remal-github-actions/sync-with-template@v3
       if: ${{env.PUSH_BACK_TOKEN}}
+      uses: remal-github-actions/sync-with-template@v3
       with:
         githubToken: ${{env.PUSH_BACK_TOKEN}}
         templateRepository: ${{secrets.TEMPLATE_REPOSITORY || ''}}
