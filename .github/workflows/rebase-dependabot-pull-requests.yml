@@ -8,22 +8,59 @@ on:
     - 'main'
     - 'master'
   schedule:
-  - cron: '47 */4 * * *' # sync-with-template: adjust
+  - cron: '47 0/4 * * *' # sync-with-template: adjust
   workflow_dispatch: { }
 
 defaults:
   run:
     shell: bash
 
+env:
+  PUSH_BACK_TOKEN: ${{secrets.PUSH_BACK_TOKEN || github.token}}
+
 jobs:
+  rate-limits:
+    name: Check rate limits
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    concurrency:
+      group: rebase-dependabot-pull-requests
+      cancel-in-progress: true
+    steps:
+    - name: Get rate limits
+      uses: remal-github-actions/get-rate-limits@v1
+      id: getRateLimits
+      with:
+        githubToken: ${{env.PUSH_BACK_TOKEN || github.token}}
+    - name: Make decision
+      id: decision
+      run: |
+        echo "Core rate limit usage: ${{steps.getRateLimits.outputs.coreUsage}}"
+        if [ "${{steps.getRateLimits.outputs.coreUsage < 75}}" == "true" ]; then
+          echo "Enough rate limits"
+          echo 'enough=true' >> $GITHUB_OUTPUT
+        else
+          echo "::warning::Not enough rate limits!"
+          if [ "${{github.event_name != 'schedule'}}" == "true" ]; then
+            echo "::warning::Executing anyway, as event is '${{github.event_name}}'"
+          fi
+          echo 'enough=false' >> $GITHUB_OUTPUT
+        fi
+    outputs:
+      enough: ${{steps.decision.outputs.enough}}
+
   rebase-dependabot-pull-requests:
+    needs:
+    - rate-limits
+    if: ${{github.event_name != 'schedule' || fromJSON(needs.rate-limits.outputs.enough) == true}}
     name: Rebase Dependabot pull requests
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    concurrency: rebase-dependabot-pull-requests
-
+    concurrency:
+      group: rebase-dependabot-pull-requests
+      cancel-in-progress: true
     steps:
     - name: Rebase Dependabot pull requests
       uses: remal-github-actions/rebase-dependabot-pull-requests@v1
       with:
-        githubToken: ${{secrets.PUSH_BACK_TOKEN || github.token}}
+        githubToken: ${{env.PUSH_BACK_TOKEN}}

@@ -18,7 +18,6 @@ pull_request_rules:
   - check-success=cross-versions-tests-success
   - check-success=WIP
   - '#check-pending=0'
-  - '#check-neutral=0'
   - '#check-failure=0'
   actions:
     merge:
@@ -51,7 +50,6 @@ pull_request_rules:
   - check-success=cross-versions-tests-success
   - check-success=WIP
   - '#check-pending=0'
-  - '#check-neutral=0'
   - '#check-failure=0'
   actions:
     review: { }
