@@ -18,7 +18,6 @@ import static name.remal.gradle_plugins.sonarlint.CanonizationUtils.canonizeLang
 import static name.remal.gradle_plugins.sonarlint.CanonizationUtils.canonizeProperties;
 import static name.remal.gradle_plugins.sonarlint.CanonizationUtils.canonizeRules;
 import static name.remal.gradle_plugins.sonarlint.CanonizationUtils.canonizeRulesProperties;
-import static name.remal.gradle_plugins.sonarlint.NodeJsVersions.LATEST_NODEJS_LTS_VERSION;
 import static name.remal.gradle_plugins.sonarlint.SonarDependencies.getSonarDependency;
 import static name.remal.gradle_plugins.sonarlint.SonarLintForkOptions.IS_FORK_ENABLED_DEFAULT;
 import static name.remal.gradle_plugins.sonarlint.internal.SourceFile.newSourceFileBuilder;
@@ -49,7 +48,6 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import javax.annotation.Nullable;
-import lombok.CustomLog;
 import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.val;
@@ -76,7 +74,6 @@ import org.jetbrains.annotations.Contract;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
-@CustomLog
 @NoArgsConstructor(access = PRIVATE)
 abstract class BaseSonarLintActions {
 
@@ -92,6 +89,9 @@ abstract class BaseSonarLintActions {
     static final String SONAR_JAVA_LIBRARIES = "sonar.java.libraries";
     static final String SONAR_JAVA_TEST_BINARIES = "sonar.java.test.binaries";
     static final String SONAR_JAVA_TEST_LIBRARIES = "sonar.java.test.libraries";
+    static final String SONAR_NODEJS_VERSION = "sonar.nodejs.version";
+    static final String SONAR_NODEJS_EXECUTABLE = "sonar.nodejs.executable";
+    static final String SONAR_NODEJS_EXECUTABLE_TS = "sonar.typescript.node";
 
     public static void init(BaseSonarLint task) {
         task.getIsGeneratedCodeIgnored().convention(true);
@@ -177,6 +177,14 @@ abstract class BaseSonarLintActions {
             });
 
 
+        if (isEmpty(sonarProperties.get(SONAR_NODEJS_EXECUTABLE))) {
+            val nodeJsExecutable = task.get$internals().getNodeJsExecutable().getAsFile().getOrNull();
+            if (nodeJsExecutable != null) {
+                sonarProperties.put(SONAR_NODEJS_EXECUTABLE, nodeJsExecutable.getAbsolutePath());
+            }
+        }
+
+
         final WorkQueue workQueue;
         {
             val workerExecutor = task.get$internals().getWorkerExecutor().get();
@@ -186,7 +194,7 @@ abstract class BaseSonarLintActions {
                 .map(Provider::getOrNull)
                 .orElse(IS_FORK_ENABLED_DEFAULT);
             if (!isForkEnabled && JavaVersion.current().compareTo(MIN_SUPPORTED_SONAR_JAVA_VERSION) < 0) {
-                logger.warn(
+                task.getLogger().warn(
                     "The current Java version ({}) is less than {}, enabling forking for task {}",
                     JavaVersion.current().getMajorVersion(),
                     MIN_SUPPORTED_SONAR_JAVA_VERSION.getMajorVersion(),
@@ -241,7 +249,6 @@ abstract class BaseSonarLintActions {
             params.getIncludedLanguages().addAll(task.getIncludedLanguages());
             params.getExcludedLanguages().addAll(task.getExcludedLanguages());
             params.getSonarProperties().set(sonarProperties);
-            params.getDefaultNodeJsVersion().set(LATEST_NODEJS_LTS_VERSION);
             params.getRulesProperties().set(task.getRulesProperties());
             params.getXmlReportLocation().set(getSonarLintReportFile(task, SonarLintReports::getXml));
             params.getHtmlReportLocation().set(getSonarLintReportFile(task, SonarLintReports::getHtml));
@@ -390,7 +397,7 @@ abstract class BaseSonarLintActions {
         try {
             document = parseXml(checkstyleConfigFile);
         } catch (Exception e) {
-            logger.error(e.toString(), e);
+            task.getLogger().error(e.toString(), e);
             return emptyList();
         }
 
@@ -469,7 +476,11 @@ abstract class BaseSonarLintActions {
                 try {
                     return JavaVersion.toVersion(version);
                 } catch (IllegalArgumentException e) {
-                    logger.warn("Illegal value of {} Sonar property: {}", SONAR_JAVA_SOURCE_PROPERTY, version);
+                    task.getLogger().warn(
+                        "Illegal value of {} Sonar property: {}",
+                        SONAR_JAVA_SOURCE_PROPERTY,
+                        version
+                    );
                     return null;
                 }
             })

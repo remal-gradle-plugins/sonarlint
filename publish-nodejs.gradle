@@ -1,0 +1,115 @@
+import com.tisonkun.os.core.Arch
+import com.tisonkun.os.core.OS
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+buildscript {
+    dependencies {
+        classpath "com.tisonkun.os:os-detector-core:${rootBuildscriptClasspathVersionOf('com.tisonkun.os:os-detector-core')}"
+    }
+    repositories {
+        mavenCentral()
+    }
+}
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+Map<OS, Set<Arch>> publishedNodeJsOs = new TreeMap<>()
+
+tasks.named('generateJava') {
+    inputs.property('publishedNodeJsOs', publishedNodeJsOs)
+    classFile(project.calculateBaseJavaPackage(), 'PublishedNodeJs') {
+        it.writePackage()
+        it.println("")
+        it.writeImport("com.google.common.collect.ImmutableMap")
+        it.writeImport("com.google.common.collect.ImmutableSet")
+        it.writeImport(Arch)
+        it.writeImport(OS)
+        it.writeImport("java.util.Map")
+        it.writeImport("java.util.Set")
+        it.println("")
+        it.writeBlock("interface ${it.simpleName}") {
+            it.println("Map<OS, Set<Arch>> PUBLISHED_NODEJS_OS = ImmutableMap.<OS, Set<Arch>>builder()")
+            publishedNodeJsOs.forEach { os, arches ->
+                it.println("    .put(OS.$os, ImmutableSet.of(${arches.collect { "Arch.$it" }.join(', ')}))")
+            }
+            it.println("    .build();")
+        }
+    }
+}
+
+Closure addPublishedNodeJs = { String urlTemplate, OS os, Arch arch ->
+    publishedNodeJsOs.computeIfAbsent(os, { new TreeSet<Arch>() }).add(arch)
+
+    String url = urlTemplate.replaceAll(/\{version\}/, { project.ltsNodeJsVersion.get() })
+
+    String fileExtension = [
+        'zip',
+        'tar.gz',
+    ].find { url.endsWith(".$it") }
+    if (fileExtension == null) {
+        throw new GradleException("Unsupported extension: $url")
+    }
+
+    RegularFile archiveRegularFile = layout.buildDirectory.file("nodejs/$os-$arch.$fileExtension").get()
+
+    TaskProvider downloadNodeJs = tasks.register("downloadNodeJs-$os-$arch", DownloadTask) {
+        src(url)
+        dest(archiveRegularFile)
+        overwrite(false)
+    }
+
+    Directory unpackedDirectory = layout.buildDirectory.dir("nodejs/$os-$arch").get()
+
+    TaskProvider unpackNodeJs = tasks.register("unpackNodeJs-$os-$arch", Copy) {
+        dependsOn(downloadNodeJs)
+
+        inputs.file(archiveRegularFile).withPropertyName('archiveRegularFile')
+        outputs.dir(unpackedDirectory).withPropertyName('unpackedDirectory')
+
+        FileTree fileTree = null;
+        if (fileExtension == 'zip') {
+            fileTree = zipTree(archiveRegularFile)
+        } else if (fileExtension == 'tar.gz') {
+            fileTree = tarTree(resources.gzip(archiveRegularFile))
+        }
+        if (fileTree == null) {
+            throw new GradleException("Unsupported extension: $fileExtension")
+        }
+        from(fileTree) {
+            include(os == OS.windows ? '*/node.exe' : '*/bin/node')
+            filesMatching('**/*') { it.path = it.path.replaceFirst(/^.*\/([^\/]+)$/, '$1') }
+        }
+
+        into(unpackedDirectory)
+
+        doLast {
+            unpackedDirectory.asFile.listFiles()?.collect()?.forEach { File file ->
+                if (file.isDirectory()) {
+                    project.delete(file)
+                }
+            }
+        }
+    }
+
+    afterEvaluate {
+        publishing.publications.named('pluginMaven', MavenPublication).configure {
+            Provider<File> fileProvider = provider { unpackedDirectory.asFile.listFiles()[0] }
+            artifact(fileProvider) {
+                extension = os == OS.windows ? 'exe' : ''
+                classifier = "$os-$arch"
+                builtBy(unpackNodeJs)
+            }
+        }
+    }
+}
+
+//addPublishedNodeJs('https://nodejs.org/dist/v{version}/node-v{version}-aix-ppc64.tar.gz', OS.aix, Arch.ppc_64)
+//addPublishedNodeJs('https://nodejs.org/dist/v{version}/node-v{version}-linux-x64.tar.gz', OS.linux, Arch.x86_64)
+//addPublishedNodeJs('https://nodejs.org/dist/v{version}/node-v{version}-linux-arm64.tar.gz', OS.linux, Arch.aarch_64)
+//addPublishedNodeJs('https://nodejs.org/dist/v{version}/node-v{version}-linux-ppc64le.tar.gz', OS.linux, Arch.ppcle_64)
+//addPublishedNodeJs('https://nodejs.org/dist/v{version}/node-v{version}-darwin-x64.tar.gz', OS.osx, Arch.x86_64)
+//addPublishedNodeJs('https://nodejs.org/dist/v{version}/node-v{version}-darwin-arm64.tar.gz', OS.osx, Arch.aarch_64)
+//addPublishedNodeJs('https://nodejs.org/dist/v{version}/node-v{version}-win-x86.zip', OS.windows, Arch.x86_32)
+//addPublishedNodeJs('https://nodejs.org/dist/v{version}/node-v{version}-win-x64.zip', OS.windows, Arch.x86_64)
+//addPublishedNodeJs('https://nodejs.org/dist/v{version}/node-v{version}-win-arm64.zip', OS.windows, Arch.aarch_64)

@@ -6,6 +6,7 @@ rootProject.name = 'sonarlint'
 
 include(
     ':cross-compile--common',
+    ':cross-compile--gradle-7.4-lte',
     ':cross-compile--sonarlint-8.11-lte',
     ':cross-compile--sonarlint-9.5-lte',
 )

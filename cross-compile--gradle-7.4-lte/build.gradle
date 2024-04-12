@@ -1,0 +1,1 @@
+//afterEvaluate { configurations.optional.extendsFrom(configurations.crossCompileGradle) }

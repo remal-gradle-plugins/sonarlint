@@ -6,7 +6,6 @@ import static name.remal.gradle_plugins.sonarlint.internal.SonarLintCommand.ANAL
 import static name.remal.gradle_plugins.sonarlint.internal.SonarLintCommand.HELP_PROPERTIES;
 import static name.remal.gradle_plugins.sonarlint.internal.SonarLintCommand.HELP_RULES;
 import static name.remal.gradle_plugins.sonarlint.internal.SonarLintServices.loadSonarLintService;
-import static name.remal.gradle_plugins.toolkit.ObjectUtils.defaultValue;
 import static name.remal.gradle_plugins.toolkit.ObjectUtils.isNotEmpty;
 import static name.remal.gradle_plugins.toolkit.ProxyUtils.toDynamicInterface;
 
@@ -96,10 +95,6 @@ abstract class SonarLintAction implements WorkAction<SonarLintExecutionParams> {
             propertiesDoc.property("sonar.nodejs.version", propDef -> {
                 propDef.setName("Node.js executable version");
                 propDef.setType("STRING");
-                propDef.setDescription("If 'sonar.nodejs.executable' property is not set or empty"
-                    + ", a value of this property will be taken as Node.js version"
-                );
-                propDef.setDefaultValue(defaultValue(params.getDefaultNodeJsVersion().getOrNull()));
             });
 
             logger.quiet(propertiesDoc.renderToText());

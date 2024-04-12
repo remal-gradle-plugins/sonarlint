@@ -26,7 +26,7 @@ public abstract class SonarLintExtension extends CodeQualityExtension {
     }
 
 
-    private final SonarLintRulesSettings rules = getObjectFactory().newInstance(SonarLintRulesSettings.class);
+    private final SonarLintRulesSettings rules = getObjects().newInstance(SonarLintRulesSettings.class);
 
     public void rules(Action<SonarLintRulesSettings> action) {
         action.execute(rules);
@@ -34,7 +34,7 @@ public abstract class SonarLintExtension extends CodeQualityExtension {
 
 
     private final SonarLintLanguagesSettings languages =
-        getObjectFactory().newInstance(SonarLintLanguagesSettings.class);
+        getObjects().newInstance(SonarLintLanguagesSettings.class);
 
     public void languages(Action<SonarLintLanguagesSettings> action) {
         action.execute(languages);
@@ -51,14 +51,14 @@ public abstract class SonarLintExtension extends CodeQualityExtension {
     public abstract ListProperty<String> getIgnoredPaths();
 
 
-    private final SonarLintLoggingOptions logging = getObjectFactory().newInstance(SonarLintLoggingOptions.class);
+    private final SonarLintLoggingOptions logging = getObjects().newInstance(SonarLintLoggingOptions.class);
 
     public void logging(Action<SonarLintLoggingOptions> action) {
         action.execute(logging);
     }
 
 
-    private final SonarLintForkOptions fork = getObjectFactory().newInstance(SonarLintForkOptions.class);
+    private final SonarLintForkOptions fork = getObjects().newInstance(SonarLintForkOptions.class);
 
     public void fork(Action<SonarLintForkOptions> action) {
         action.execute(fork);
@@ -66,6 +66,6 @@ public abstract class SonarLintExtension extends CodeQualityExtension {
 
 
     @Inject
-    protected abstract ObjectFactory getObjectFactory();
+    protected abstract ObjectFactory getObjects();
 
 }

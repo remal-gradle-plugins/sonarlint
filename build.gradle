@@ -13,12 +13,27 @@ buildscript {
     String rootSnapshotVersion = project.ext.rootSnapshotVersion = '3-SNAPSHOT'
     dependencies {
         //classpath("$rootGroupId:$rootArtifactId:$rootSnapshotVersion") { version { strictly(rootSnapshotVersion) } }
-        classpath 'name.remal.gradle-plugins.toolkit:build-logic:0.63.15'
+        classpath 'name.remal.gradle-plugins.toolkit:build-logic:0.63.16'
+        classpath 'de.undercouch:gradle-download-task:5.6.0'
+        classpath 'com.tisonkun.os:os-detector-core:0.3.0'
     }
     repositories {
         mavenCentral()
         gradlePluginPortal()
     }
+
+    project.ext.rootBuildscriptClasspathVersionOf = { String notation ->
+        String version = project.buildscript.configurations.classpath
+            .resolvedConfiguration
+            .lenientConfiguration
+            .allModuleDependencies
+            .find { "${it.moduleGroup}:${it.moduleName}" == notation }
+            ?.moduleVersion
+        if (version == null) {
+            throw new GradleException("Classpath dependency version can't be found for '${notation}'")
+        }
+        return version
+    }.memoize()
 }
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -70,9 +85,12 @@ allprojects {
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 apply plugin: 'java-gradle-plugin'
+apply plugin: 'name.remal.classes-relocation'
 apply plugin: 'name.remal.generate-sources'
 
 dependencies {
+    relocateClasses 'com.tisonkun.os:os-detector-core:0.3.0'
+
     optional('org.sonarsource.sonarlint.core:sonarlint-core:9.8.0.76914') { transitive = false }
 }
 
@@ -89,7 +107,30 @@ gradlePlugin {
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-Provider<String> ltsNodeJsVersion = project.provider { project.file('.nvmrc').getText('UTF-8').trim().replaceFirst(/^v/, '') }
+tasks.named('generateJava') {
+    Provider<MavenPublication> publication = provider { publishing.publications.withType(MavenPublication).pluginMaven }
+    Provider<String> group = provider { publication.get().groupId }
+    Provider<String> artifactId = provider { publication.get().artifactId }
+    Provider<String> version = provider { publication.get().version }
+    inputs.property('groupId', group)
+    inputs.property('artifactId', artifactId)
+    inputs.property('version', version)
+    classFile(project.calculateBaseJavaPackage(), 'SonarLintPluginBuildInfo') {
+        it.writePackage()
+        it.println("")
+        it.writeBlock("interface ${it.simpleName}") {
+            it.println("String SONARLINT_PLUGIN_GROUP = \"${it.escapeJava(group.get())}\";")
+            it.println("String SONARLINT_PLUGIN_ARTIFACT_ID = \"${it.escapeJava(artifactId.get())}\";")
+            it.println("String SONARLINT_PLUGIN_VERSION = \"${it.escapeJava(version.get())}\";")
+        }
+    }
+}
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+Provider<String> ltsNodeJsVersion = project.ext.ltsNodeJsVersion = project.provider {
+    project.file('.nvmrc').getText('UTF-8').trim().replaceFirst(/^v/, '')
+}
 project.nonJavaApiDependencies.add(project.provider { 'Node.js:lts:' + ltsNodeJsVersion.get() })
 tasks.collectGradlePluginApiDependencies.inputs.file('.nvmrc')
 
@@ -100,9 +141,13 @@ tasks.named('generateJava') {
         it.println("")
         it.writeBlock("interface ${it.simpleName}") {
             it.println("String LATEST_NODEJS_LTS_VERSION = \"${it.escapeJava(ltsNodeJsVersion.get())}\";")
+            it.println("int LATEST_NODEJS_LTS_MAJOR_VERSION = ${ltsNodeJsVersion.get().replaceFirst(/^v?(\d+).*$/, '$1')};")
         }
     }
 }
+
+project.ext.DownloadTask = Class.forName('de.undercouch.gradle.tasks.download.Download')
+apply from: 'publish-nodejs.gradle'
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
@@ -181,38 +226,6 @@ dependencies {
 
 tasks.named('generateJava') { Task task ->
     inputs.files(allSonarArtifactsConf).withPropertyName(allSonarArtifactsConf.name + 'Conf').optional()
-
-    classFile(project.calculateBaseJavaPackage(), 'SonarDependencyType') {
-        it.writePackage()
-        it.println("")
-        it.writeBlock("enum ${it.simpleName}") {
-            it.println("CORE,")
-            it.println("PLUGIN,")
-            it.println("OTHER,")
-            it.println(";")
-        }
-    }
-
-    classFile(project.calculateBaseJavaPackage(), 'SonarDependency') {
-        it.writePackage()
-        it.println("")
-        it.writeImport("lombok.Builder")
-        it.writeImport("lombok.Value")
-        it.println("")
-        it.println("@Value")
-        it.println("@Builder")
-        it.writeBlock("class ${it.simpleName}") {
-            it.println("SonarDependencyType type;")
-            it.println("String group;")
-            it.println("String name;")
-            it.println("String version;")
-
-            it.println("")
-            it.writeBlock("public String getNotation()") {
-                it.println("return getGroup() + ':' + getName() + ':' + getVersion();")
-            }
-        }
-    }
 
     classFile(project.calculateBaseJavaPackage(), 'SonarDependencies') {
         it.writePackage()

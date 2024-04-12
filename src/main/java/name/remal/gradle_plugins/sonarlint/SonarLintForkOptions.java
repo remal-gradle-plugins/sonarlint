@@ -1,6 +1,6 @@
 package name.remal.gradle_plugins.sonarlint;
 
-import static name.remal.gradle_plugins.toolkit.internal.Flags.isInFunctionTest;
+import static name.remal.gradle_plugins.toolkit.internal.Flags.isInFunctionalTest;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -11,7 +11,7 @@ import org.gradle.api.tasks.Internal;
 @Setter
 public abstract class SonarLintForkOptions {
 
-    static final boolean IS_FORK_ENABLED_DEFAULT = !isInFunctionTest();
+    static final boolean IS_FORK_ENABLED_DEFAULT = !isInFunctionalTest();
 
 
     @Internal

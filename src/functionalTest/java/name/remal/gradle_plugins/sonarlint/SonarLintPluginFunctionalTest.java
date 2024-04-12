@@ -53,14 +53,19 @@ class SonarLintPluginFunctionalTest {
                 ))
             );
         });
+
+        project.addForbiddenMessage("Provided Node.js executable file does not exist.");
+        project.addForbiddenMessage("Couldn't find the Node.js binary.");
+        project.addForbiddenMessage("Failed to determine the version of Node.js");
+        project.addForbiddenMessage("Unsupported Node.JS version detected");
+        project.addForbiddenMessage("Embedded Node.js failed to deploy.");
     }
 
     private List<Issue> parseSonarLintIssues(@Nullable String reportRelativePath) {
         if (reportRelativePath == null) {
             reportRelativePath = "build/reports/sonarlint/sonarlintMain/sonarlintMain.xml";
         }
-        val reportFile = project.getProjectDir().toPath()
-            .resolve(reportRelativePath);
+        val reportFile = project.resolveRelativePath(reportRelativePath);
         return new CheckstyleXmlIssuesParser().parseIssuesFrom(reportFile);
     }
 
@@ -118,16 +123,34 @@ class SonarLintPluginFunctionalTest {
     }
 
     @Test
+    void html() {
+        project.getBuildFile().registerDefaultTask("sonarlintMain");
+
+        val sourceFileRelativePath = addRuleExample(
+            "src/main/resources",
+            "Web:S5254",
+            "test.html",
+            join("\n", new String[]{
+                "<!DOCTYPE html>",
+                "<html>",
+                "</html>",
+                })
+        );
+
+        project.assertBuildSuccessfully();
+
+        val issues = parseSonarLintIssuesOf("src/main/resources/" + sourceFileRelativePath);
+        assertThat(issues)
+            .extracting(Issue::getRule)
+            .contains("Web:S5254");
+    }
+
+    @Test
     void generatedFiles() {
         project.getBuildFile().registerDefaultTask("sonarlintMain");
 
         val javaS1171SourceRelativePath = addJavaS1171RuleExample("build/generated-java");
         val javaS1133SourceRelativePath = addJavaS1133RuleExample("src/main/java");
-
-        project.getBuildFile().append(format(
-            "sonarLint.ignoredPaths.add('%s')",
-            escapeGroovy(javaS1171SourceRelativePath)
-        ));
 
         project.assertBuildSuccessfully();
 
@@ -147,7 +170,7 @@ class SonarLintPluginFunctionalTest {
 
         project.getBuildFile().append(format(
             "sonarLint.ignoredPaths.add('%s')",
-            escapeGroovy(javaS1171SourceRelativePath)
+            escapeGroovy("**/*S1171*")
         ));
 
         project.assertBuildSuccessfully();
@@ -371,16 +394,24 @@ class SonarLintPluginFunctionalTest {
     }
 
 
-    private String addJavaS1171RuleExample(String srcDir) {
+    private String addRuleExample(String srcDir, String rule, String sourceFileRelativePath, String content) {
         project.getBuildFile().append(format(
             "tasks.sonarlintMain.source('%s')",
             escapeGroovy(srcDir)
         ));
 
-        project.getBuildFile().append("sonarLint.rules.enable('java:S1171')");
+        project.getBuildFile().append(format(
+            "sonarLint.rules.enable('%s')",
+            escapeGroovy(rule)
+        ));
 
-        val sourceFileRelativePath = "pkg/JavaS1171RuleExample.java";
-        project.writeTextFile(srcDir + '/' + sourceFileRelativePath, join("\n", new String[]{
+        project.writeTextFile(srcDir + '/' + sourceFileRelativePath, content);
+
+        return sourceFileRelativePath;
+    }
+
+    private String addJavaS1171RuleExample(String srcDir) {
+        return addRuleExample(srcDir, "java:S1171", "pkg/JavaS1171RuleExample.java", join("\n", new String[]{
             "package pkg;",
             "",
             "import java.util.LinkedHashMap;",
@@ -393,20 +424,10 @@ class SonarLintPluginFunctionalTest {
             "",
             "}",
             }));
-
-        return sourceFileRelativePath;
     }
 
     private String addJavaS1133RuleExample(String srcDir) {
-        project.getBuildFile().append(format(
-            "tasks.sonarlintMain.source('%s')",
-            escapeGroovy(srcDir)
-        ));
-
-        project.getBuildFile().append("sonarLint.rules.enable('java:S1133')");
-
-        val sourceFileRelativePath = "pkg/JavaS1133RuleExample.java";
-        project.writeTextFile(srcDir + '/' + sourceFileRelativePath, join("\n", new String[]{
+        return addRuleExample(srcDir, "java:S1133", "pkg/JavaS1133RuleExample.java", join("\n", new String[]{
             "package pkg;",
             "",
             "public class JavaS1133RuleExample {",
@@ -418,8 +439,6 @@ class SonarLintPluginFunctionalTest {
             "",
             "}",
             }));
-
-        return sourceFileRelativePath;
     }
 
 }

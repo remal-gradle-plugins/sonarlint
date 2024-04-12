@@ -41,7 +41,7 @@ public abstract class SonarLintRulesSettings {
     public void rule(String rule, Action<SonarLintRuleSettings> action) {
         val ruleSettings = rulesSettings.computeIfAbsent(
             rule,
-            __ -> getObjectFactory().newInstance(SonarLintRuleSettings.class)
+            __ -> getObjects().newInstance(SonarLintRuleSettings.class)
         );
         action.execute(ruleSettings);
     }
@@ -71,6 +71,6 @@ public abstract class SonarLintRulesSettings {
 
 
     @Inject
-    protected abstract ObjectFactory getObjectFactory();
+    protected abstract ObjectFactory getObjects();
 
 }
