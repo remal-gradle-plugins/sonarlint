@@ -91,6 +91,10 @@ Two additional help tasks are created:
 
 # Migration guide
 
+## Version 3.* to 4.*
+
+Gradle 6 support was removed.
+
 ## Version 2.* to 3.*
 
 Package name was changed from `name.remal.gradleplugins.sonarlint` to `name.remal.gradle_plugins.sonarlint`.

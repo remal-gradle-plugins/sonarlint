@@ -58,9 +58,9 @@ abstract class BaseSonarLintInternals {
     @Inject
     @SuppressWarnings("java:S5993")
     public BaseSonarLintInternals(BaseSonarLint task) {
-        val rootDir = getRootDirOf(task.getProject());
-
         val project = task.getProject();
+        val rootDir = getRootDirOf(project);
+
         getWorkerExecutor().set(getService(project, WorkerExecutor.class));
         getRootDir().set(rootDir);
         getProjectDir().set(normalizeFile(project.getProjectDir()));

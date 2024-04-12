@@ -29,7 +29,8 @@ import org.gradle.api.file.ProjectLayout;
 
 @RequiredArgsConstructor(onConstructor_ = {@Inject})
 @Setter
-abstract class NodeJsDetectorOfficial extends NodeJsDetector implements NodeJsDetectorWithRootDir {
+abstract class NodeJsDetectorOfficial extends NodeJsDetector
+    implements NodeJsDetectorWithRootDir {
 
     private static final String NODEJS_REPOSITORY_NAME = "https://nodejs.org/";
     private static final String NODEJS_GROUP = "org.nodejs";
@@ -53,8 +54,10 @@ abstract class NodeJsDetectorOfficial extends NodeJsDetector implements NodeJsDe
         .put(Arch.s390_64, "s390x")
         .build();
 
+
     @Nullable
     private File rootDir;
+
 
     @Nullable
     @Override
