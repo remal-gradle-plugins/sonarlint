@@ -5,9 +5,9 @@ import static java.lang.String.format;
 import static java.util.stream.Collectors.toList;
 import static name.remal.gradle_plugins.sonarlint.NodeJsVersions.LATEST_NODEJS_LTS_MAJOR_VERSION;
 import static name.remal.gradle_plugins.sonarlint.OsDetector.DETECTED_OS;
+import static name.remal.gradle_plugins.toolkit.InTestFlags.isInTest;
 import static name.remal.gradle_plugins.toolkit.ObjectUtils.defaultValue;
 import static name.remal.gradle_plugins.toolkit.ProviderFactoryUtils.getEnvironmentVariable;
-import static name.remal.gradle_plugins.toolkit.internal.Flags.isInTest;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;

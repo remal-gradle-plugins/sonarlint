@@ -7,9 +7,9 @@ import static java.nio.file.attribute.PosixFilePermission.GROUP_EXECUTE;
 import static java.nio.file.attribute.PosixFilePermission.OTHERS_EXECUTE;
 import static java.nio.file.attribute.PosixFilePermission.OWNER_EXECUTE;
 import static name.remal.gradle_plugins.toolkit.CrossCompileServices.loadCrossCompileService;
+import static name.remal.gradle_plugins.toolkit.InTestFlags.isInTest;
 import static name.remal.gradle_plugins.toolkit.ObjectUtils.isEmpty;
 import static name.remal.gradle_plugins.toolkit.TimeoutUtils.withTimeout;
-import static name.remal.gradle_plugins.toolkit.internal.Flags.isInTest;
 import static name.remal.gradle_plugins.toolkit.reflection.ReflectionUtils.unwrapGeneratedSubclass;
 
 import java.io.File;
