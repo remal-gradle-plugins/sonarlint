@@ -45,6 +45,8 @@ public interface SonarLintExecutionParams extends WorkParameters {
 
     MapProperty<String, Map<String, String>> getRulesProperties();
 
+    Property<NodeJsFound> getNodeJsInfo();
+
     RegularFileProperty getXmlReportLocation();
 
     RegularFileProperty getHtmlReportLocation();

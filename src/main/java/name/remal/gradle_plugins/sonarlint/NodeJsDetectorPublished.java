@@ -2,7 +2,6 @@ package name.remal.gradle_plugins.sonarlint;
 
 import static java.lang.String.format;
 import static java.util.Collections.emptySet;
-import static name.remal.gradle_plugins.sonarlint.NodeJsVersions.DEFAULT_NODEJS_VERSION;
 import static name.remal.gradle_plugins.sonarlint.OsDetector.DETECTED_OS;
 import static name.remal.gradle_plugins.sonarlint.PublishedNodeJs.PUBLISHED_NODEJS_OS;
 import static name.remal.gradle_plugins.sonarlint.SonarLintPluginBuildInfo.SONARLINT_PLUGIN_ARTIFACT_ID;
@@ -11,25 +10,23 @@ import static name.remal.gradle_plugins.sonarlint.SonarLintPluginBuildInfo.SONAR
 import static name.remal.gradle_plugins.toolkit.InTestFlags.isInTest;
 
 import com.tisonkun.os.core.OS;
-import java.io.File;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
-import lombok.CustomLog;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.val;
-import name.remal.gradle_plugins.toolkit.Version;
+import name.remal.gradle_plugins.sonarlint.internal.NodeJsFound;
+import name.remal.gradle_plugins.sonarlint.internal.NodeJsNotFound;
 import org.gradle.api.artifacts.ConfigurationContainer;
 import org.gradle.api.artifacts.dsl.DependencyHandler;
 
 @RequiredArgsConstructor(onConstructor_ = {@Inject})
-@CustomLog
 abstract class NodeJsDetectorPublished extends NodeJsDetector {
 
     @Nullable
     @Override
     @SneakyThrows
-    public File detectDefaultNodeJsExecutable() {
+    public NodeJsFound detectDefaultNodeJsExecutable() {
         val os = DETECTED_OS.os;
         val arch = DETECTED_OS.arch;
         val isPublished = PUBLISHED_NODEJS_OS.getOrDefault(os, emptySet()).contains(arch);
@@ -46,38 +43,25 @@ abstract class NodeJsDetectorPublished extends NodeJsDetector {
             os == OS.windows ? "exe" : ""
         ));
         val configuration = getConfigurations().detachedConfiguration(dependency);
-        val file = configuration.getFiles().iterator().next();
+        val targetFile = configuration.getFiles().iterator().next();
 
-        setExecutePermissions(file);
+        val info = nodeJsInfoRetriever.getNodeJsInfo(targetFile);
 
-        val versionResult = getNodeJsVersion(file);
-        val error = versionResult.getError();
-        if (error != null) {
+        if (info instanceof NodeJsNotFound) {
+            val error = ((NodeJsNotFound) info).getError();
             if (isInTest()) {
                 throw error;
             } else {
-                logger.info(
-                    format(
-                        "Downloaded Node.js from the plugin artifacts can't be used: %s",
-                        error
-                    ),
+                val message = format(
+                    "Downloaded Node.js from the plugin artifacts can't be used: %s",
                     error
                 );
+                logger.warn(message, error);
             }
             return null;
         }
 
-        return file;
-    }
-
-    @Nullable
-    @Override
-    public File detectNodeJsExecutable(String version) {
-        if (DEFAULT_NODEJS_VERSION.compareTo(Version.parse(version)) == 0) {
-            return detectDefaultNodeJsExecutable();
-        }
-
-        return null;
+        return (NodeJsFound) info;
     }
 
 

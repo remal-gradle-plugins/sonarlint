@@ -26,10 +26,10 @@ public abstract class SonarLintExtension extends CodeQualityExtension {
     }
 
 
-    public abstract Property<Boolean> getDetectNodeJs();
+    private final SonarLintNodeJs nodeJs = getObjects().newInstance(SonarLintNodeJs.class);
 
-    {
-        getDetectNodeJs().convention(true);
+    public void nodeJs(Action<SonarLintNodeJs> action) {
+        action.execute(nodeJs);
     }
 
 

@@ -144,13 +144,63 @@ class SonarLintPluginFunctionalTest {
 
             val issues = parseSonarLintIssuesOf("src/main/resources/" + sourceFileRelativePath);
             assertThat(issues)
+                .isEmpty();
+        }
+
+        @Test
+        void htmlWithNodeJsDetection() {
+            project.getBuildFile().append("sonarLint { nodeJs { detectNodeJs = true } }");
+
+            project.getBuildFile().registerDefaultTask("sonarlintMain");
+
+            val sourceFileRelativePath = addRuleExample(
+                "src/main/resources",
+                "Web:S5254",
+                "test.html",
+                join("\n", new String[]{
+                    "<!DOCTYPE html>",
+                    "<html>",
+                    "</html>",
+                    })
+            );
+
+            project.assertBuildSuccessfully();
+
+            val issues = parseSonarLintIssuesOf("src/main/resources/" + sourceFileRelativePath);
+            assertThat(issues)
+                .extracting(Issue::getRule)
+                .contains("Web:S5254");
+        }
+
+        @Test
+        void htmlWithNodeJsDetectionAndCustomSuffix() {
+            project.getBuildFile().append("sonarLint { nodeJs { detectNodeJs = true } }");
+            project.getBuildFile().append("sonarLint { sonarProperty('sonar.html.file.suffixes', '.custom-html') }");
+
+            project.getBuildFile().registerDefaultTask("sonarlintMain");
+
+            val sourceFileRelativePath = addRuleExample(
+                "src/main/resources",
+                "Web:S5254",
+                "test.custom-html",
+                join("\n", new String[]{
+                    "<!DOCTYPE html>",
+                    "<html>",
+                    "</html>",
+                    })
+            );
+
+            project.assertBuildSuccessfully();
+
+            val issues = parseSonarLintIssuesOf("src/main/resources/" + sourceFileRelativePath);
+            assertThat(issues)
                 .extracting(Issue::getRule)
                 .contains("Web:S5254");
         }
 
         @Test
         void htmlWithoutNodeJsDetection() {
-            project.getBuildFile().append("sonarLint { detectNodeJs = false }");
+            project.getBuildFile().append("sonarLint { nodeJs { detectNodeJs = false } }");
 
             project.getBuildFile().registerDefaultTask("sonarlintMain");
 

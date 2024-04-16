@@ -17,6 +17,7 @@ import lombok.CustomLog;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.val;
+import name.remal.gradle_plugins.sonarlint.internal.NodeJsFound;
 import name.remal.gradle_plugins.toolkit.ObjectUtils;
 import org.gradle.api.model.ObjectFactory;
 
@@ -30,21 +31,10 @@ abstract class NodeJsDetectors {
     private final List<NodeJsDetector> detectors = loadNodeJsDetectors();
 
     @Nullable
-    public File detectDefaultNodeJsExecutable() {
+    public NodeJsFound detectDefaultNodeJsExecutable() {
         synchronized (NodeJsDetectors.class) {
             return detectors.stream()
                 .map(NodeJsDetector::detectDefaultNodeJsExecutable)
-                .filter(Objects::nonNull)
-                .findFirst()
-                .orElse(null);
-        }
-    }
-
-    @Nullable
-    public File detectNodeJsExecutable(String version) {
-        synchronized (NodeJsDetectors.class) {
-            return detectors.stream()
-                .map(detector -> detector.detectNodeJsExecutable(version))
                 .filter(Objects::nonNull)
                 .findFirst()
                 .orElse(null);

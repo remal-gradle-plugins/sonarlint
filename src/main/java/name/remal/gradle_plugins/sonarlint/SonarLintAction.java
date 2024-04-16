@@ -86,17 +86,6 @@ abstract class SonarLintAction implements WorkAction<SonarLintExecutionParams> {
                 params.getSonarLintVersion().get()
             );
             val propertiesDoc = propertiesDocumentationCollector.collectPropertiesDocumentation(params);
-
-            propertiesDoc.property("sonar.nodejs.executable", propDef -> {
-                propDef.setName("Absolute path to Node.js executable");
-                propDef.setType("STRING");
-            });
-
-            propertiesDoc.property("sonar.nodejs.version", propDef -> {
-                propDef.setName("Node.js executable version");
-                propDef.setType("STRING");
-            });
-
             logger.quiet(propertiesDoc.renderToText());
 
         } else {

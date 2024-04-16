@@ -14,7 +14,6 @@ import org.gradle.api.tasks.Classpath;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.InputFile;
 import org.gradle.api.tasks.InputFiles;
-import org.gradle.api.tasks.Internal;
 import org.gradle.api.tasks.Nested;
 import org.gradle.api.tasks.PathSensitive;
 import org.gradle.jvm.toolchain.JavaLauncher;
@@ -25,8 +24,9 @@ interface BaseSonarLint extends Task {
     @InputFiles
     ConfigurableFileCollection getToolClasspath();
 
-    @Internal
-    Property<Boolean> getDetectNodeJs();
+    @Nested
+    @org.gradle.api.tasks.Optional
+    Property<SonarLintNodeJs> getNodeJs();
 
     @Input
     Property<Boolean> getIsTest();

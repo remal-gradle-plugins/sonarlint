@@ -17,11 +17,13 @@ import java.io.IOException;
 import java.util.Map;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
-import lombok.CustomLog;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.SneakyThrows;
 import lombok.val;
+import name.remal.gradle_plugins.sonarlint.internal.NodeJsDetectorException;
+import name.remal.gradle_plugins.sonarlint.internal.NodeJsFound;
+import name.remal.gradle_plugins.sonarlint.internal.NodeJsNotFound;
 import org.gradle.api.artifacts.ConfigurationContainer;
 import org.gradle.api.artifacts.dsl.DependencyHandler;
 import org.gradle.api.artifacts.dsl.RepositoryHandler;
@@ -32,7 +34,6 @@ import org.gradle.api.file.ProjectLayout;
 
 @RequiredArgsConstructor(onConstructor_ = {@Inject})
 @Setter
-@CustomLog
 abstract class NodeJsDetectorOfficial extends NodeJsDetector
     implements NodeJsDetectorWithRootDir {
 
@@ -65,15 +66,9 @@ abstract class NodeJsDetectorOfficial extends NodeJsDetector
 
     @Nullable
     @Override
-    public File detectDefaultNodeJsExecutable() {
-        return detectNodeJsExecutable(DEFAULT_NODEJS_VERSION.toString());
-    }
-
-    @Nullable
-    @Override
     @SneakyThrows
     @SuppressWarnings("java:S3776")
-    public File detectNodeJsExecutable(String version) {
+    public NodeJsFound detectDefaultNodeJsExecutable() {
         addNodeJsRepository();
 
         File rootDir = this.rootDir;
@@ -83,6 +78,7 @@ abstract class NodeJsDetectorOfficial extends NodeJsDetector
 
         val os = DETECTED_OS.os;
         val arch = DETECTED_OS.arch;
+        val version = DEFAULT_NODEJS_VERSION.toString();
         val targetFile = new File(rootDir, format(
             "build/node-%s-%s-%s%s",
             version,
@@ -90,85 +86,81 @@ abstract class NodeJsDetectorOfficial extends NodeJsDetector
             arch,
             os == OS.windows ? ".exe" : ""
         ));
-        if (targetFile.exists()) {
-            return targetFile;
-        }
-
-        val osSuffix = OS_SUFFIXES.get(os);
-        if (osSuffix == null) {
-            logger.warn("There is Node.js on the official website for OS {}", os);
-            return null;
-        }
-        val archSuffix = ARCH_SUFFIXES.get(arch);
-        if (archSuffix == null) {
-            logger.warn("There is Node.js on the official website for OS {} and CPU architecture {}", os, arch);
-            return null;
-        }
-        val archiveExtension = os == OS.windows ? "zip" : "tar.gz";
-        val dependency = getDependencies().create(format(
-            "%s:%s:%s:%s@%s",
-            NODEJS_GROUP,
-            NODEJS_ARTIFACT_ID,
-            version,
-            osSuffix + "-" + archSuffix,
-            archiveExtension
-        ));
-        val configuration = getConfigurations().detachedConfiguration(dependency);
-        val archiveFile = configuration.getFiles().iterator().next();
-
-        final FileTree archiveFileTree;
-        if (archiveExtension.equals("zip")) {
-            archiveFileTree = getArchives().zipTree(archiveFile);
-        } else if (archiveExtension.equals("tar.gz")) {
-            archiveFileTree = getArchives().tarTree(getArchives().gzip(archiveFile));
-        } else {
-            throw new NodeJsDetectorException("Unsupported archive extension: " + archiveExtension);
-        }
-        archiveFileTree
-            .matching(filter -> filter.include(
-                os == OS.windows ? "*/node.exe" : "*/bin/node"
-            ))
-            .visit(detail -> {
-                if (detail.isDirectory()) {
-                    return;
-                }
-
-                val targetFilePath = targetFile.toPath();
-                createParentDirectories(targetFilePath);
-                try (val outputStream = newOutputStream(targetFilePath)) {
-                    try (val inputStream = detail.open()) {
-                        ByteStreams.copy(inputStream, outputStream);
-                    }
-                } catch (IOException e) {
-                    throw sneakyThrow(e);
-                }
-            });
 
         if (!targetFile.exists()) {
-            throw new NodeJsDetectorException("Node.js binary couldn't be found in archive: " + archiveFile);
+            val osSuffix = OS_SUFFIXES.get(os);
+            if (osSuffix == null) {
+                logger.warn("There is Node.js on the official website for OS {}", os);
+                return null;
+            }
+            val archSuffix = ARCH_SUFFIXES.get(arch);
+            if (archSuffix == null) {
+                logger.warn("There is Node.js on the official website for OS {} and CPU architecture {}", os, arch);
+                return null;
+            }
+            val archiveExtension = os == OS.windows ? "zip" : "tar.gz";
+            val dependency = getDependencies().create(format(
+                "%s:%s:%s:%s@%s",
+                NODEJS_GROUP,
+                NODEJS_ARTIFACT_ID,
+                version,
+                osSuffix + "-" + archSuffix,
+                archiveExtension
+            ));
+            val configuration = getConfigurations().detachedConfiguration(dependency);
+            val archiveFile = configuration.getFiles().iterator().next();
+
+            final FileTree archiveFileTree;
+            if (archiveExtension.equals("zip")) {
+                archiveFileTree = getArchives().zipTree(archiveFile);
+            } else if (archiveExtension.equals("tar.gz")) {
+                archiveFileTree = getArchives().tarTree(getArchives().gzip(archiveFile));
+            } else {
+                throw new NodeJsDetectorException("Unsupported archive extension: " + archiveExtension);
+            }
+            archiveFileTree
+                .matching(filter -> filter.include(
+                    os == OS.windows ? "*/node.exe" : "*/bin/node"
+                ))
+                .visit(detail -> {
+                    if (detail.isDirectory()) {
+                        return;
+                    }
+
+                    val targetFilePath = targetFile.toPath();
+                    createParentDirectories(targetFilePath);
+                    try (val outputStream = newOutputStream(targetFilePath)) {
+                        try (val inputStream = detail.open()) {
+                            ByteStreams.copy(inputStream, outputStream);
+                        }
+                    } catch (IOException e) {
+                        throw sneakyThrow(e);
+                    }
+                });
+
+            if (!targetFile.exists()) {
+                throw new NodeJsDetectorException("Node.js binary couldn't be found in archive: " + archiveFile);
+            }
         }
 
-        setExecutePermissions(targetFile);
+        val info = nodeJsInfoRetriever.getNodeJsInfo(targetFile);
 
-        val versionResult = getNodeJsVersion(targetFile);
-        val error = versionResult.getError();
-        if (error != null) {
+        if (info instanceof NodeJsNotFound) {
+            val error = ((NodeJsNotFound) info).getError();
             if (isInTest()) {
                 throw error;
             } else {
-                logger.warn(
-                    format(
-                        "Downloaded Node.js from the official website of version %s can't be used: %s",
-                        version,
-                        error
-                    ),
+                val message = format(
+                    "Downloaded Node.js from the official website of version %s can't be used: %s",
+                    version,
                     error
                 );
+                logger.warn(message, error);
             }
             return null;
         }
 
-        return targetFile;
+        return (NodeJsFound) info;
     }
 
     private void addNodeJsRepository() {

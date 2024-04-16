@@ -17,17 +17,12 @@ import static name.remal.gradle_plugins.sonarlint.BaseSonarLintActions.SONAR_JAV
 import static name.remal.gradle_plugins.sonarlint.BaseSonarLintActions.SONAR_JAVA_TEST_LIBRARIES;
 import static name.remal.gradle_plugins.sonarlint.BaseSonarLintActions.SONAR_LIST_PROPERTY_DELIMITER;
 import static name.remal.gradle_plugins.sonarlint.BaseSonarLintActions.SONAR_SOURCE_ENCODING;
-import static name.remal.gradle_plugins.sonarlint.CanonizationUtils.canonizeLanguages;
-import static name.remal.gradle_plugins.sonarlint.CanonizationUtils.canonizeProperties;
-import static name.remal.gradle_plugins.sonarlint.CanonizationUtils.canonizeRules;
-import static name.remal.gradle_plugins.sonarlint.CanonizationUtils.canonizeRulesProperties;
 import static name.remal.gradle_plugins.sonarlint.DependencyWithBrokenPomSubstitutions.getVersionWithFixedPom;
 import static name.remal.gradle_plugins.sonarlint.ResolvedNonReproducibleSonarDependencies.getResolvedNonReproducibleSonarDependency;
 import static name.remal.gradle_plugins.sonarlint.SonarDependencies.getSonarDependencies;
 import static name.remal.gradle_plugins.sonarlint.SonarDependencies.getSonarDependency;
 import static name.remal.gradle_plugins.toolkit.ExtensionContainerUtils.findExtension;
 import static name.remal.gradle_plugins.toolkit.ExtensionContainerUtils.getExtension;
-import static name.remal.gradle_plugins.toolkit.ObjectUtils.defaultTrue;
 import static name.remal.gradle_plugins.toolkit.PredicateUtils.not;
 import static name.remal.gradle_plugins.toolkit.PropertiesConventionUtils.setPropertyConvention;
 import static name.remal.gradle_plugins.toolkit.ResolutionStrategyUtils.configureGlobalResolutionStrategy;
@@ -209,36 +204,7 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
         );
 
         val extension = (SonarLintExtension) this.extension;
-        task.getDetectNodeJs().convention(project.provider(() ->
-            defaultTrue(extension.getDetectNodeJs().getOrNull())
-        ));
-        task.getIsGeneratedCodeIgnored().convention(project.provider(() ->
-            defaultTrue(extension.getIsGeneratedCodeIgnored().getOrNull())
-        ));
-        task.getEnabledRules().convention(project.provider(() ->
-            canonizeRules(extension.getRules().getEnabled().get())
-        ));
-        task.getDisabledRules().convention(project.provider(() ->
-            canonizeRules(extension.getRules().getDisabled().get())
-        ));
-        task.getIncludedLanguages().convention(project.provider(() ->
-            canonizeLanguages(extension.getLanguages().getIncludes().get())
-        ));
-        task.getExcludedLanguages().convention(project.provider(() ->
-            canonizeLanguages(extension.getLanguages().getExcludes().get())
-        ));
-        task.getSonarProperties().convention(project.provider(() ->
-            canonizeProperties(extension.getSonarProperties().get())
-        ));
-        task.getRulesProperties().convention(project.provider(() ->
-            canonizeRulesProperties(extension.getRules().buildProperties())
-        ));
-        task.getIgnoredPaths().convention(
-            extension.getIgnoredPaths()
-        );
-        task.getRuleIgnoredPaths().convention(project.provider(() ->
-            extension.getRules().buildIgnoredPaths()
-        ));
+        task.getNodeJs().set(extension.getNodeJs());
         task.getCheckstyleConfig().convention(project.getLayout().file(project.provider(
             this::getCheckstyleConfigFile
         )));

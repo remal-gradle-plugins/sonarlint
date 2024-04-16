@@ -5,3 +5,7 @@ dependencies {
 
     testImplementation 'com.google.guava:guava'
 }
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+apply from: 'languages.gradle'

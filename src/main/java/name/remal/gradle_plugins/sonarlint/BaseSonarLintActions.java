@@ -7,8 +7,10 @@ import static java.lang.String.format;
 import static java.lang.String.join;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.Files.exists;
+import static java.util.Arrays.stream;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
+import static java.util.Collections.emptySet;
 import static java.util.Collections.unmodifiableCollection;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.joining;
@@ -22,6 +24,7 @@ import static name.remal.gradle_plugins.sonarlint.CanonizationUtils.canonizeRule
 import static name.remal.gradle_plugins.sonarlint.SonarDependencies.getSonarDependency;
 import static name.remal.gradle_plugins.sonarlint.SonarLintForkOptions.IS_FORK_ENABLED_DEFAULT;
 import static name.remal.gradle_plugins.sonarlint.internal.SourceFile.newSourceFileBuilder;
+import static name.remal.gradle_plugins.toolkit.ExtensionContainerUtils.findExtension;
 import static name.remal.gradle_plugins.toolkit.FileUtils.normalizeFile;
 import static name.remal.gradle_plugins.toolkit.JavaLauncherUtils.getJavaLauncherProviderFor;
 import static name.remal.gradle_plugins.toolkit.ObjectUtils.defaultFalse;
@@ -49,10 +52,13 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.val;
+import name.remal.gradle_plugins.sonarlint.internal.NodeJsFound;
+import name.remal.gradle_plugins.sonarlint.internal.SonarLanguage;
 import name.remal.gradle_plugins.sonarlint.internal.SonarLintCommand;
 import name.remal.gradle_plugins.sonarlint.internal.SourceFile;
 import name.remal.gradle_plugins.toolkit.EditorConfig;
@@ -96,18 +102,62 @@ abstract class BaseSonarLintActions {
     static final String SONAR_NODEJS_EXECUTABLE_TS = "sonar.typescript.node";
     static final String SONAR_NODEJS_VERSION = "sonar.nodejs.version";
 
-    static final List<String> LANGUAGES_REQUIRING_NODEJS = ImmutableList.of(
-        "JavaScript",
-        "TypeScript",
-        "CSS",
-        "YAML",
-        "HTML"
+    static final List<String> LANGUAGES_REQUIRING_NODEJS = ImmutableList.copyOf(
+        stream(SonarLanguage.values())
+            .filter(SonarLanguage::isRequireNodeJs)
+            .map(SonarLanguage::getLabel)
+            .collect(toList())
     );
 
     public static void init(BaseSonarLint task) {
-        task.getIsGeneratedCodeIgnored().convention(true);
-
         task.getIsTest().convention(false);
+
+        val project = task.getProject();
+        val extensionProvider = project.provider(() -> findExtension(project, SonarLintExtension.class));
+        task.getIsGeneratedCodeIgnored().convention(extensionProvider
+            .flatMap(SonarLintExtension::getIsGeneratedCodeIgnored)
+            .orElse(true)
+        );
+        task.getEnabledRules().addAll(extensionProvider
+            .map(SonarLintExtension::getRules)
+            .flatMap(SonarLintRulesSettings::getEnabled)
+            .orElse(emptySet())
+        );
+        task.getDisabledRules().addAll(extensionProvider
+            .map(SonarLintExtension::getRules)
+            .flatMap(SonarLintRulesSettings::getDisabled)
+            .orElse(emptySet())
+        );
+        task.getIncludedLanguages().addAll(extensionProvider
+            .map(SonarLintExtension::getLanguages)
+            .flatMap(SonarLintLanguagesSettings::getIncludes)
+            .orElse(emptyList())
+        );
+        task.getExcludedLanguages().addAll(extensionProvider
+            .map(SonarLintExtension::getLanguages)
+            .flatMap(SonarLintLanguagesSettings::getExcludes)
+            .orElse(emptyList())
+        );
+        task.getSonarProperties().putAll(extensionProvider
+            .flatMap(SonarLintExtension::getSonarProperties)
+            .map(CanonizationUtils::canonizeProperties)
+            .orElse(emptyMap())
+        );
+        task.getRulesProperties().putAll(extensionProvider
+            .map(SonarLintExtension::getRules)
+            .map(SonarLintRulesSettings::buildProperties)
+            .map(CanonizationUtils::canonizeRulesProperties)
+            .orElse(emptyMap())
+        );
+        task.getIgnoredPaths().addAll(extensionProvider
+            .flatMap(SonarLintExtension::getIgnoredPaths)
+            .orElse(emptyList())
+        );
+        task.getRuleIgnoredPaths().putAll(extensionProvider
+            .map(SonarLintExtension::getRules)
+            .map(SonarLintRulesSettings::buildIgnoredPaths)
+            .orElse(emptyMap())
+        );
 
         task.getJavaLauncher().convention(getJavaLauncherProviderFor(task.getProject(), spec -> {
             val minSupportedJavaLanguageVersion = JavaLanguageVersion.of(
@@ -188,35 +238,25 @@ abstract class BaseSonarLintActions {
             });
 
 
-        val additionalExcludedLanguages = new ArrayList<String>();
-        if (isEmpty(sonarProperties.get(SONAR_NODEJS_EXECUTABLE))) {
-            val nodeJsExecutable = task.get$internals().getNodeJsExecutable().getAsFile().getOrNull();
-            if (nodeJsExecutable != null) {
-                sonarProperties.put(SONAR_NODEJS_EXECUTABLE, nodeJsExecutable.getAbsolutePath());
-                sonarProperties.remove(SONAR_NODEJS_EXECUTABLE_TS);
-                sonarProperties.remove(SONAR_NODEJS_VERSION);
-
-            } else {
-                additionalExcludedLanguages.addAll(LANGUAGES_REQUIRING_NODEJS);
-                val logNodeJsNotFound = defaultTrue(task.getLoggingOptions()
-                    .flatMap(SonarLintLoggingOptions::getLogNodeJsNotFound)
-                    .getOrNull()
-                );
-                task.getLogger().log(
-                    logNodeJsNotFound ? LogLevel.WARN : LogLevel.INFO,
-                    format(
-                        "`%s` Sonar property is empty and %s."
-                            + "%n%s languages are excluded, because Sonar requires Node.js to process them."
-                            + "%nTo hide this message add `%s` to your build script.",
-                        SONAR_NODEJS_EXECUTABLE,
-                        defaultTrue(task.getDetectNodeJs().getOrNull())
-                            ? "no Node.js was automatically detected"
-                            : "automatic Node.js detection is disabled",
-                        join(", ", LANGUAGES_REQUIRING_NODEJS),
-                        "sonarLint { logging { logNodeJsNotFound = false } }"
-                    )
+        Stream.of(
+            SONAR_NODEJS_EXECUTABLE,
+            SONAR_NODEJS_EXECUTABLE_TS,
+            SONAR_NODEJS_VERSION
+        ).forEach(property -> {
+            val value = sonarProperties.remove(property);
+            if (value != null) {
+                task.getLogger().warn(
+                    "`{}` Sonar property is configured, but it's not used."
+                        + " Use `sonarLint.nodeJs.nodeJsExecutable = ...` instead.",
+                    property
                 );
             }
+        });
+
+        val nodeJsInfo = getNodeJsInfo(task);
+        val additionalExcludedLanguages = new ArrayList<String>();
+        if (task instanceof SourceTask && nodeJsInfo == null) {
+            additionalExcludedLanguages.addAll(LANGUAGES_REQUIRING_NODEJS);
         }
 
 
@@ -286,6 +326,7 @@ abstract class BaseSonarLintActions {
             params.getExcludedLanguages().addAll(canonizeLanguages(additionalExcludedLanguages));
             params.getSonarProperties().set(sonarProperties);
             params.getRulesProperties().set(task.getRulesProperties());
+            params.getNodeJsInfo().set(nodeJsInfo);
             params.getXmlReportLocation().set(getSonarLintReportFile(task, SonarLintReports::getXml));
             params.getHtmlReportLocation().set(getSonarLintReportFile(task, SonarLintReports::getHtml));
             params.getWithDescription().set(task.getLoggingOptions()
@@ -326,6 +367,78 @@ abstract class BaseSonarLintActions {
 
             break;
         }
+    }
+
+    @Nullable
+    private static NodeJsFound getNodeJsInfo(BaseSonarLint task) {
+        val hasFilesRequiringNodeJs = defaultTrue(task.get$internals().getHasFilesRequiringNodeJs().getOrNull());
+        if (!hasFilesRequiringNodeJs) {
+            return null;
+        }
+
+        val nodeJsInfo = task.get$internals().getNodeJsInfo().getOrNull();
+        if (nodeJsInfo != null) {
+            return nodeJsInfo;
+        }
+
+
+        val logNodeJsNotFound = defaultTrue(task.getNodeJs()
+            .flatMap(SonarLintNodeJs::getLogNodeJsNotFound)
+            .getOrNull()
+        );
+        val configuredNodeJs = task.getNodeJs()
+            .flatMap(SonarLintNodeJs::getNodeJsExecutable)
+            .getOrNull();
+        val detectNodeJs = defaultFalse(task.getNodeJs()
+            .flatMap(SonarLintNodeJs::getDetectNodeJs)
+            .getOrNull()
+        );
+        final CharSequence[] lines;
+        if (configuredNodeJs != null) {
+            lines = new CharSequence[]{
+                "Node.js executable configured, but it can't be used. Configured value: " + configuredNodeJs,
+                "Potential reasons are:",
+                "  * file not found",
+                "  * file is not executable",
+                "  * not a Node.js command",
+                "  * this Node.js does not work on this OS (for example, incompatible system libraries)",
+                };
+
+        } else if (detectNodeJs) {
+            lines = new CharSequence[]{
+                "Node.js can not be detected.",
+                "Potential reasons are:",
+                "  * this OS and CPU architecture are not supported",
+                "  * Node.js does not work on this OS (for example, incompatible system libraries)",
+                "",
+                "You can configure Node.js by using `sonarLint.nodeJs.nodeJsExecutable = ...`.",
+                };
+
+        } else {
+            lines = new CharSequence[]{
+                "Node.js is not configured and its detection is disabled.",
+                "",
+                "You can configure Node.js by using `sonarLint.nodeJs.nodeJsExecutable = ...`.",
+                "Or you can enable Node.js detection by `sonarLint.nodeJs.detectNodeJs = true`.",
+                };
+        }
+
+        val messageSuffixLines = new CharSequence[]{
+            "",
+            join(", ", LANGUAGES_REQUIRING_NODEJS) + " languages are excluded"
+                + ", because Sonar requires Node.js to process them.",
+            "To hide this message add `sonarLint.nodeJs.logNodeJsNotFound = false` to your build script.",
+            "",
+            };
+
+        val logLevel = logNodeJsNotFound ? LogLevel.WARN : LogLevel.INFO;
+        val lineSeparator = format("%n");
+        val message = join(lineSeparator, lines)
+            + lineSeparator
+            + join(lineSeparator, messageSuffixLines);
+        task.getLogger().log(logLevel, message);
+
+        return null;
     }
 
     private static boolean isIgnoreFailures(BaseSonarLint task) {

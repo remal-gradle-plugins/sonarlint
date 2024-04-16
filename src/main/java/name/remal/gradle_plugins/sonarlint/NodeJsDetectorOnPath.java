@@ -7,7 +7,6 @@ import static name.remal.gradle_plugins.sonarlint.NodeJsVersions.MIN_SUPPORTED_N
 import static name.remal.gradle_plugins.sonarlint.OsDetector.DETECTED_OS;
 import static name.remal.gradle_plugins.toolkit.InTestFlags.isInTest;
 import static name.remal.gradle_plugins.toolkit.ObjectUtils.defaultValue;
-import static name.remal.gradle_plugins.toolkit.ObjectUtils.isEmpty;
 import static name.remal.gradle_plugins.toolkit.ProviderFactoryUtils.getEnvironmentVariable;
 
 import com.google.common.base.Splitter;
@@ -18,13 +17,13 @@ import java.util.List;
 import java.util.Objects;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
-import lombok.CustomLog;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
+import name.remal.gradle_plugins.sonarlint.internal.NodeJsFound;
 import name.remal.gradle_plugins.toolkit.ObjectUtils;
 import name.remal.gradle_plugins.toolkit.Version;
+import org.gradle.api.provider.ProviderFactory;
 
-@CustomLog
 @RequiredArgsConstructor(onConstructor_ = {@Inject})
 abstract class NodeJsDetectorOnPath extends NodeJsDetector {
 
@@ -40,7 +39,7 @@ abstract class NodeJsDetectorOnPath extends NodeJsDetector {
 
     @Nullable
     @Override
-    public File detectDefaultNodeJsExecutable() {
+    public NodeJsFound detectDefaultNodeJsExecutable() {
         if (isInTest()) {
             return null;
         }
@@ -62,26 +61,25 @@ abstract class NodeJsDetectorOnPath extends NodeJsDetector {
         for (val pathElement : pathElements) {
             val candidateFile = new File(pathElement, FILE_NAME_TO_SEARCH);
             if (candidateFile.isFile() && candidateFile.canExecute()) {
-                val result = getNodeJsVersion(candidateFile);
-                val versionString = result.getVersion();
-                if (isEmpty(versionString)) {
-                    continue;
-                }
+                val info = nodeJsInfoRetriever.getNodeJsInfo(candidateFile);
+                if (info instanceof NodeJsFound) {
+                    val foundInfo = (NodeJsFound) info;
 
-                val version = Version.parse(versionString);
-                if (version.compareTo(MIN_SUPPORTED_NODEJS_VERSION) < 0) {
-                    logger.info(
-                        "Node.js executable on PATH can't be used"
-                            + ", as its version `{}` less than min supported version `{}`"
-                            + ": {}",
-                        version,
-                        MIN_SUPPORTED_NODEJS_VERSION,
-                        candidateFile
-                    );
-                    continue;
-                }
+                    val version = Version.parse(foundInfo.getVersion());
+                    if (version.compareTo(MIN_SUPPORTED_NODEJS_VERSION) < 0) {
+                        logger.info(
+                            "Node.js executable on PATH can't be used"
+                                + ", as its version `{}` less than min supported version `{}`"
+                                + ": {}",
+                            version,
+                            MIN_SUPPORTED_NODEJS_VERSION,
+                            candidateFile
+                        );
+                        continue;
+                    }
 
-                return candidateFile;
+                    return foundInfo;
+                }
             }
         }
 
@@ -93,5 +91,9 @@ abstract class NodeJsDetectorOnPath extends NodeJsDetector {
     public int getOrder() {
         return Integer.MIN_VALUE;
     }
+
+
+    @Inject
+    protected abstract ProviderFactory getProviders();
 
 }

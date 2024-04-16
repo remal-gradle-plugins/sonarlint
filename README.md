@@ -29,9 +29,12 @@ For every [`SourceSet`](https://docs.gradle.org/current/javadoc/org/gradle/api/t
 sonarLint {
   isGeneratedCodeIgnored = false // `true` by default, set to `false` to validate generated code (code inside `./build/`)
 
-  // `true` by default, set to `false` to disable automatic Node.js detection
-  // If Node.js detection is disabled, and `sonar.nodejs.executable` Sonar property is NOT set, these languages will be excluded: JavaScript, TypeScript, CSS, YAML, HTML
-  detectNodeJs = false
+  // see detailed documentation about `nodeJs` later in the document
+  nodeJs {
+    nodeJsExecutable = project.layout.projectDirectory.file('/usr/bin/node') // set path to Node.js executable
+    detectNodeJs = true // `false` by default, set to `true` to enable automatic Node.js detection
+    logNodeJsNotFound = false // Hide log message about not found Node.js
+  }
 
   rules {
     enable(
@@ -57,8 +60,8 @@ sonarLint {
     exclude('java', 'kotlin') // Disable Java and Kotlin languages, all other languages remain enabled
   }
 
-  sonarProperty('sonar.nodejs.executable', '/usr/bin/node') // Configure Node.js executable path via `sonar.nodejs.executable` Sonar property
-  sonarProperties = ['sonar.nodejs.executable': '/usr/bin/node'] // `sonarProperties` - a mutable map of Sonar properties
+  sonarProperty('sonar.html.file.suffixes', '.custom-html') // Configure `sonar.html.file.suffixes` Sonar property
+  sonarProperties = ['sonar.html.file.suffixes': '.custom-html'] // `sonarProperties` - a mutable map of Sonar properties
 
   ignoredPaths.add('**/dto/**') // Ignore all files which relative path matches `**/dto/**` glob for all rules
   rules {
@@ -71,7 +74,6 @@ sonarLint {
 
   logging {
     withDescription = false // Hide rule descriptions from console output
-    logNodeJsNotFound = false // Hide log message about not found Node.js
   }
 
   // `sonarLint` extension extends `CodeQualityExtension` (see https://docs.gradle.org/current/javadoc/org/gradle/api/plugins/quality/CodeQualityExtension.html).
@@ -83,7 +85,7 @@ For every property value (for both Sonar properties and rule properties) you can
 
 ```groovy
 sonarLint {
-  sonarProperty('sonar.nodejs.executable', project.provider { '/usr/bin/node' })
+  sonarProperty('sonar.html.file.suffixes', project.provider { '.custom-html' })
 }
 ```
 
@@ -93,6 +95,24 @@ Two additional help tasks are created:
 
 1. `sonarLintProperties` - displays Sonar properties that can be configured via `sonarLint.sonarProperties`.
 2. `sonarLintRules` - displays all Sonar rules available, their description and their properties.
+
+## Node.js detection
+
+SonarLint requires Node.js of the version <!--property:minSupportedNodeJsVersion-->18.17.0<!--/property--> or greater
+to process <!--property:requiringNodeJsLanguagesString-->CSS, HTML, JavaScript, TypeScript, YAML<!--/property--> languages.
+
+If Node.js detection is enabled, the plugin tries to find a Node.js executable automatically. The detection algorithm is:
+
+1. Try to find a Node.js executable on $PATH
+2. Then try to download a Node.js executable from [the official website](https://nodejs.org/en/download)
+
+If Node.js is successfully detected, is will be used.
+
+If Node.js cannot be detected, <!--property:requiringNodeJsLanguagesString-->CSS, HTML, JavaScript, TypeScript, YAML<!--/property--> languages will be excluded.
+
+If OS or CPU architecture does not support official Node.js, the detection won't detect any executable.
+
+If there are no files requiring Node.js in the sources, Node.js detection will be skipped.
 
 # Migration guide
 

@@ -2,16 +2,15 @@ package name.remal.gradle_plugins.sonarlint.internal.latest;
 
 import static java.nio.file.Files.createDirectories;
 import static java.util.Arrays.stream;
-import static name.remal.gradle_plugins.sonarlint.internal.NodeJsInfo.collectNodeJsInfoFor;
 import static name.remal.gradle_plugins.toolkit.ObjectUtils.isEmpty;
 
 import com.google.auto.service.AutoService;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.Collection;
-import java.util.Optional;
 import lombok.SneakyThrows;
 import lombok.val;
+import name.remal.gradle_plugins.sonarlint.internal.NodeJsFound;
 import name.remal.gradle_plugins.sonarlint.internal.SonarLintExecutionParams;
 import name.remal.gradle_plugins.sonarlint.internal.StandaloneGlobalConfigurationFactory;
 import org.sonarsource.sonarlint.core.client.api.standalone.StandaloneGlobalConfiguration;
@@ -66,13 +65,15 @@ final class StandaloneGlobalConfigurationFactoryLatest implements StandaloneGlob
         SonarLintExecutionParams params,
         StandaloneGlobalConfiguration.Builder configurationBuilder
     ) {
-        val nodeJsInfo = collectNodeJsInfoFor(params);
-        configurationBuilder.setNodeJs(
-            nodeJsInfo.getNodeJsPath(),
-            Optional.ofNullable(nodeJsInfo.getVersion())
-                .map(Version::create)
-                .orElse(null)
-        );
+        val path = params.getNodeJsInfo()
+            .map(NodeJsFound::getExecutable)
+            .map(File::toPath)
+            .getOrNull();
+        val version = params.getNodeJsInfo()
+            .map(NodeJsFound::getVersion)
+            .map(Version::create)
+            .getOrNull();
+        configurationBuilder.setNodeJs(path, version);
     }
 
 }

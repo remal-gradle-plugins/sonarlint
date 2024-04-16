@@ -1,0 +1,128 @@
+apply plugin: 'name.remal.generate-sources'
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+List<String> languageNamesRequiringNodeJs = [
+    'JS',
+    'TS',
+    'CSS',
+    'YAML',
+    'HTML',
+]
+
+@groovy.transform.Immutable
+class LanguageInfo {
+    String name
+    String label
+    List<String> defaultFileSuffixes
+    String fileSuffixesPropKey
+    boolean requireNodeJs
+}
+
+Configuration sonarLintCoreConf = configurations.create('sonarLintCore') { Configuration conf ->
+    conf.canBeResolved = true
+    conf.canBeConsumed = false
+
+    conf.dependencies.withType(ModuleDependency).configureEach { dep ->
+        dep.attributes {
+            attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage.class, Usage.JAVA_RUNTIME))
+            attribute(Category.CATEGORY_ATTRIBUTE, objects.named(Category.class, Category.LIBRARY))
+        }
+    }
+
+    conf.dependencies.addLater(
+        project.provider {
+            Dependency coreDependency = project.configurations.compileClasspath.allDependencies
+                .find { "${it.group}:${it.name}" == 'org.sonarsource.sonarlint.core:sonarlint-core' }
+            if (coreDependency == null) {
+                throw new GradleException("Sonar core dependency can't be found")
+            }
+
+            project.dependencies.create(
+                [
+                    coreDependency.group,
+                    coreDependency.name,
+                    coreDependency.version,
+                ].join(':')
+            )
+        }
+    )
+}
+
+ListProperty<List<LanguageInfo>> languageInfos = rootProject.ext.languageInfos = project.objects.listProperty(LanguageInfo).value(
+    project.provider {
+        Collection<File> classpathFiles = sonarLintCoreConf.files
+        Collection<URL> classpathUrls = classpathFiles.collect { it.toURI().toURL() }
+        new URLClassLoader(classpathUrls.toArray(new URL[0]), Logger.classLoader).withCloseable { classLoader ->
+            Class<?> languageClass = Class.forName('org.sonarsource.sonarlint.core.commons.Language', true, classLoader)
+            List<LanguageInfo> infos = languageClass.enumConstants.collect()
+                .collect { language ->
+                    return new LanguageInfo(
+                        name: language.name(),
+                        label: language.label,
+                        defaultFileSuffixes: language.defaultFileSuffixes.collect(),
+                        fileSuffixesPropKey: language.fileSuffixesPropKey,
+                        requireNodeJs: languageNamesRequiringNodeJs.contains(language.name()),
+                    )
+                }
+
+            if (languageNamesRequiringNodeJs.size() != infos.findAll { it.requireNodeJs }.size()) {
+                throw new GradleException("Not all languages requiring Node.js are found")
+            }
+
+            return infos
+        }
+    }
+).with { it.finalizeValueOnRead(); it }
+
+rootProject.ext.requiringNodeJsLanguagesString = project.objects.property(String).value(
+    project.provider {
+        languageInfos.get()
+            .findAll { it.requireNodeJs }
+            .collect { it.label }
+            .join(", ")
+    }
+).with { it.finalizeValueOnRead(); it }
+
+rootProject.afterEvaluate {
+    rootProject.tasks.processReadme.inputs.files(sonarLintCoreConf).withPropertyName('sonarLintCore').optional()
+}
+
+tasks.named('generateJava') {
+    inputs.files(project.configurations.compileClasspath).withPropertyName('compileClasspath').optional()
+    classFile(project.calculateBaseJavaPackage() + '.internal', 'SonarLanguage') {
+        it.writePackage()
+        it.println("")
+        it.writeStaticImport("lombok.AccessLevel", "PRIVATE")
+        it.println("")
+        it.writeImport("com.google.common.collect.ImmutableList")
+        it.writeImport("java.util.List")
+        it.writeImport("javax.annotation.Nullable")
+        it.writeImport("lombok.Getter")
+        it.writeImport("lombok.RequiredArgsConstructor")
+        it.println("")
+        it.println("@Getter")
+        it.println("@RequiredArgsConstructor(access = PRIVATE)")
+        it.println("@SuppressWarnings(\"all\")")
+        it.writeBlock("public enum ${it.simpleName}") {
+            languageInfos.get().forEach { LanguageInfo info ->
+                it.println("${info.name}(")
+                it.println("    \"${it.escapeJava(info.label)}\",")
+                it.println("    ImmutableList.of(${info.defaultFileSuffixes.collect { suffix -> '"' + it.escapeJava(suffix) + '"' }.join(', ')}),")
+                if (info.fileSuffixesPropKey.isEmpty() || info.fileSuffixesPropKey.find(/[^\w.]/)) {
+                    it.println("    null,")
+                } else {
+                    it.println("    \"${it.escapeJava(info.fileSuffixesPropKey)}\",")
+                }
+                it.println("    ${info.requireNodeJs}")
+                it.println("),")
+            }
+            it.println(";")
+            it.println("")
+            it.println("private final String label;")
+            it.println("private final List<String> defaultFileSuffixes;")
+            it.println("private final @Nullable String fileSuffixesPropKey;")
+            it.println("private final boolean requireNodeJs;")
+        }
+    }
+}

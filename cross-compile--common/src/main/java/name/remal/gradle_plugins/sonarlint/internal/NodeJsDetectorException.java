@@ -1,10 +1,10 @@
-package name.remal.gradle_plugins.sonarlint;
+package name.remal.gradle_plugins.sonarlint.internal;
 
 import org.gradle.api.GradleException;
 
 public class NodeJsDetectorException extends GradleException {
 
-    NodeJsDetectorException(String message) {
+    public NodeJsDetectorException(String message) {
         super(message);
     }
 
