@@ -53,6 +53,7 @@ ListProperty<List<LanguageInfo>> languageInfos = rootProject.ext.languageInfos =
     project.provider {
         Collection<File> classpathFiles = sonarLintCoreConf.files
         Collection<URL> classpathUrls = classpathFiles.collect { it.toURI().toURL() }
+        new URL("jar", "", "file:test.jar!/resourcs.txt").openConnection().setDefaultUseCaches(false)
         new URLClassLoader(classpathUrls.toArray(new URL[0]), Logger.classLoader).withCloseable { classLoader ->
             Class<?> languageClass = Class.forName('org.sonarsource.sonarlint.core.commons.Language', true, classLoader)
             List<LanguageInfo> infos = languageClass.enumConstants.collect()

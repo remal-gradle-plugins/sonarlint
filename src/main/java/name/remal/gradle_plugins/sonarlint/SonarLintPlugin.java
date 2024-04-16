@@ -226,12 +226,16 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
         task.setDescription("Run " + getToolName() + " analysis for " + sourceSet.getName() + " classes");
         task.dependsOn(sourceSet.getClassesTaskName());
 
+        task.dependsOn(sourceSet.getAllSource());
         task.setSource(sourceSet.getAllSource());
+
+        val sourceSetCompileTasks = project.getTasks().withType(AbstractCompile.class)
+            .matching(compileTask -> isSourceSetTask(sourceSet, compileTask));
+        task.dependsOn(sourceSetCompileTasks);
         task.source(project.provider(() -> {
             //noinspection ConstantConditions
-            return project.getTasks().withType(AbstractCompile.class).stream()
+            return sourceSetCompileTasks.stream()
                 .filter(HasCompileOptions.class::isInstance)
-                .filter(compileTask -> isSourceSetTask(sourceSet, compileTask))
                 .map(HasCompileOptions.class::cast)
                 .map(compileTask -> Optional.ofNullable(compileTask.getOptions())
                     .map(CompileOptions::getGeneratedSourceOutputDirectory)
