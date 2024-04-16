@@ -1,6 +1,6 @@
 package name.remal.gradle_plugins.sonarlint;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.lang.String.format;
 import static java.nio.file.Files.getPosixFilePermissions;
 import static java.nio.file.Files.setPosixFilePermissions;
 import static java.nio.file.attribute.PosixFilePermission.GROUP_EXECUTE;
@@ -70,56 +70,30 @@ abstract class NodeJsDetector implements Comparable<NodeJsDetector> {
         }
     }
 
-    @Nullable
     @SuppressWarnings({"java:S1193", "java:S2142"})
-    protected final String getNodeJsVersion(File file) {
+    protected final NodeJsVersionResult getNodeJsVersion(File file) {
         try {
             return withTimeout(Duration.ofSeconds(5), () -> {
-                val bytes = METHODS.executeNodeJsVersion(getProviders(), file);
-                if (bytes == null) {
-                    return null;
+                val result = METHODS.getNodeJsVersion(getProviders(), file);
+                val versionString = result.getVersion();
+                if (isEmpty(versionString)) {
+                    return result;
                 }
 
-                val content = new String(bytes, UTF_8).trim();
-                val matcher = NODE_VERSION_OUTPUT.matcher(content);
+                val matcher = NODE_VERSION_OUTPUT.matcher(versionString);
                 if (matcher.matches()) {
-                    return matcher.group(1);
+                    return result;
                 }
 
-                return null;
+                return NodeJsVersionResult.error(format(
+                    "%s produced output which is not a Node.js version:%n%s",
+                    file,
+                    versionString
+                ));
             });
 
-        } catch (Throwable ignore) {
-            return null;
-        }
-    }
-
-    @Nullable
-    protected final Integer getNodeJsMajorVersion(File file) {
-        String version = getNodeJsVersion(file);
-        if (version == null) {
-            return null;
-        }
-
-        int delim = version.indexOf('.');
-        if (delim > 0) {
-            version = version.substring(0, delim);
-        }
-
-        try {
-            return Integer.parseInt(version);
-
-        } catch (NumberFormatException ignore) {
-            return null;
-        }
-    }
-
-    protected final void checkNodeJsExecutableForTests(File file) {
-        if (isInTest()) {
-            val version = getNodeJsVersion(file);
-            if (isEmpty(version)) {
-                throw new AssertionError("Not a Node.js executable: " + file);
-            }
+        } catch (Throwable e) {
+            return NodeJsVersionResult.error(e);
         }
     }
 

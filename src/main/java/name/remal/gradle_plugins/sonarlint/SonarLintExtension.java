@@ -26,6 +26,13 @@ public abstract class SonarLintExtension extends CodeQualityExtension {
     }
 
 
+    public abstract Property<Boolean> getDetectNodeJs();
+
+    {
+        getDetectNodeJs().convention(true);
+    }
+
+
     private final SonarLintRulesSettings rules = getObjects().newInstance(SonarLintRulesSettings.class);
 
     public void rules(Action<SonarLintRulesSettings> action) {

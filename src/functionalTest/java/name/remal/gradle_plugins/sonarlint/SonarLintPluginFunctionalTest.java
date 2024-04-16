@@ -122,27 +122,56 @@ class SonarLintPluginFunctionalTest {
             .contains("java:S1171");
     }
 
-    @Test
-    void html() {
-        project.getBuildFile().registerDefaultTask("sonarlintMain");
+    @Nested
+    class Html {
 
-        val sourceFileRelativePath = addRuleExample(
-            "src/main/resources",
-            "Web:S5254",
-            "test.html",
-            join("\n", new String[]{
-                "<!DOCTYPE html>",
-                "<html>",
-                "</html>",
-                })
-        );
+        @Test
+        void htmlWithDefaultConfiguration() {
+            project.getBuildFile().registerDefaultTask("sonarlintMain");
 
-        project.assertBuildSuccessfully();
+            val sourceFileRelativePath = addRuleExample(
+                "src/main/resources",
+                "Web:S5254",
+                "test.html",
+                join("\n", new String[]{
+                    "<!DOCTYPE html>",
+                    "<html>",
+                    "</html>",
+                    })
+            );
 
-        val issues = parseSonarLintIssuesOf("src/main/resources/" + sourceFileRelativePath);
-        assertThat(issues)
-            .extracting(Issue::getRule)
-            .contains("Web:S5254");
+            project.assertBuildSuccessfully();
+
+            val issues = parseSonarLintIssuesOf("src/main/resources/" + sourceFileRelativePath);
+            assertThat(issues)
+                .extracting(Issue::getRule)
+                .contains("Web:S5254");
+        }
+
+        @Test
+        void htmlWithoutNodeJsDetection() {
+            project.getBuildFile().append("sonarLint { detectNodeJs = false }");
+
+            project.getBuildFile().registerDefaultTask("sonarlintMain");
+
+            val sourceFileRelativePath = addRuleExample(
+                "src/main/resources",
+                "Web:S5254",
+                "test.html",
+                join("\n", new String[]{
+                    "<!DOCTYPE html>",
+                    "<html>",
+                    "</html>",
+                    })
+            );
+
+            project.assertBuildSuccessfully();
+
+            val issues = parseSonarLintIssuesOf("src/main/resources/" + sourceFileRelativePath);
+            assertThat(issues)
+                .isEmpty();
+        }
+
     }
 
     @Test

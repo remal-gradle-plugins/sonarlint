@@ -4,6 +4,7 @@ import static com.google.common.io.Files.getFileExtension;
 import static java.lang.Boolean.FALSE;
 import static java.lang.Boolean.TRUE;
 import static java.lang.String.format;
+import static java.lang.String.join;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.Files.exists;
 import static java.util.Collections.emptyList;
@@ -33,6 +34,7 @@ import static name.remal.gradle_plugins.toolkit.xml.DomUtils.streamNodeList;
 import static name.remal.gradle_plugins.toolkit.xml.XmlUtils.parseXml;
 
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -61,6 +63,7 @@ import name.remal.gradle_plugins.toolkit.ReportUtils;
 import org.gradle.api.JavaVersion;
 import org.gradle.api.file.Directory;
 import org.gradle.api.file.FileTree;
+import org.gradle.api.logging.LogLevel;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.reporting.Report;
 import org.gradle.api.reporting.Reporting;
@@ -89,9 +92,17 @@ abstract class BaseSonarLintActions {
     static final String SONAR_JAVA_LIBRARIES = "sonar.java.libraries";
     static final String SONAR_JAVA_TEST_BINARIES = "sonar.java.test.binaries";
     static final String SONAR_JAVA_TEST_LIBRARIES = "sonar.java.test.libraries";
-    static final String SONAR_NODEJS_VERSION = "sonar.nodejs.version";
     static final String SONAR_NODEJS_EXECUTABLE = "sonar.nodejs.executable";
     static final String SONAR_NODEJS_EXECUTABLE_TS = "sonar.typescript.node";
+    static final String SONAR_NODEJS_VERSION = "sonar.nodejs.version";
+
+    static final List<String> LANGUAGES_REQUIRING_NODEJS = ImmutableList.of(
+        "JavaScript",
+        "TypeScript",
+        "CSS",
+        "YAML",
+        "HTML"
+    );
 
     public static void init(BaseSonarLint task) {
         task.getIsGeneratedCodeIgnored().convention(true);
@@ -177,10 +188,28 @@ abstract class BaseSonarLintActions {
             });
 
 
+        val additionalExcludedLanguages = new ArrayList<String>();
         if (isEmpty(sonarProperties.get(SONAR_NODEJS_EXECUTABLE))) {
             val nodeJsExecutable = task.get$internals().getNodeJsExecutable().getAsFile().getOrNull();
             if (nodeJsExecutable != null) {
                 sonarProperties.put(SONAR_NODEJS_EXECUTABLE, nodeJsExecutable.getAbsolutePath());
+                sonarProperties.remove(SONAR_NODEJS_EXECUTABLE_TS);
+                sonarProperties.remove(SONAR_NODEJS_VERSION);
+
+            } else {
+                additionalExcludedLanguages.addAll(LANGUAGES_REQUIRING_NODEJS);
+                val logNodeJsNotFound = defaultTrue(task.getLoggingOptions()
+                    .flatMap(SonarLintLoggingOptions::getLogNodeJsNotFound)
+                    .getOrNull()
+                );
+                task.getLogger().log(
+                    logNodeJsNotFound ? LogLevel.WARN : LogLevel.INFO,
+                    "{} languages were excluded"
+                        + ", because no Node.js executable was set in `{}` Sonar property"
+                        + " and no Node.js was automatically detected",
+                    join(", ", LANGUAGES_REQUIRING_NODEJS),
+                    SONAR_NODEJS_EXECUTABLE
+                );
             }
         }
 
@@ -248,6 +277,7 @@ abstract class BaseSonarLintActions {
             params.getDisabledRules().addAll(getDisabledRulesConflictingWithLombok(task));
             params.getIncludedLanguages().addAll(task.getIncludedLanguages());
             params.getExcludedLanguages().addAll(task.getExcludedLanguages());
+            params.getExcludedLanguages().addAll(canonizeLanguages(additionalExcludedLanguages));
             params.getSonarProperties().set(sonarProperties);
             params.getRulesProperties().set(task.getRulesProperties());
             params.getXmlReportLocation().set(getSonarLintReportFile(task, SonarLintReports::getXml));

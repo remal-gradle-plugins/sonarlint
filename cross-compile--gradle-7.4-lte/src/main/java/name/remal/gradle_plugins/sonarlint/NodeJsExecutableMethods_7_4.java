@@ -1,31 +1,47 @@
 package name.remal.gradle_plugins.sonarlint;
 
 import static java.lang.Runtime.getRuntime;
+import static java.lang.String.format;
+import static java.lang.String.join;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.auto.service.AutoService;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.InputStream;
-import javax.annotation.Nullable;
+import lombok.CustomLog;
 import lombok.SneakyThrows;
 import lombok.val;
 import org.gradle.api.provider.ProviderFactory;
 
 @AutoService(NodeJsExecutableMethods.class)
+@CustomLog
 class NodeJsExecutableMethods_7_4 implements NodeJsExecutableMethods {
 
     @Override
     @SneakyThrows
-    @Nullable
-    public byte[] executeNodeJsVersion(ProviderFactory providers, File file) {
-        val command = new String[]{file.getAbsolutePath(), "-v"};
+    public NodeJsVersionResult getNodeJsVersion(ProviderFactory providers, File file) {
+        val command = new String[]{file.getAbsolutePath(), "--version"};
         val process = getRuntime().exec(command);
-        if (process.waitFor() != 0) {
-            return null;
+
+        val exitCode = process.waitFor();
+        if (exitCode != 0) {
+            try (val errorStream = process.getErrorStream()) {
+                val errorBytes = read(errorStream);
+                val errorOutput = new String(errorBytes, UTF_8);
+                return NodeJsVersionResult.error(format(
+                    "%s returned %d exit code. Error output:%n%s",
+                    join(" ", command),
+                    exitCode,
+                    errorOutput
+                ));
+            }
         }
 
         try (val inputStream = process.getInputStream()) {
-            return read(inputStream);
+            val bytes = read(inputStream);
+            val result = new String(bytes, UTF_8);
+            return NodeJsVersionResult.of(result);
         }
     }
 

@@ -128,26 +128,8 @@ tasks.named('generateJava') {
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-Provider<String> ltsNodeJsVersion = project.ext.ltsNodeJsVersion = project.provider {
-    project.file('.nvmrc').getText('UTF-8').trim().replaceFirst(/^v/, '')
-}
-project.nonJavaApiDependencies.add(project.provider { 'Node.js:lts:' + ltsNodeJsVersion.get() })
-tasks.collectGradlePluginApiDependencies.inputs.file('.nvmrc')
-
-tasks.named('generateJava') {
-    inputs.property('ltsNodeJsVersion', ltsNodeJsVersion)
-    classFile(project.calculateBaseJavaPackage(), 'NodeJsVersions') {
-        it.writePackage()
-        it.println("")
-        it.writeBlock("interface ${it.simpleName}") {
-            it.println("String LATEST_NODEJS_LTS_VERSION = \"${it.escapeJava(ltsNodeJsVersion.get())}\";")
-            it.println("int LATEST_NODEJS_LTS_MAJOR_VERSION = ${ltsNodeJsVersion.get().replaceFirst(/^v?(\d+).*$/, '$1')};")
-        }
-    }
-}
-
 project.ext.DownloadTask = Class.forName('de.undercouch.gradle.tasks.download.Download')
-apply from: 'publish-nodejs.gradle'
+apply from: 'nodejs.gradle'
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 

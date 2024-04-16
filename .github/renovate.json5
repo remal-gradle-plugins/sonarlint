@@ -1,7 +1,19 @@
 {
   $schema: "https://docs.renovatebot.com/renovate-schema.json",
-  extends: ["github>remal-gradle-plugins/plugins-renovate-config:base"],
+  extends: [
+    "github>remal-gradle-plugins/plugins-renovate-config:base"
+  ],
 
   // $$$sync-with-template-modifiable: local $$$
+  packageRules: [
+    {
+      matchCategories: [
+        "node"
+      ],
+      major: {
+        "enabled": false
+      }
+    }
+  ]
   // $$$sync-with-template-modifiable-end$$$
 }

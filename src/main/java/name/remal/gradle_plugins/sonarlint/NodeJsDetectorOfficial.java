@@ -2,8 +2,9 @@ package name.remal.gradle_plugins.sonarlint;
 
 import static java.lang.String.format;
 import static java.nio.file.Files.newOutputStream;
-import static name.remal.gradle_plugins.sonarlint.NodeJsVersions.LATEST_NODEJS_LTS_VERSION;
+import static name.remal.gradle_plugins.sonarlint.NodeJsVersions.DEFAULT_NODEJS_VERSION;
 import static name.remal.gradle_plugins.sonarlint.OsDetector.DETECTED_OS;
+import static name.remal.gradle_plugins.toolkit.InTestFlags.isInTest;
 import static name.remal.gradle_plugins.toolkit.PathUtils.createParentDirectories;
 import static name.remal.gradle_plugins.toolkit.SneakyThrowUtils.sneakyThrow;
 
@@ -16,8 +17,10 @@ import java.io.IOException;
 import java.util.Map;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
+import lombok.CustomLog;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
+import lombok.SneakyThrows;
 import lombok.val;
 import org.gradle.api.artifacts.ConfigurationContainer;
 import org.gradle.api.artifacts.dsl.DependencyHandler;
@@ -29,6 +32,7 @@ import org.gradle.api.file.ProjectLayout;
 
 @RequiredArgsConstructor(onConstructor_ = {@Inject})
 @Setter
+@CustomLog
 abstract class NodeJsDetectorOfficial extends NodeJsDetector
     implements NodeJsDetectorWithRootDir {
 
@@ -62,11 +66,12 @@ abstract class NodeJsDetectorOfficial extends NodeJsDetector
     @Nullable
     @Override
     public File detectDefaultNodeJsExecutable() {
-        return detectNodeJsExecutable(LATEST_NODEJS_LTS_VERSION);
+        return detectNodeJsExecutable(DEFAULT_NODEJS_VERSION.toString());
     }
 
     @Nullable
     @Override
+    @SneakyThrows
     @SuppressWarnings("java:S3776")
     public File detectNodeJsExecutable(String version) {
         addNodeJsRepository();
@@ -91,11 +96,13 @@ abstract class NodeJsDetectorOfficial extends NodeJsDetector
 
         val osSuffix = OS_SUFFIXES.get(os);
         if (osSuffix == null) {
-            throw new NodeJsDetectorException("Detected OS: " + DETECTED_OS.os);
+            logger.warn("There is Node.js on the official website for OS {}", os);
+            return null;
         }
         val archSuffix = ARCH_SUFFIXES.get(arch);
         if (archSuffix == null) {
-            throw new NodeJsDetectorException("Detected architecture: " + DETECTED_OS.arch);
+            logger.warn("There is Node.js on the official website for OS {} and CPU architecture {}", os, arch);
+            return null;
         }
         val archiveExtension = os == OS.windows ? "zip" : "tar.gz";
         val dependency = getDependencies().create(format(
@@ -142,7 +149,25 @@ abstract class NodeJsDetectorOfficial extends NodeJsDetector
         }
 
         setExecutePermissions(targetFile);
-        checkNodeJsExecutableForTests(targetFile);
+
+        val versionResult = getNodeJsVersion(targetFile);
+        val error = versionResult.getError();
+        if (error != null) {
+            if (isInTest()) {
+                throw error;
+            } else {
+                logger.warn(
+                    format(
+                        "Downloaded Node.js from the official website of version %s can't be used: %s",
+                        version,
+                        error
+                    ),
+                    error
+                );
+            }
+            return null;
+        }
+
         return targetFile;
     }
 

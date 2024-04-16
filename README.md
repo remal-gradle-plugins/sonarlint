@@ -29,6 +29,10 @@ For every [`SourceSet`](https://docs.gradle.org/current/javadoc/org/gradle/api/t
 sonarLint {
   isGeneratedCodeIgnored = false // `true` by default, set to `false` to validate generated code (code inside `./build/`)
 
+  // `true` by default, set to `false` to disable automatic Node.js detection
+  // If Node.js detection is disabled, and `sonar.nodejs.executable` Sonar property is NOT set, these languages will be excluded: JavaScript, TypeScript, CSS, YAML, HTML
+  detectNodeJs = false
+
   rules {
     enable(
       'java:S100', // Enable `java:S100` rule (that is disabled by default)
@@ -67,6 +71,7 @@ sonarLint {
 
   logging {
     withDescription = false // Hide rule descriptions from console output
+    logNodeJsNotFound = false // Hide log message about not found Node.js
   }
 
   // `sonarLint` extension extends `CodeQualityExtension` (see https://docs.gradle.org/current/javadoc/org/gradle/api/plugins/quality/CodeQualityExtension.html).

@@ -1,0 +1,206 @@
+import com.tisonkun.os.core.Arch
+import com.tisonkun.os.core.OS
+import java.lang.reflect.Field
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+buildscript {
+    dependencies {
+        classpath "com.tisonkun.os:os-detector-core:${rootBuildscriptClasspathVersionOf('com.tisonkun.os:os-detector-core')}"
+    }
+    repositories {
+        mavenCentral()
+    }
+}
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+Provider<String> ltsNodeJsVersion = project.ext.ltsNodeJsVersion = project.objects.property(String).value(
+    project.provider {
+        project.file('.nvmrc').getText('UTF-8').trim().replaceFirst(/^v/, '')
+    }
+).with { it.finalizeValueOnRead(); it }
+project.nonJavaApiDependencies.add(project.provider { 'Node.js:lts:' + ltsNodeJsVersion.get() })
+tasks.collectGradlePluginApiDependencies.inputs.file('.nvmrc')
+
+Provider<String> minSupportedNodeJsVersion = project.ext.minSupportedNodeJsVersion = project.objects.property(String).value(
+    project.provider {
+        Configuration javascriptPluginConfiguration = project.configurations.detachedConfiguration()
+        javascriptPluginConfiguration.dependencies.withType(ModuleDependency).configureEach { dep ->
+            dep.attributes {
+                attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage.class, Usage.JAVA_RUNTIME))
+                attribute(Category.CATEGORY_ATTRIBUTE, objects.named(Category.class, Category.LIBRARY))
+            }
+        }
+
+        Dependency coreArtifactDependency = project.configurations.sonarCoreArtifacts.dependencies
+            .find { "${it.group}:${it.name}" == 'org.sonarsource.sonarlint.core:sonarlint-core' }
+        if (coreArtifactDependency == null) {
+            throw new GradleException("Sonar core dependency can't be found")
+        }
+        javascriptPluginConfiguration.dependencies.add(
+            project.dependencies.create(
+                [
+                    coreArtifactDependency.group,
+                    coreArtifactDependency.name,
+                    coreArtifactDependency.version,
+                    //'sonar-plugin',
+                ].join(':')
+            )
+        )
+
+        Dependency javascriptPluginArtifactDependency = project.configurations.sonarPluginArtifacts.dependencies
+            .find { "${it.group}:${it.name}" == 'org.sonarsource.javascript:sonar-javascript-plugin' }
+        if (javascriptPluginArtifactDependency == null) {
+            throw new GradleException("Sonar JavaScript plugin dependency can't be found")
+        }
+        javascriptPluginConfiguration.dependencies.add(
+            project.dependencies.create(
+                [
+                    javascriptPluginArtifactDependency.group,
+                    javascriptPluginArtifactDependency.name,
+                    javascriptPluginArtifactDependency.version,
+                ].join(':')
+            )
+        )
+
+        Collection<File> javascriptPluginFiles = javascriptPluginConfiguration.files
+        Collection<URL> javascriptPluginFileUrls = javascriptPluginFiles.collect { it.toURI().toURL() }
+        new URLClassLoader(javascriptPluginFileUrls.toArray(new URL[0]), Logger.classLoader).withCloseable { classLoader ->
+            Class<?> nodeDeprecationWarningClass = Class.forName('org.sonar.plugins.javascript.bridge.NodeDeprecationWarning', true, classLoader)
+            Field minSupportedNodeVersionField = nodeDeprecationWarningClass.getDeclaredField('MIN_SUPPORTED_NODE_VERSION')
+            minSupportedNodeVersionField.accessible = true
+            String minSupportedNodeVersion = minSupportedNodeVersionField.get(null).toString()
+            minSupportedNodeVersion = minSupportedNodeVersion.replaceFirst(/(\.0+)+$/, '')
+            return minSupportedNodeVersion.toString()
+        }
+    }
+).with { it.finalizeValueOnRead(); it }
+
+tasks.named('generateJava') {
+    inputs.property('ltsNodeJsVersion', ltsNodeJsVersion)
+    inputs.property('minSupportedNodeJsVersion', minSupportedNodeJsVersion)
+    classFile(project.calculateBaseJavaPackage(), 'NodeJsVersions') {
+        it.writePackage()
+        it.println("")
+        it.writeStaticImport("lombok.AccessLevel", "PRIVATE")
+        it.println("")
+        it.writeImport("lombok.NoArgsConstructor")
+        it.writeImport("name.remal.gradle_plugins.toolkit.Version")
+        it.println("")
+        it.println("@NoArgsConstructor(access = PRIVATE)")
+        it.writeBlock("abstract class ${it.simpleName}") {
+            it.println("public static final Version DEFAULT_NODEJS_VERSION = Version.parse(\"${it.escapeJava(ltsNodeJsVersion.get())}\");")
+            it.println("public static final Version MIN_SUPPORTED_NODEJS_VERSION = Version.parse(\"${it.escapeJava(minSupportedNodeJsVersion.get())}\");")
+
+            it.println("")
+            it.writeBlock("static") {
+                it.writeBlock("if (NODEJS_VERSION.compareTo(MIN_SUPPORTED_NODEJS_VERSION) < 0)") {
+                    it.println("throw new AssertionError(NODEJS_VERSION + \" is less than \" + MIN_SUPPORTED_NODEJS_VERSION);")
+                }
+            }
+        }
+    }
+}
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+Map<OS, Set<Arch>> publishedNodeJsOs = new TreeMap<>()
+
+tasks.named('generateJava') {
+    inputs.property('publishedNodeJsOs', publishedNodeJsOs)
+    classFile(project.calculateBaseJavaPackage(), 'PublishedNodeJs') {
+        it.writePackage()
+        it.println("")
+        it.writeImport("com.google.common.collect.ImmutableMap")
+        it.writeImport("com.google.common.collect.ImmutableSet")
+        it.writeImport(Arch)
+        it.writeImport(OS)
+        it.writeImport("java.util.Map")
+        it.writeImport("java.util.Set")
+        it.println("")
+        it.writeBlock("interface ${it.simpleName}") {
+            it.println("Map<OS, Set<Arch>> PUBLISHED_NODEJS_OS = ImmutableMap.<OS, Set<Arch>>builder()")
+            publishedNodeJsOs.forEach { os, arches ->
+                it.println("    .put(OS.$os, ImmutableSet.of(${arches.collect { "Arch.$it" }.join(', ')}))")
+            }
+            it.println("    .build();")
+        }
+    }
+}
+
+Closure addPublishedNodeJs = { String urlTemplate, OS os, Arch arch ->
+    publishedNodeJsOs.computeIfAbsent(os, { new TreeSet<Arch>() }).add(arch)
+
+    String url = urlTemplate.replaceAll(/\{version\}/, { project.ltsNodeJsVersion.get() })
+
+    String fileExtension = [
+        'zip',
+        'tar.gz',
+    ].find { url.endsWith(".$it") }
+    if (fileExtension == null) {
+        throw new GradleException("Unsupported extension: $url")
+    }
+
+    RegularFile archiveRegularFile = layout.buildDirectory.file("nodejs/$os-$arch.$fileExtension").get()
+
+    TaskProvider downloadNodeJs = tasks.register("downloadNodeJs-$os-$arch", DownloadTask) {
+        src(url)
+        dest(archiveRegularFile)
+        overwrite(false)
+    }
+
+    Directory unpackedDirectory = layout.buildDirectory.dir("nodejs/$os-$arch").get()
+
+    TaskProvider unpackNodeJs = tasks.register("unpackNodeJs-$os-$arch", Copy) {
+        dependsOn(downloadNodeJs)
+
+        inputs.file(archiveRegularFile).withPropertyName('archiveRegularFile')
+        outputs.dir(unpackedDirectory).withPropertyName('unpackedDirectory')
+
+        FileTree fileTree = null;
+        if (fileExtension == 'zip') {
+            fileTree = zipTree(archiveRegularFile)
+        } else if (fileExtension == 'tar.gz') {
+            fileTree = tarTree(resources.gzip(archiveRegularFile))
+        }
+        if (fileTree == null) {
+            throw new GradleException("Unsupported extension: $fileExtension")
+        }
+        from(fileTree) {
+            include(os == OS.windows ? '*/node.exe' : '*/bin/node')
+            filesMatching('**/*') { it.path = it.path.replaceFirst(/^.*\/([^\/]+)$/, '$1') }
+        }
+
+        into(unpackedDirectory)
+
+        doLast {
+            unpackedDirectory.asFile.listFiles()?.collect()?.forEach { File file ->
+                if (file.isDirectory()) {
+                    project.delete(file)
+                }
+            }
+        }
+    }
+
+    afterEvaluate {
+        publishing.publications.named('pluginMaven', MavenPublication).configure {
+            Provider<File> fileProvider = provider { unpackedDirectory.asFile.listFiles()[0] }
+            artifact(fileProvider) {
+                extension = os == OS.windows ? 'exe' : ''
+                classifier = "$os-$arch"
+                builtBy(unpackNodeJs)
+            }
+        }
+    }
+}
+
+//addPublishedNodeJs('https://nodejs.org/dist/v{version}/node-v{version}-aix-ppc64.tar.gz', OS.aix, Arch.ppc_64)
+//addPublishedNodeJs('https://nodejs.org/dist/v{version}/node-v{version}-linux-x64.tar.gz', OS.linux, Arch.x86_64)
+//addPublishedNodeJs('https://nodejs.org/dist/v{version}/node-v{version}-linux-arm64.tar.gz', OS.linux, Arch.aarch_64)
+//addPublishedNodeJs('https://nodejs.org/dist/v{version}/node-v{version}-linux-ppc64le.tar.gz', OS.linux, Arch.ppcle_64)
+//addPublishedNodeJs('https://nodejs.org/dist/v{version}/node-v{version}-darwin-x64.tar.gz', OS.osx, Arch.x86_64)
+//addPublishedNodeJs('https://nodejs.org/dist/v{version}/node-v{version}-darwin-arm64.tar.gz', OS.osx, Arch.aarch_64)
+//addPublishedNodeJs('https://nodejs.org/dist/v{version}/node-v{version}-win-x86.zip', OS.windows, Arch.x86_32)
+//addPublishedNodeJs('https://nodejs.org/dist/v{version}/node-v{version}-win-x64.zip', OS.windows, Arch.x86_64)
+//addPublishedNodeJs('https://nodejs.org/dist/v{version}/node-v{version}-win-arm64.zip', OS.windows, Arch.aarch_64)

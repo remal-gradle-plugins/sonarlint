@@ -3,10 +3,11 @@ package name.remal.gradle_plugins.sonarlint;
 import static java.io.File.pathSeparatorChar;
 import static java.lang.String.format;
 import static java.util.stream.Collectors.toList;
-import static name.remal.gradle_plugins.sonarlint.NodeJsVersions.LATEST_NODEJS_LTS_MAJOR_VERSION;
+import static name.remal.gradle_plugins.sonarlint.NodeJsVersions.MIN_SUPPORTED_NODEJS_VERSION;
 import static name.remal.gradle_plugins.sonarlint.OsDetector.DETECTED_OS;
 import static name.remal.gradle_plugins.toolkit.InTestFlags.isInTest;
 import static name.remal.gradle_plugins.toolkit.ObjectUtils.defaultValue;
+import static name.remal.gradle_plugins.toolkit.ObjectUtils.isEmpty;
 import static name.remal.gradle_plugins.toolkit.ProviderFactoryUtils.getEnvironmentVariable;
 
 import com.google.common.base.Splitter;
@@ -21,6 +22,7 @@ import lombok.CustomLog;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
 import name.remal.gradle_plugins.toolkit.ObjectUtils;
+import name.remal.gradle_plugins.toolkit.Version;
 
 @CustomLog
 @RequiredArgsConstructor(onConstructor_ = {@Inject})
@@ -60,10 +62,22 @@ abstract class NodeJsDetectorOnPath extends NodeJsDetector {
         for (val pathElement : pathElements) {
             val candidateFile = new File(pathElement, FILE_NAME_TO_SEARCH);
             if (candidateFile.isFile() && candidateFile.canExecute()) {
-                val majorVersion = getNodeJsMajorVersion(candidateFile);
-                if (majorVersion == null
-                    || majorVersion < LATEST_NODEJS_LTS_MAJOR_VERSION
-                ) {
+                val result = getNodeJsVersion(candidateFile);
+                val versionString = result.getVersion();
+                if (isEmpty(versionString)) {
+                    continue;
+                }
+
+                val version = Version.parse(versionString);
+                if (version.compareTo(MIN_SUPPORTED_NODEJS_VERSION) < 0) {
+                    logger.info(
+                        "Node.js executable on PATH can't be used"
+                            + ", as its version `{}` less than min supported version `{}`"
+                            + ": {}",
+                        version,
+                        MIN_SUPPORTED_NODEJS_VERSION,
+                        candidateFile
+                    );
                     continue;
                 }
 

@@ -209,6 +209,9 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
         );
 
         val extension = (SonarLintExtension) this.extension;
+        task.getDetectNodeJs().convention(project.provider(() ->
+            defaultTrue(extension.getDetectNodeJs().getOrNull())
+        ));
         task.getIsGeneratedCodeIgnored().convention(project.provider(() ->
             defaultTrue(extension.getIsGeneratedCodeIgnored().getOrNull())
         ));

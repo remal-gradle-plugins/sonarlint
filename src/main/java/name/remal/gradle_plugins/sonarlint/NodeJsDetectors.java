@@ -13,6 +13,7 @@ import java.util.Objects;
 import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
+import lombok.CustomLog;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.val;
@@ -20,6 +21,7 @@ import name.remal.gradle_plugins.toolkit.ObjectUtils;
 import org.gradle.api.model.ObjectFactory;
 
 @RequiredArgsConstructor(onConstructor_ = {@Inject})
+@CustomLog
 abstract class NodeJsDetectors {
 
     private final File rootDir;

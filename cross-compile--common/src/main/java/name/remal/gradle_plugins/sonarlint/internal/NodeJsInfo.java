@@ -37,7 +37,7 @@ public class NodeJsInfo {
             .getOrNull();
         if (nodeJsPath != null) {
             setExecutePermissions(nodeJsPath);
-            val command = new String[]{nodeJsPath.toString(), "-v"};
+            val command = new String[]{nodeJsPath.toString(), "--version"};
             val process = getRuntime().exec(command);
             if (!process.waitFor(5, SECONDS)) {
                 process.destroyForcibly();
@@ -47,10 +47,12 @@ public class NodeJsInfo {
                 ));
             }
             if (process.exitValue() != 0) {
+                val errorOutput = readStringFromStream(process.getErrorStream());
                 throw new AssertionError(format(
-                    "Command returned %d: %s",
+                    "%s returned %d exit code. Error output:%n%s",
+                    join(" ", command),
                     process.exitValue(),
-                    join(" ", command)
+                    errorOutput
                 ));
             }
 
