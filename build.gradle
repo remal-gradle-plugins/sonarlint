@@ -88,6 +88,14 @@ apply plugin: 'java-gradle-plugin'
 apply plugin: 'name.remal.classes-relocation'
 apply plugin: 'name.remal.generate-sources'
 
+tasks.named('sourcesJar').configure {
+    dependsOn(sourceSets.main.allSource)
+}
+
+tasks.named('sonarlintMain').configure {
+    dependsOn(sourceSets.main.allSource)
+}
+
 dependencies {
     relocateClasses 'com.tisonkun.os:os-detector-core:0.3.0'
 
