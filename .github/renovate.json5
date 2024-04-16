@@ -10,9 +10,9 @@
       matchCategories: [
         "node"
       ],
-      major: {
-        "enabled": false
-      }
+      "extends": [
+        "github>remal/renovate-config:disable-major-updates"
+      ]
     }
   ]
   // $$$sync-with-template-modifiable-end$$$
