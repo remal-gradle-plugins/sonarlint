@@ -11,9 +11,6 @@ import static name.remal.gradle_plugins.toolkit.LayoutUtils.getRootDirOf;
 import static name.remal.gradle_plugins.toolkit.ObjectUtils.defaultFalse;
 import static name.remal.gradle_plugins.toolkit.ServiceRegistryUtils.getService;
 import static name.remal.gradle_plugins.toolkit.SneakyThrowUtils.sneakyThrow;
-import static name.remal.gradle_plugins.toolkit.reflection.ReflectionUtils.isNotStatic;
-import static name.remal.gradle_plugins.toolkit.reflection.ReflectionUtils.makeAccessible;
-import static name.remal.gradle_plugins.toolkit.reflection.ReflectionUtils.unwrapGeneratedSubclass;
 import static org.gradle.api.tasks.PathSensitivity.RELATIVE;
 
 import com.google.common.base.Splitter;
@@ -36,7 +33,6 @@ import org.gradle.api.file.Directory;
 import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.file.RegularFile;
 import org.gradle.api.model.ObjectFactory;
-import org.gradle.api.provider.HasConfigurableValue;
 import org.gradle.api.provider.Property;
 import org.gradle.api.provider.ProviderFactory;
 import org.gradle.api.tasks.InputFiles;
@@ -97,21 +93,6 @@ abstract class BaseSonarLintInternals {
         getNodeJsInfo().set(getProviders().provider(() ->
             calculateNodeJsInfo(task, rootDir, getObjects())
         ));
-
-        for (val method : unwrapGeneratedSubclass(getClass()).getMethods()) {
-            if (isNotStatic(method)
-                && !method.isSynthetic()
-                && HasConfigurableValue.class.isAssignableFrom(method.getReturnType())
-            ) {
-                try {
-                    val property = (HasConfigurableValue) makeAccessible(method).invoke(this);
-                    property.disallowChanges();
-                    property.finalizeValueOnRead();
-                } catch (Throwable e) {
-                    task.getLogger().debug(e.toString(), e);
-                }
-            }
-        }
     }
 
     private static boolean calculateHasFilesRequiringNodeJs(BaseSonarLint task) {
