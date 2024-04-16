@@ -88,14 +88,6 @@ apply plugin: 'java-gradle-plugin'
 apply plugin: 'name.remal.classes-relocation'
 apply plugin: 'name.remal.generate-sources'
 
-tasks.matching { it.name == 'sourcesJar' }.configureEach {
-    dependsOn(sourceSets.main.allSource)
-}
-
-tasks.matching { it.name == 'sonarlintMain' }.configureEach {
-    dependsOn(sourceSets.main.allSource)
-}
-
 dependencies {
     relocateClasses 'com.tisonkun.os:os-detector-core:0.3.0'
 
@@ -138,6 +130,7 @@ tasks.named('generateJava') {
 
 project.ext.DownloadTask = Class.forName('de.undercouch.gradle.tasks.download.Download')
 apply from: 'nodejs.gradle'
+apply from: 'languages.gradle'
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 

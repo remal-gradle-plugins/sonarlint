@@ -68,7 +68,7 @@ Provider<String> minSupportedNodeJsVersion = rootProject.ext.minSupportedNodeJsV
 
         Collection<File> classpathFiles = classpathConfiguration.files
         Collection<URL> classpathUrls = classpathFiles.collect { it.toURI().toURL() }
-        new URL("jar", "", "file:test.jar!/resourcs.txt").openConnection().setDefaultUseCaches(false)
+        new URL("jar", "", "file:test.jar!/resource.txt").openConnection().setDefaultUseCaches(false)
         new URLClassLoader(classpathUrls.toArray(new URL[0]), Logger.classLoader).withCloseable { classLoader ->
             Class<?> nodeDeprecationWarningClass = Class.forName('org.sonar.plugins.javascript.bridge.NodeDeprecationWarning', true, classLoader)
             Field minSupportedNodeVersionField = nodeDeprecationWarningClass.getDeclaredField('MIN_SUPPORTED_NODE_VERSION')
