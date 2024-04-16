@@ -88,11 +88,11 @@ apply plugin: 'java-gradle-plugin'
 apply plugin: 'name.remal.classes-relocation'
 apply plugin: 'name.remal.generate-sources'
 
-tasks.named('sourcesJar').configure {
+tasks.matching { it.name == 'sourcesJar' }.configureEach {
     dependsOn(sourceSets.main.allSource)
 }
 
-tasks.named('sonarlintMain').configure {
+tasks.matching { it.name == 'sonarlintMain' }.configureEach {
     dependsOn(sourceSets.main.allSource)
 }
 
