@@ -204,11 +204,17 @@ abstract class BaseSonarLintActions {
                 );
                 task.getLogger().log(
                     logNodeJsNotFound ? LogLevel.WARN : LogLevel.INFO,
-                    "{} languages were excluded"
-                        + ", because no Node.js executable was set in `{}` Sonar property"
-                        + " and no Node.js was automatically detected",
-                    join(", ", LANGUAGES_REQUIRING_NODEJS),
-                    SONAR_NODEJS_EXECUTABLE
+                    format(
+                        "`%s` Sonar property is empty and %s."
+                            + "%n%s languages are excluded, because Sonar requires Node.js to process them."
+                            + "%nTo hide this message add `%s` to your build script.",
+                        SONAR_NODEJS_EXECUTABLE,
+                        defaultTrue(task.getDetectNodeJs().getOrNull())
+                            ? "no Node.js was automatically detected"
+                            : "automatic Node.js detection is disabled",
+                        join(", ", LANGUAGES_REQUIRING_NODEJS),
+                        "sonarLint { logging { logNodeJsNotFound = false } }"
+                    )
                 );
             }
         }
