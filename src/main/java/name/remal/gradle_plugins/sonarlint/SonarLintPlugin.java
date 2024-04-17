@@ -329,7 +329,7 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
                     } else {
                         task.getInputs().file(file)
                             .ignoreEmptyDirectories()
-                            .optional()
+                            .optional();
                     }
                 });
 
