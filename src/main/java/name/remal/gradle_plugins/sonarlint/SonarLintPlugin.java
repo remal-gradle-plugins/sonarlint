@@ -225,6 +225,7 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
 
     @Override
     @ReliesOnInternalGradleApi
+    @SuppressWarnings("java:S3776")
     protected void configureForSourceSet(SourceSet sourceSet, SonarLint task) {
         task.setDescription("Run " + getToolName() + " analysis for " + sourceSet.getName() + " classes");
         task.dependsOn(sourceSet.getClassesTaskName());
