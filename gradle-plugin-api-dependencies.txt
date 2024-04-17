@@ -1,7 +1,7 @@
 # This file is generated automatically by `collectAllGradlePluginApiDependencies` Gradle task.
 # Do not modify it yourself unless you know what you are doing.
 
-Node.js:lts:20.12.2
+Node.js:lts:18.20.2
 org.ow2.asm:asm-bom:9.7:@pom
 org.sonarsource.html:sonar-html-plugin:3.15.0.5107:@sonar-plugin
 org.sonarsource.java:sonar-java-plugin:7.33.0.35775:@sonar-plugin
@@ -11,7 +11,9 @@ org.sonarsource.slang:sonar-ruby-plugin:1.15.0.4655
 org.sonarsource.slang:sonar-scala-plugin:1.15.0.4655
 org.sonarsource.sonarlint.core:sonarlint-core:9.8.0.76914
 org.sonarsource.xml:sonar-xml-plugin:2.10.0.4108:@sonar-plugin
-zzzz-classes-that-rely-on-gradle-internal-api:name.remal.gradle_plugins.sonarlint.SonarLintPlugin:7d532de43e420cdf357f3f57a89216b38326b0cf7d67d998d054253f1bca869b
+zzzz-classes-that-rely-on-gradle-internal-api:name.remal.gradle_plugins.sonarlint.SonarLintPlugin$OutputDirsAndLibraries$OutputDirsAndLibrariesBuilder:d4a11acc9c3aa85ffb7cee13be4a18e71cf164a4b6166c91e887a336843c118c
+zzzz-classes-that-rely-on-gradle-internal-api:name.remal.gradle_plugins.sonarlint.SonarLintPlugin$OutputDirsAndLibraries:9d3d2a54d55df830245d8574ffd130251a282deb446416daaad208942125e2eb
+zzzz-classes-that-rely-on-gradle-internal-api:name.remal.gradle_plugins.sonarlint.SonarLintPlugin:19e78129e99a005d22c4e31af4f3eb0935dbc75b6e2a7364302520446ad64203
 zzzz-classes-that-rely-on-gradle-internal-api:name.remal.gradle_plugins.sonarlint.SonarLintPluginBuildInfo:c79655f07350ea7bdaabe1d2065989ef52a27e387c00ee7e54cc43b69e495d3a
 zzzz-classes-that-rely-on-gradle-internal-api:name.remal.gradle_plugins.sonarlint.internal._relocated.name.remal.gradle_plugins.toolkit.ClosureUtils:6f8c425f05c5e8ceebf0151172e6f84858d4f283505a389204c452650fa558a4
 zzzz-classes-that-rely-on-gradle-internal-api:name.remal.gradle_plugins.sonarlint.internal._relocated.name.remal.gradle_plugins.toolkit.DebugUtils$1:c2e62d142a6d7eb391507658fe0156a169ecc53e1ead07cdfc86de446524cfd9
