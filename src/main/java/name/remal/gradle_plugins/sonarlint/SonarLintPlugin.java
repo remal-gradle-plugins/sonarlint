@@ -47,9 +47,12 @@ import java.util.Optional;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
+import lombok.Builder;
 import lombok.CustomLog;
+import lombok.Value;
 import lombok.val;
 import name.remal.gradle_plugins.toolkit.FileUtils;
+import name.remal.gradle_plugins.toolkit.LazyInitializer;
 import name.remal.gradle_plugins.toolkit.ObjectUtils;
 import name.remal.gradle_plugins.toolkit.annotations.ReliesOnInternalGradleApi;
 import org.gradle.api.Project;
@@ -270,6 +273,72 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
             }
         }));
 
+        val lazyOutputDirsAndLibraries = LazyInitializer.of(() -> {
+            val testSourceSets = getTestSourceSets();
+            val mainSourceSets = getExtension(project, SourceSetContainer.class).stream()
+                .filter(not(testSourceSets::contains))
+                .collect(toList());
+            final Collection<File> mainOutputDirs;
+            final Collection<File> mainLibraries;
+            final Collection<File> testOutputDirs;
+            final Collection<File> testLibraries;
+            if (mainSourceSets.contains(sourceSet)) {
+                mainOutputDirs = getOutputDirs(singletonList(sourceSet));
+                mainLibraries = getLibraries(singletonList(sourceSet));
+
+                testOutputDirs = getOutputDirs(testSourceSets);
+                testLibraries = getLibraries(testSourceSets);
+
+            } else if (testSourceSets.contains(sourceSet)) {
+                mainOutputDirs = getOutputDirs(mainSourceSets);
+                mainLibraries = getLibraries(mainSourceSets);
+
+                testOutputDirs = getOutputDirs(singletonList(sourceSet));
+                testLibraries = getLibraries(singletonList(sourceSet));
+
+            } else {
+                mainOutputDirs = getOutputDirs(singletonList(sourceSet));
+                mainLibraries = getLibraries(singletonList(sourceSet));
+
+                testOutputDirs = mainOutputDirs;
+                testLibraries = mainLibraries;
+            }
+
+            return OutputDirsAndLibraries.builder()
+                .mainOutputDirs(mainOutputDirs)
+                .mainLibraries(mainLibraries)
+                .testOutputDirs(testOutputDirs)
+                .testLibraries(testLibraries)
+                .build();
+        });
+        task.onlyIf(__ -> {
+            val outputDirsAndLibraries = lazyOutputDirsAndLibraries.get();
+            Stream.of(
+                    outputDirsAndLibraries.getMainOutputDirs(),
+                    outputDirsAndLibraries.getTestOutputDirs()
+                )
+                .flatMap(Collection::stream)
+                .distinct()
+                .forEach(dir ->
+                    task.getInputs().dir(dir)
+                        .ignoreEmptyDirectories()
+                        .optional()
+                );
+            Stream.of(
+                    outputDirsAndLibraries.getMainLibraries(),
+                    outputDirsAndLibraries.getTestLibraries()
+                )
+                .flatMap(Collection::stream)
+                .distinct()
+                .forEach(dir ->
+                    task.getInputs().file(dir)
+                        .ignoreEmptyDirectories()
+                        .optional()
+                );
+
+            return true;
+        });
+
         task.getSonarProperties().putAll(project.provider(() -> {
             Map<String, String> javaProps = new LinkedHashMap<>();
 
@@ -304,50 +373,20 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
                     }
                 });
 
-
-            val testSourceSets = getTestSourceSets();
-            val mainSourceSets = getExtension(project, SourceSetContainer.class).stream()
-                .filter(not(testSourceSets::contains))
-                .collect(toList());
-            final Collection<File> mainOutputDirs;
-            final Collection<File> mainLibraries;
-            final Collection<File> testOutputDirs;
-            final Collection<File> testLibraries;
-            if (mainSourceSets.contains(sourceSet)) {
-                mainOutputDirs = getOutputDirs(singletonList(sourceSet));
-                mainLibraries = getLibraries(singletonList(sourceSet));
-
-                testOutputDirs = getOutputDirs(testSourceSets);
-                testLibraries = getLibraries(testSourceSets);
-
-            } else if (testSourceSets.contains(sourceSet)) {
-                mainOutputDirs = getOutputDirs(mainSourceSets);
-                mainLibraries = getLibraries(mainSourceSets);
-
-                testOutputDirs = getOutputDirs(singletonList(sourceSet));
-                testLibraries = getLibraries(singletonList(sourceSet));
-
-            } else {
-                mainOutputDirs = getOutputDirs(singletonList(sourceSet));
-                mainLibraries = getLibraries(singletonList(sourceSet));
-
-                testOutputDirs = mainOutputDirs;
-                testLibraries = mainLibraries;
-            }
-
-            javaProps.put(SONAR_JAVA_BINARIES, mainOutputDirs.stream()
+            val outputDirsAndLibraries = lazyOutputDirsAndLibraries.get();
+            javaProps.put(SONAR_JAVA_BINARIES, outputDirsAndLibraries.getMainOutputDirs().stream()
                 .map(File::getPath)
                 .collect(joining(SONAR_LIST_PROPERTY_DELIMITER))
             );
-            javaProps.put(SONAR_JAVA_LIBRARIES, mainLibraries.stream()
+            javaProps.put(SONAR_JAVA_LIBRARIES, outputDirsAndLibraries.getMainLibraries().stream()
                 .map(File::getPath)
                 .collect(joining(SONAR_LIST_PROPERTY_DELIMITER))
             );
-            javaProps.put(SONAR_JAVA_TEST_BINARIES, testOutputDirs.stream()
+            javaProps.put(SONAR_JAVA_TEST_BINARIES, outputDirsAndLibraries.getTestOutputDirs().stream()
                 .map(File::getPath)
                 .collect(joining(SONAR_LIST_PROPERTY_DELIMITER))
             );
-            javaProps.put(SONAR_JAVA_TEST_LIBRARIES, testLibraries.stream()
+            javaProps.put(SONAR_JAVA_TEST_LIBRARIES, outputDirsAndLibraries.getTestLibraries().stream()
                 .map(File::getPath)
                 .collect(joining(SONAR_LIST_PROPERTY_DELIMITER))
             );
@@ -371,6 +410,15 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
                         && Objects.equals(dep.getModuleName(), "lombok")
                 )
         ));
+    }
+
+    @Value
+    @Builder
+    private static class OutputDirsAndLibraries {
+        Collection<File> mainOutputDirs;
+        Collection<File> mainLibraries;
+        Collection<File> testOutputDirs;
+        Collection<File> testLibraries;
     }
 
     @Unmodifiable
