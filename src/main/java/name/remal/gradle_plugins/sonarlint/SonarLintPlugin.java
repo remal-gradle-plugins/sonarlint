@@ -47,26 +47,29 @@ import java.util.Optional;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
+import javax.inject.Inject;
 import lombok.Builder;
 import lombok.CustomLog;
 import lombok.Value;
 import lombok.val;
 import name.remal.gradle_plugins.toolkit.FileUtils;
-import name.remal.gradle_plugins.toolkit.LazyInitializer;
 import name.remal.gradle_plugins.toolkit.ObjectUtils;
 import name.remal.gradle_plugins.toolkit.annotations.ReliesOnInternalGradleApi;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.Dependency;
+import org.gradle.api.artifacts.dsl.DependencyHandler;
 import org.gradle.api.attributes.Category;
 import org.gradle.api.attributes.Usage;
 import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.internal.tasks.compile.HasCompileOptions;
+import org.gradle.api.model.ObjectFactory;
 import org.gradle.api.plugins.quality.Checkstyle;
 import org.gradle.api.plugins.quality.CheckstyleExtension;
 import org.gradle.api.plugins.quality.CodeQualityExtension;
 import org.gradle.api.plugins.quality.internal.AbstractCodeQualityPlugin;
 import org.gradle.api.provider.Provider;
+import org.gradle.api.provider.ProviderFactory;
 import org.gradle.api.tasks.SourceSet;
 import org.gradle.api.tasks.SourceSetContainer;
 import org.gradle.api.tasks.VerificationTask;
@@ -208,10 +211,10 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
 
         val extension = (SonarLintExtension) this.extension;
         task.getNodeJs().set(extension.getNodeJs());
-        task.getCheckstyleConfig().convention(project.getLayout().file(project.provider(
+        task.getCheckstyleConfig().convention(project.getLayout().file(getProviders().provider(
             this::getCheckstyleConfigFile
         )));
-        task.getDisableRulesConflictingWithLombok().convention(project.provider(() ->
+        task.getDisableRulesConflictingWithLombok().convention(getProviders().provider(() ->
             TRUE.equals(extension.getRules().getDisableConflictingWithLombok().getOrNull())
         ));
         task.getLoggingOptions().set(extension.getLogging());
@@ -236,7 +239,7 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
         val sourceSetCompileTasks = project.getTasks().withType(AbstractCompile.class)
             .matching(compileTask -> isSourceSetTask(sourceSet, compileTask));
         task.dependsOn(sourceSetCompileTasks);
-        task.source(project.provider(() -> {
+        task.source(getProviders().provider(() -> {
             //noinspection ConstantConditions
             return sourceSetCompileTasks.stream()
                 .filter(HasCompileOptions.class::isInstance)
@@ -252,11 +255,11 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
                 .collect(toList());
         }));
 
-        task.getIsTest().convention(project.provider(() ->
+        task.getIsTest().convention(getProviders().provider(() ->
             getTestSourceSets().contains(sourceSet)
         ));
 
-        task.dependsOn(project.provider(() -> {
+        task.dependsOn(getProviders().provider(() -> {
             val testSourceSets = getTestSourceSets();
             val mainSourceSets = getExtension(project, SourceSetContainer.class).stream()
                 .filter(not(testSourceSets::contains))
@@ -274,44 +277,47 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
             }
         }));
 
-        val lazyOutputDirsAndLibraries = LazyInitializer.of(() -> {
-            val testSourceSets = getTestSourceSets();
-            val mainSourceSets = getExtension(project, SourceSetContainer.class).stream()
-                .filter(not(testSourceSets::contains))
-                .collect(toList());
-            final Collection<File> mainOutputDirs;
-            final Collection<File> mainLibraries;
-            final Collection<File> testOutputDirs;
-            final Collection<File> testLibraries;
-            if (mainSourceSets.contains(sourceSet)) {
-                mainOutputDirs = getOutputDirs(singletonList(sourceSet));
-                mainLibraries = getLibraries(singletonList(sourceSet));
+        val lazyOutputDirsAndLibraries = getObjects().property(OutputDirsAndLibraries.class)
+            .value(getProviders().provider(() -> {
+                val testSourceSets = getTestSourceSets();
+                val mainSourceSets = getExtension(project, SourceSetContainer.class).stream()
+                    .filter(not(testSourceSets::contains))
+                    .collect(toList());
+                final Collection<File> mainOutputDirs;
+                final Collection<File> mainLibraries;
+                final Collection<File> testOutputDirs;
+                final Collection<File> testLibraries;
+                if (mainSourceSets.contains(sourceSet)) {
+                    mainOutputDirs = getOutputDirs(singletonList(sourceSet));
+                    mainLibraries = getLibraries(singletonList(sourceSet));
 
-                testOutputDirs = getOutputDirs(testSourceSets);
-                testLibraries = getLibraries(testSourceSets);
+                    testOutputDirs = getOutputDirs(testSourceSets);
+                    testLibraries = getLibraries(testSourceSets);
 
-            } else if (testSourceSets.contains(sourceSet)) {
-                mainOutputDirs = getOutputDirs(mainSourceSets);
-                mainLibraries = getLibraries(mainSourceSets);
+                } else if (testSourceSets.contains(sourceSet)) {
+                    mainOutputDirs = getOutputDirs(mainSourceSets);
+                    mainLibraries = getLibraries(mainSourceSets);
 
-                testOutputDirs = getOutputDirs(singletonList(sourceSet));
-                testLibraries = getLibraries(singletonList(sourceSet));
+                    testOutputDirs = getOutputDirs(singletonList(sourceSet));
+                    testLibraries = getLibraries(singletonList(sourceSet));
 
-            } else {
-                mainOutputDirs = getOutputDirs(singletonList(sourceSet));
-                mainLibraries = getLibraries(singletonList(sourceSet));
+                } else {
+                    mainOutputDirs = getOutputDirs(singletonList(sourceSet));
+                    mainLibraries = getLibraries(singletonList(sourceSet));
 
-                testOutputDirs = mainOutputDirs;
-                testLibraries = mainLibraries;
-            }
+                    testOutputDirs = mainOutputDirs;
+                    testLibraries = mainLibraries;
+                }
 
-            return OutputDirsAndLibraries.builder()
-                .mainOutputDirs(mainOutputDirs)
-                .mainLibraries(mainLibraries)
-                .testOutputDirs(testOutputDirs)
-                .testLibraries(testLibraries)
-                .build();
-        });
+                return OutputDirsAndLibraries.builder()
+                    .mainOutputDirs(mainOutputDirs)
+                    .mainLibraries(mainLibraries)
+                    .testOutputDirs(testOutputDirs)
+                    .testLibraries(testLibraries)
+                    .build();
+            }));
+        lazyOutputDirsAndLibraries.finalizeValueOnRead();
+
         task.onlyIf(__ -> {
             val outputDirsAndLibraries = lazyOutputDirsAndLibraries.get();
             Stream.of(
@@ -337,7 +343,7 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
             return true;
         });
 
-        task.getSonarProperties().putAll(project.provider(() -> {
+        task.getSonarProperties().putAll(getProviders().provider(() -> {
             Map<String, String> javaProps = new LinkedHashMap<>();
 
             val javaCompileTask = project.getTasks()
@@ -392,11 +398,11 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
             return javaProps;
         }));
 
-        task.getCheckstyleConfig().convention(project.getLayout().file(project.provider(() ->
+        task.getCheckstyleConfig().convention(project.getLayout().file(getProviders().provider(() ->
             getCheckstyleConfigFile(sourceSet)
         )));
 
-        task.getDisableRulesConflictingWithLombok().convention(project.provider(() ->
+        task.getDisableRulesConflictingWithLombok().convention(getProviders().provider(() ->
             project.getConfigurations()
                 .getByName(sourceSet.getCompileClasspathConfigurationName())
                 .getResolvedConfiguration()
@@ -525,7 +531,7 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
     }
 
     private Dependency createDependency(SonarDependency sonarDependency) {
-        return project.getDependencies().create(format(
+        return getDependencies().create(format(
             "%s:%s:%s",
             sonarDependency.getGroup(),
             sonarDependency.getName(),
@@ -534,12 +540,22 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
     }
 
     private Dependency createDependency(SonarDependency sonarDependency, String version) {
-        return project.getDependencies().create(format(
+        return getDependencies().create(format(
             "%s:%s:%s",
             sonarDependency.getGroup(),
             sonarDependency.getName(),
             version
         ));
     }
+
+
+    @Inject
+    protected abstract DependencyHandler getDependencies();
+
+    @Inject
+    protected abstract ProviderFactory getProviders();
+
+    @Inject
+    protected abstract ObjectFactory getObjects();
 
 }
