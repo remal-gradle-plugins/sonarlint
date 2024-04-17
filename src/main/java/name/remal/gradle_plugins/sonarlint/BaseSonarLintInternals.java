@@ -119,8 +119,6 @@ abstract class BaseSonarLintInternals {
     }
 
     private static List<String> calculateFileRequiringNodeJsSuffixes(BaseSonarLint task) {
-        task.getSonarProperties().finalizeValue();
-
         val sonarProperties = task.getSonarProperties().get();
         return stream(SonarLanguage.values())
             .filter(SonarLanguage::isRequireNodeJs)
