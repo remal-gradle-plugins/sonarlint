@@ -315,26 +315,23 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
             val outputDirsAndLibraries = lazyOutputDirsAndLibraries.get();
             Stream.of(
                     outputDirsAndLibraries.getMainOutputDirs(),
-                    outputDirsAndLibraries.getTestOutputDirs()
-                )
-                .flatMap(Collection::stream)
-                .distinct()
-                .forEach(dir ->
-                    task.getInputs().dir(dir)
-                        .ignoreEmptyDirectories()
-                        .optional()
-                );
-            Stream.of(
                     outputDirsAndLibraries.getMainLibraries(),
+                    outputDirsAndLibraries.getTestOutputDirs(),
                     outputDirsAndLibraries.getTestLibraries()
                 )
                 .flatMap(Collection::stream)
                 .distinct()
-                .forEach(dir ->
-                    task.getInputs().file(dir)
-                        .ignoreEmptyDirectories()
-                        .optional()
-                );
+                .forEach(file -> {
+                    if (file.isDirectory()) {
+                        task.getInputs().dir(file)
+                            .ignoreEmptyDirectories()
+                            .optional();
+                    } else {
+                        task.getInputs().file(file)
+                            .ignoreEmptyDirectories()
+                            .optional()
+                    }
+                });
 
             return true;
         });
