@@ -3,7 +3,6 @@ package name.remal.gradle_plugins.sonarlint;
 import static java.lang.String.format;
 import static java.nio.file.Files.newOutputStream;
 import static name.remal.gradle_plugins.sonarlint.NodeJsVersions.DEFAULT_NODEJS_VERSION;
-import static name.remal.gradle_plugins.sonarlint.OsDetector.DETECTED_OS;
 import static name.remal.gradle_plugins.toolkit.InTestFlags.isInTest;
 import static name.remal.gradle_plugins.toolkit.PathUtils.createParentDirectories;
 import static name.remal.gradle_plugins.toolkit.SneakyThrowUtils.sneakyThrow;
@@ -76,8 +75,8 @@ abstract class NodeJsDetectorOfficial extends NodeJsDetector
             rootDir = getLayout().getProjectDirectory().getAsFile();
         }
 
-        val os = DETECTED_OS.os;
-        val arch = DETECTED_OS.arch;
+        val os = osDetector.getDetectedOs().os;
+        val arch = osDetector.getDetectedOs().arch;
         val version = DEFAULT_NODEJS_VERSION.toString();
         val targetFile = new File(rootDir, format(
             "build/node-%s-%s-%s%s",

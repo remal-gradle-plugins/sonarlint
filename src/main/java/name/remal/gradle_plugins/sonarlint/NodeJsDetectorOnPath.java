@@ -4,7 +4,6 @@ import static java.io.File.pathSeparatorChar;
 import static java.lang.String.format;
 import static java.util.stream.Collectors.toList;
 import static name.remal.gradle_plugins.sonarlint.NodeJsVersions.MIN_SUPPORTED_NODEJS_VERSION;
-import static name.remal.gradle_plugins.sonarlint.OsDetector.DETECTED_OS;
 import static name.remal.gradle_plugins.toolkit.InTestFlags.isInTest;
 import static name.remal.gradle_plugins.toolkit.ObjectUtils.defaultValue;
 import static name.remal.gradle_plugins.toolkit.ProviderFactoryUtils.getEnvironmentVariable;
@@ -13,7 +12,6 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.tisonkun.os.core.OS;
 import java.io.File;
-import java.util.List;
 import java.util.Objects;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
@@ -27,16 +25,6 @@ import org.gradle.api.provider.ProviderFactory;
 @RequiredArgsConstructor(onConstructor_ = {@Inject})
 abstract class NodeJsDetectorOnPath extends NodeJsDetector {
 
-    private static final List<String> PATH_ENVIRONMENT_VARIABLE_NAMES = ImmutableList.of(
-        DETECTED_OS.os == OS.windows ? "Path" : "",
-        "PATH"
-    );
-
-    private static final String FILE_NAME_TO_SEARCH = format(
-        "node%s",
-        DETECTED_OS.os == OS.windows ? ".exe" : ""
-    );
-
     @Nullable
     @Override
     public NodeJsFound detectDefaultNodeJsExecutable() {
@@ -44,7 +32,16 @@ abstract class NodeJsDetectorOnPath extends NodeJsDetector {
             return null;
         }
 
-        val path = PATH_ENVIRONMENT_VARIABLE_NAMES.stream()
+        val pathEnvironmentVariableNames = ImmutableList.of(
+            osDetector.getDetectedOs().os == OS.windows ? "Path" : "",
+            "PATH"
+        );
+        val fileNameToSearch = format(
+            "node%s",
+            osDetector.getDetectedOs().os == OS.windows ? ".exe" : ""
+        );
+
+        val path = pathEnvironmentVariableNames.stream()
             .filter(ObjectUtils::isNotEmpty)
             .map(name -> getEnvironmentVariable(getProviders(), name))
             .filter(Objects::nonNull)
@@ -59,7 +56,7 @@ abstract class NodeJsDetectorOnPath extends NodeJsDetector {
             .filter(ObjectUtils::isNotEmpty)
             .collect(toList());
         for (val pathElement : pathElements) {
-            val candidateFile = new File(pathElement, FILE_NAME_TO_SEARCH);
+            val candidateFile = new File(pathElement, fileNameToSearch);
             if (candidateFile.isFile() && candidateFile.canExecute()) {
                 val info = nodeJsInfoRetriever.getNodeJsInfo(candidateFile);
                 if (info instanceof NodeJsFound) {

@@ -2,7 +2,6 @@ package name.remal.gradle_plugins.sonarlint;
 
 import static java.lang.String.format;
 import static java.util.Collections.emptySet;
-import static name.remal.gradle_plugins.sonarlint.OsDetector.DETECTED_OS;
 import static name.remal.gradle_plugins.sonarlint.PublishedNodeJs.PUBLISHED_NODEJS_OS;
 import static name.remal.gradle_plugins.sonarlint.SonarLintPluginBuildInfo.SONARLINT_PLUGIN_ARTIFACT_ID;
 import static name.remal.gradle_plugins.sonarlint.SonarLintPluginBuildInfo.SONARLINT_PLUGIN_GROUP;
@@ -27,8 +26,8 @@ abstract class NodeJsDetectorPublished extends NodeJsDetector {
     @Override
     @SneakyThrows
     public NodeJsFound detectDefaultNodeJsExecutable() {
-        val os = DETECTED_OS.os;
-        val arch = DETECTED_OS.arch;
+        val os = osDetector.getDetectedOs().os;
+        val arch = osDetector.getDetectedOs().arch;
         val isPublished = PUBLISHED_NODEJS_OS.getOrDefault(os, emptySet()).contains(arch);
         if (!isPublished) {
             return null;
