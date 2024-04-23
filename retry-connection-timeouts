@@ -33,6 +33,9 @@ for ATTEMPT in $(seq 1 3); do
     elif STR="Timeout has been exceeded" && grep -q "\b$STR\b" "$LOGFILE"; then
         echo "::warning::'$STR' found in $* command log file $LOGFILE"
 
+    elif STR="Could not pack tree 'jvmArgumentProviders.jacocoAgent" && grep -q "\b$STR\b" "$LOGFILE"; then
+        echo "::warning::'$STR' found in $* command log file $LOGFILE"
+
     else
         break
     fi
