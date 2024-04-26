@@ -119,6 +119,7 @@ tasks.named('generateJava') {
         it.writePackage()
         it.println("")
         it.writeBlock("interface ${it.simpleName}") {
+            it.println("String SONARLINT_PLUGIN_ID = \"${it.escapeJava(gradlePlugin.plugins.names.first())}\";")
             it.println("String SONARLINT_PLUGIN_GROUP = \"${it.escapeJava(group.get())}\";")
             it.println("String SONARLINT_PLUGIN_ARTIFACT_ID = \"${it.escapeJava(artifactId.get())}\";")
             it.println("String SONARLINT_PLUGIN_VERSION = \"${it.escapeJava(version.get())}\";")

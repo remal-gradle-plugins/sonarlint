@@ -33,7 +33,7 @@ sonarLint {
   nodeJs {
     nodeJsExecutable = project.layout.projectDirectory.file('/usr/bin/node') // set path to Node.js executable
     detectNodeJs = true // `false` by default, set to `true` to enable automatic Node.js detection
-    logNodeJsNotFound = false // Hide log message about not found Node.js
+    logNodeJsNotFound = false // Hide warning message about not found Node.js
   }
 
   rules {
@@ -74,6 +74,7 @@ sonarLint {
 
   logging {
     withDescription = false // Hide rule descriptions from console output
+    hideWarnings = true // To hide warnings produced by this plugin
   }
 
   // `sonarLint` extension extends `CodeQualityExtension` (see https://docs.gradle.org/current/javadoc/org/gradle/api/plugins/quality/CodeQualityExtension.html).

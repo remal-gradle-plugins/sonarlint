@@ -23,6 +23,7 @@ import static name.remal.gradle_plugins.sonarlint.CanonizationUtils.canonizeRule
 import static name.remal.gradle_plugins.sonarlint.CanonizationUtils.canonizeRulesProperties;
 import static name.remal.gradle_plugins.sonarlint.SonarDependencies.getSonarDependency;
 import static name.remal.gradle_plugins.sonarlint.SonarLintForkOptions.IS_FORK_ENABLED_DEFAULT;
+import static name.remal.gradle_plugins.sonarlint.SonarLintPluginBuildInfo.SONARLINT_PLUGIN_ID;
 import static name.remal.gradle_plugins.sonarlint.internal.SourceFile.newSourceFileBuilder;
 import static name.remal.gradle_plugins.toolkit.ExtensionContainerUtils.findExtension;
 import static name.remal.gradle_plugins.toolkit.FileUtils.normalizeFile;
@@ -66,6 +67,7 @@ import name.remal.gradle_plugins.toolkit.FileUtils;
 import name.remal.gradle_plugins.toolkit.ObjectUtils;
 import name.remal.gradle_plugins.toolkit.PathIsOutOfRootPathException;
 import name.remal.gradle_plugins.toolkit.ReportUtils;
+import name.remal.gradle_plugins.toolkit.Version;
 import org.gradle.api.JavaVersion;
 import org.gradle.api.file.Directory;
 import org.gradle.api.file.FileTree;
@@ -300,11 +302,23 @@ abstract class BaseSonarLintActions {
         }
 
         workQueue.submit(SonarLintAction.class, params -> {
+            val sonarLintVersion = getSonarLintVersionFor(task);
+            if (Version.parse(sonarLintVersion).compareTo(SONARLINT_DEFAULT_VERSION) > 0) {
+                task.getLogger().log(
+                    defaultFalse(task.getLoggingOptions().flatMap(SonarLintLoggingOptions::getHideWarnings).getOrNull())
+                        ? LogLevel.INFO
+                        : LogLevel.QUIET,
+                    "SonarLint version is greater than with what `{}` plugin was built with."
+                        + " It can cause unpredicted issues.",
+                    SONARLINT_PLUGIN_ID
+                );
+            }
+
             val tempDir = normalizeFile(task.getTemporaryDir());
 
             params.getIsIgnoreFailures().set(isIgnoreFailures(task));
             params.getCommand().set(command);
-            params.getSonarLintVersion().set(getSonarLintVersionFor(task));
+            params.getSonarLintVersion().set(sonarLintVersion);
             params.getProjectDir().set(task.get$internals().getProjectDir());
             params.getIsGeneratedCodeIgnored().set(defaultTrue(task.getIsGeneratedCodeIgnored().getOrNull()));
             params.getBaseGeneratedDirs().add(task.get$internals().getBuildDir());
@@ -431,7 +445,7 @@ abstract class BaseSonarLintActions {
             "",
             };
 
-        val logLevel = logNodeJsNotFound ? LogLevel.WARN : LogLevel.INFO;
+        val logLevel = logNodeJsNotFound ? LogLevel.QUIET : LogLevel.INFO;
         val lineSeparator = format("%n");
         val message = join(lineSeparator, lines)
             + lineSeparator
@@ -452,6 +466,10 @@ abstract class BaseSonarLintActions {
         "sonarlint-core-(\\d+(?:\\.\\d+){0,3}).*\\.jar"
     );
 
+    private static final Version SONARLINT_DEFAULT_VERSION = Version.parse(
+        getSonarDependency("sonarlint-core").getVersion()
+    );
+
     @SneakyThrows
     private static String getSonarLintVersionFor(BaseSonarLint task) {
         for (val classpathFile : task.getToolClasspath().getFiles()) {
@@ -461,7 +479,7 @@ abstract class BaseSonarLintActions {
             }
         }
 
-        return getSonarDependency("sonarlint-core").getVersion();
+        return SONARLINT_DEFAULT_VERSION.toString();
     }
 
     private static Collection<SourceFile> collectSourceFiles(BaseSonarLint task) {

@@ -16,4 +16,12 @@ public abstract class SonarLintLoggingOptions {
         getWithDescription().convention(true);
     }
 
+
+    @Console
+    public abstract Property<Boolean> getHideWarnings();
+
+    {
+        getHideWarnings().convention(false);
+    }
+
 }

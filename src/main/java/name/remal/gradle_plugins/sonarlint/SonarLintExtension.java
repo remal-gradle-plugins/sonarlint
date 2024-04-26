@@ -60,6 +60,10 @@ public abstract class SonarLintExtension extends CodeQualityExtension {
 
     private final SonarLintLoggingOptions logging = getObjects().newInstance(SonarLintLoggingOptions.class);
 
+    {
+        nodeJs.getLogNodeJsNotFound().convention(logging.getHideWarnings().map(it -> !it));
+    }
+
     public void logging(Action<SonarLintLoggingOptions> action) {
         action.execute(logging);
     }
