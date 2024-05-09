@@ -11,15 +11,13 @@ import org.gradle.api.model.ObjectFactory;
 
 abstract class NodeJsDetector implements Comparable<NodeJsDetector> {
 
+    @Nullable
+    public abstract NodeJsFound detectDefaultNodeJsExecutable();
+
+
     protected final Logger logger = Logging.getLogger(unwrapGeneratedSubclass(getClass()));
     protected final NodeJsInfoRetriever nodeJsInfoRetriever = getObjects().newInstance(NodeJsInfoRetriever.class);
     protected final OsDetector osDetector = getObjects().newInstance(OsDetector.class);
-
-
-    @Nullable
-    public NodeJsFound detectDefaultNodeJsExecutable() {
-        return null;
-    }
 
 
     public int getOrder() {
