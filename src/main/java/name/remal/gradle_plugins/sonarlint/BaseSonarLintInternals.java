@@ -21,6 +21,7 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
+import lombok.CustomLog;
 import lombok.Getter;
 import lombok.val;
 import name.remal.gradle_plugins.sonarlint.internal.NodeJsFound;
@@ -43,6 +44,7 @@ import org.gradle.api.tasks.SourceTask;
 import org.gradle.workers.WorkerExecutor;
 
 @Getter
+@CustomLog
 abstract class BaseSonarLintInternals {
 
     @Internal
@@ -89,10 +91,12 @@ abstract class BaseSonarLintInternals {
         getHasFilesRequiringNodeJs().set(getProviders().provider(() ->
             calculateHasFilesRequiringNodeJs(task)
         ));
+        getHasFilesRequiringNodeJs().finalizeValueOnRead();
 
         getNodeJsInfo().set(getProviders().provider(() ->
             calculateNodeJsInfo(task, rootDir, getObjects())
         ));
+        getNodeJsInfo().finalizeValueOnRead();
     }
 
     private static boolean calculateHasFilesRequiringNodeJs(BaseSonarLint task) {
@@ -185,8 +189,7 @@ abstract class BaseSonarLintInternals {
 
         val nodeJsDetectors = objects.newInstance(NodeJsDetectors.class, rootDir);
         task.getLogger().info("Detecting Node.js of any supported version");
-        val nodeJsInfo = nodeJsDetectors.detectDefaultNodeJsExecutable();
-
+        val nodeJsInfo = nodeJsDetectors.detectNodeJsExecutable();
         if (nodeJsInfo != null) {
             task.getLogger().info("Detected Node.js: {}", nodeJsInfo);
             return nodeJsInfo;

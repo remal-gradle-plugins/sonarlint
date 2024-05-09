@@ -34,6 +34,7 @@ import static name.remal.gradle_plugins.toolkit.ObjectUtils.isEmpty;
 import static name.remal.gradle_plugins.toolkit.ObjectUtils.isNotEmpty;
 import static name.remal.gradle_plugins.toolkit.PathUtils.normalizePath;
 import static name.remal.gradle_plugins.toolkit.PredicateUtils.not;
+import static name.remal.gradle_plugins.toolkit.TaskUtils.doBeforeTaskExecution;
 import static name.remal.gradle_plugins.toolkit.xml.DomUtils.streamNodeList;
 import static name.remal.gradle_plugins.toolkit.xml.XmlUtils.parseXml;
 
@@ -174,15 +175,17 @@ abstract class BaseSonarLintActions {
             }
         }));
 
-        task.onlyIf(__ -> {
+        doBeforeTaskExecution(task, __ -> {
             task.getEnabledRules().set(canonizeRules(task.getEnabledRules().getOrNull()));
             task.getDisabledRules().set(canonizeRules(task.getDisabledRules().getOrNull()));
             task.getIncludedLanguages().set(canonizeLanguages(task.getIncludedLanguages().getOrNull()));
             task.getExcludedLanguages().set(canonizeLanguages(task.getExcludedLanguages().getOrNull()));
             task.getSonarProperties().set(canonizeProperties(task.getSonarProperties().getOrNull()));
             task.getRulesProperties().set(canonizeRulesProperties(task.getRulesProperties().getOrNull()));
+        });
 
-            return true;
+        doBeforeTaskExecution(task, __ -> {
+            getNodeJsInfo(task);
         });
     }
 
@@ -255,7 +258,7 @@ abstract class BaseSonarLintActions {
             }
         });
 
-        val nodeJsInfo = getNodeJsInfo(task);
+        val nodeJsInfo = getNodeJsInfoAndLogIssues(task);
         val additionalExcludedLanguages = new ArrayList<String>();
         if (task instanceof SourceTask && nodeJsInfo == null) {
             additionalExcludedLanguages.addAll(LANGUAGES_REQUIRING_NODEJS);
@@ -384,13 +387,8 @@ abstract class BaseSonarLintActions {
     }
 
     @Nullable
-    private static NodeJsFound getNodeJsInfo(BaseSonarLint task) {
-        val hasFilesRequiringNodeJs = defaultTrue(task.get$internals().getHasFilesRequiringNodeJs().getOrNull());
-        if (!hasFilesRequiringNodeJs) {
-            return null;
-        }
-
-        val nodeJsInfo = task.get$internals().getNodeJsInfo().getOrNull();
+    private static NodeJsFound getNodeJsInfoAndLogIssues(BaseSonarLint task) {
+        val nodeJsInfo = getNodeJsInfo(task);
         if (nodeJsInfo != null) {
             return nodeJsInfo;
         }
@@ -453,6 +451,16 @@ abstract class BaseSonarLintActions {
         task.getLogger().log(logLevel, message);
 
         return null;
+    }
+
+    @Nullable
+    private static NodeJsFound getNodeJsInfo(BaseSonarLint task) {
+        val hasFilesRequiringNodeJs = defaultTrue(task.get$internals().getHasFilesRequiringNodeJs().getOrNull());
+        if (!hasFilesRequiringNodeJs) {
+            return null;
+        }
+
+        return task.get$internals().getNodeJsInfo().getOrNull();
     }
 
     private static boolean isIgnoreFailures(BaseSonarLint task) {

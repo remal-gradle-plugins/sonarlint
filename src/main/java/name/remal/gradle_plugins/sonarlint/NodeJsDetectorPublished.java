@@ -25,7 +25,7 @@ abstract class NodeJsDetectorPublished extends NodeJsDetector {
     @Nullable
     @Override
     @SneakyThrows
-    public NodeJsFound detectDefaultNodeJsExecutable() {
+    public NodeJsFound detectNodeJsExecutable() {
         val os = osDetector.getDetectedOs().os;
         val arch = osDetector.getDetectedOs().arch;
         val isPublished = PUBLISHED_NODEJS_OS.getOrDefault(os, emptySet()).contains(arch);

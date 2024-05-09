@@ -12,7 +12,7 @@ import org.gradle.api.model.ObjectFactory;
 abstract class NodeJsDetector implements Comparable<NodeJsDetector> {
 
     @Nullable
-    public abstract NodeJsFound detectDefaultNodeJsExecutable();
+    public abstract NodeJsFound detectNodeJsExecutable();
 
 
     protected final Logger logger = Logging.getLogger(unwrapGeneratedSubclass(getClass()));

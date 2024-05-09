@@ -67,7 +67,7 @@ abstract class NodeJsDetectorOfficial extends NodeJsDetector
     @Override
     @SneakyThrows
     @SuppressWarnings("java:S3776")
-    public NodeJsFound detectDefaultNodeJsExecutable() {
+    public NodeJsFound detectNodeJsExecutable() {
         addNodeJsRepository();
 
         File rootDir = this.rootDir;

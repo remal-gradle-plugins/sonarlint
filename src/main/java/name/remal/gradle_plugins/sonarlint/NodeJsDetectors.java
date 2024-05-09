@@ -11,6 +11,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import lombok.CustomLog;
@@ -25,20 +27,32 @@ import org.gradle.api.model.ObjectFactory;
 @CustomLog
 abstract class NodeJsDetectors {
 
+
     private final File rootDir;
 
+
+    private static final Lock DETECT_LOCK = new ReentrantLock();
 
     private final List<NodeJsDetector> detectors = loadNodeJsDetectors();
 
     @Nullable
-    public NodeJsFound detectDefaultNodeJsExecutable() {
-        synchronized (NodeJsDetectors.class) {
-            return detectors.stream()
-                .map(NodeJsDetector::detectDefaultNodeJsExecutable)
-                .filter(Objects::nonNull)
-                .findFirst()
-                .orElse(null);
+    public NodeJsFound detectNodeJsExecutable() {
+        DETECT_LOCK.lock();
+        try {
+            return detectNodeJsExecutableImpl();
+
+        } finally {
+            DETECT_LOCK.unlock();
         }
+    }
+
+    @Nullable
+    private NodeJsFound detectNodeJsExecutableImpl() {
+        return detectors.stream()
+            .map(NodeJsDetector::detectNodeJsExecutable)
+            .filter(Objects::nonNull)
+            .findFirst()
+            .orElse(null);
     }
 
 

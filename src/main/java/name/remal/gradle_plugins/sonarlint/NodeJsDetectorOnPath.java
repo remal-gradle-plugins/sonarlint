@@ -27,7 +27,7 @@ abstract class NodeJsDetectorOnPath extends NodeJsDetector {
 
     @Nullable
     @Override
-    public NodeJsFound detectDefaultNodeJsExecutable() {
+    public NodeJsFound detectNodeJsExecutable() {
         if (isInTest()) {
             return null;
         }
