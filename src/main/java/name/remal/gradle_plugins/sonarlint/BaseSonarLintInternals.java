@@ -2,6 +2,7 @@ package name.remal.gradle_plugins.sonarlint;
 
 import static java.lang.String.format;
 import static java.util.Arrays.stream;
+import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
 import static name.remal.gradle_plugins.sonarlint.BaseSonarLintActions.SONAR_LIST_PROPERTY_DELIMITER;
 import static name.remal.gradle_plugins.toolkit.FileUtils.normalizeFile;
@@ -16,9 +17,9 @@ import static org.gradle.api.tasks.PathSensitivity.RELATIVE;
 import com.google.common.base.Splitter;
 import java.io.File;
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicBoolean;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import lombok.CustomLog;
@@ -33,9 +34,11 @@ import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.file.Directory;
 import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.file.RegularFile;
+import org.gradle.api.file.RelativePath;
 import org.gradle.api.model.ObjectFactory;
 import org.gradle.api.provider.Property;
 import org.gradle.api.provider.ProviderFactory;
+import org.gradle.api.provider.SetProperty;
 import org.gradle.api.tasks.InputFiles;
 import org.gradle.api.tasks.Internal;
 import org.gradle.api.tasks.Nested;
@@ -65,11 +68,15 @@ abstract class BaseSonarLintInternals {
     public abstract ConfigurableFileCollection getCodeFormattingFiles();
 
     @Internal
-    public abstract Property<Boolean> getHasFilesRequiringNodeJs();
+    public abstract SetProperty<RelativePath> getRelativePathsRequiringNodeJs();
 
     @org.gradle.api.tasks.Optional
     @Nested
-    public abstract Property<NodeJsFound> getNodeJsInfo();
+    public abstract Property<NodeJsFound> getConfiguredNodeJsInfo();
+
+    @org.gradle.api.tasks.Optional
+    @Nested
+    public abstract Property<NodeJsFound> getDetectedNodeJsInfo();
 
 
     @Inject
@@ -88,24 +95,30 @@ abstract class BaseSonarLintInternals {
         );
         getCodeFormattingFiles().setFrom(getCodeFormattingPathsFor(project));
 
-        getHasFilesRequiringNodeJs().set(getProviders().provider(() ->
-            calculateHasFilesRequiringNodeJs(task)
+        getRelativePathsRequiringNodeJs().set(getProviders().provider(() ->
+            calculateRelativePathsRequiringNodeJs(task)
         ));
-        getHasFilesRequiringNodeJs().finalizeValueOnRead();
+        getRelativePathsRequiringNodeJs().finalizeValueOnRead();
 
-        getNodeJsInfo().set(getProviders().provider(() ->
-            calculateNodeJsInfo(task, rootDir, getObjects())
+        getConfiguredNodeJsInfo().set(getProviders().provider(() ->
+            calculateConfiguredNodeJsInfo(task, getObjects())
         ));
-        getNodeJsInfo().finalizeValueOnRead();
+        getConfiguredNodeJsInfo().finalizeValueOnRead();
+
+        getDetectedNodeJsInfo().set(getProviders().provider(() ->
+            calculateDetectedNodeJsInfo(task, rootDir, getObjects())
+        ));
+        getDetectedNodeJsInfo().finalizeValueOnRead();
     }
 
-    private static boolean calculateHasFilesRequiringNodeJs(BaseSonarLint task) {
+    @SuppressWarnings("MixedMutabilityReturnType")
+    private static Collection<RelativePath> calculateRelativePathsRequiringNodeJs(BaseSonarLint task) {
         if (!(task instanceof SourceTask)) {
-            return false;
+            return emptyList();
         }
 
-        val result = new AtomicBoolean(false);
-        val fileRequiringNodeJsSuffixes = calculateFileRequiringNodeJsSuffixes(task);
+        val result = new LinkedHashSet<RelativePath>();
+        val fileRequiringNodeJsSuffixes = calculateRequiringNodeJsFileSuffixes(task);
         task.getLogger().info("Suffixes of files requiring Node.js: {}", fileRequiringNodeJsSuffixes);
         ((SourceTask) task).getSource().visit(details -> {
             if (details.isDirectory()) {
@@ -115,14 +128,13 @@ abstract class BaseSonarLintInternals {
             val hasRequiringNodeJsSuffix = fileRequiringNodeJsSuffixes.stream()
                 .anyMatch(details.getName()::endsWith);
             if (hasRequiringNodeJsSuffix) {
-                result.set(true);
-                details.stopVisiting();
+                result.add(details.getRelativePath());
             }
         });
-        return result.get();
+        return result;
     }
 
-    private static List<String> calculateFileRequiringNodeJsSuffixes(BaseSonarLint task) {
+    private static List<String> calculateRequiringNodeJsFileSuffixes(BaseSonarLint task) {
         val sonarProperties = task.getSonarProperties().get();
         return stream(SonarLanguage.values())
             .filter(SonarLanguage::isRequireNodeJs)
@@ -139,43 +151,48 @@ abstract class BaseSonarLintInternals {
             .flatMap(Collection::stream)
             .distinct()
             .collect(toList());
-
     }
 
     @Nullable
-    private static NodeJsFound calculateNodeJsInfo(
-        BaseSonarLint task,
-        File rootDir,
-        ObjectFactory objects
-    ) {
-        if (!(task instanceof SourceTask)) {
-            return null;
-        }
-
+    private static NodeJsFound calculateConfiguredNodeJsInfo(BaseSonarLint task, ObjectFactory objects) {
         val configuredNodeJsExecutable = task.getNodeJs()
             .flatMap(SonarLintNodeJs::getNodeJsExecutable)
             .map(RegularFile::getAsFile)
             .map(FileUtils::normalizeFile)
             .getOrNull();
-        if (configuredNodeJsExecutable != null) {
-            task.getLogger().info("Using configured Node.js: {}", configuredNodeJsExecutable);
-            val nodeJsInfoRetriever = objects.newInstance(NodeJsInfoRetriever.class);
-            val info = nodeJsInfoRetriever.getNodeJsInfo(configuredNodeJsExecutable);
-            if (info instanceof NodeJsNotFound) {
-                val error = ((NodeJsNotFound) info).getError();
-                if (isInTest()) {
-                    throw sneakyThrow(error);
-                } else {
-                    val message = format(
-                        "Configured Node.js (%s) can't be used: %s",
-                        configuredNodeJsExecutable,
-                        error
-                    );
-                    task.getLogger().warn(message, error);
-                }
-                return null;
+        if (configuredNodeJsExecutable == null) {
+            return null;
+        }
+
+        task.getLogger().info("Configured Node.js: {}", configuredNodeJsExecutable);
+        val nodeJsInfoRetriever = objects.newInstance(NodeJsInfoRetriever.class);
+        val info = nodeJsInfoRetriever.getNodeJsInfo(configuredNodeJsExecutable);
+        if (info instanceof NodeJsNotFound) {
+            val error = ((NodeJsNotFound) info).getError();
+            if (isInTest()) {
+                throw sneakyThrow(error);
+            } else {
+                val message = format(
+                    "Configured Node.js (%s) can't be used: %s",
+                    configuredNodeJsExecutable,
+                    error
+                );
+                task.getLogger().warn(message, error);
             }
-            return (NodeJsFound) info;
+            return null;
+        }
+        return (NodeJsFound) info;
+    }
+
+    @Nullable
+    private static NodeJsFound calculateDetectedNodeJsInfo(
+        BaseSonarLint task,
+        File rootDir,
+        ObjectFactory objects
+    ) {
+        if (!(task instanceof SourceTask)) {
+            task.getLogger().debug("{} task does not use Node.js detection", task);
+            return null;
         }
 
         val detectNodeJs = defaultFalse(task.getNodeJs()

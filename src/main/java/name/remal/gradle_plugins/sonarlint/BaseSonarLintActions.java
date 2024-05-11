@@ -8,6 +8,7 @@ import static java.lang.String.join;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.Files.exists;
 import static java.util.Arrays.stream;
+import static java.util.Collections.addAll;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
@@ -182,10 +183,6 @@ abstract class BaseSonarLintActions {
             task.getExcludedLanguages().set(canonizeLanguages(task.getExcludedLanguages().getOrNull()));
             task.getSonarProperties().set(canonizeProperties(task.getSonarProperties().getOrNull()));
             task.getRulesProperties().set(canonizeRulesProperties(task.getRulesProperties().getOrNull()));
-        });
-
-        doBeforeTaskExecution(task, __ -> {
-            getNodeJsInfo(task);
         });
     }
 
@@ -387,8 +384,23 @@ abstract class BaseSonarLintActions {
     }
 
     @Nullable
+    @SuppressWarnings("checkstyle:VariableDeclarationUsageDistance")
     private static NodeJsFound getNodeJsInfoAndLogIssues(BaseSonarLint task) {
-        val nodeJsInfo = getNodeJsInfo(task);
+        if (!(task instanceof SourceTask)) {
+            return null;
+        }
+
+        val configuredNodeJsInfo = task.get$internals().getConfiguredNodeJsInfo().getOrNull();
+        if (configuredNodeJsInfo != null) {
+            return configuredNodeJsInfo;
+        }
+
+        val relativePathsRequiringNodeJs = task.get$internals().getRelativePathsRequiringNodeJs().getOrElse(emptySet());
+        if (relativePathsRequiringNodeJs.isEmpty()) {
+            return null;
+        }
+
+        val nodeJsInfo = task.get$internals().getDetectedNodeJsInfo().getOrNull();
         if (nodeJsInfo != null) {
             return nodeJsInfo;
         }
@@ -405,62 +417,75 @@ abstract class BaseSonarLintActions {
             .flatMap(SonarLintNodeJs::getDetectNodeJs)
             .getOrNull()
         );
-        final CharSequence[] lines;
+        val lines = new ArrayList<String>();
         if (configuredNodeJs != null) {
-            lines = new CharSequence[]{
+            addAll(
+                lines,
                 "Node.js executable configured, but it can't be used. Configured value: " + configuredNodeJs,
                 "Potential reasons are:",
                 "  * file not found",
                 "  * file is not executable",
                 "  * not a Node.js command",
-                "  * this Node.js does not work on this OS (for example, incompatible system libraries)",
-                };
+                "  * this Node.js does not work on this OS (for example, incompatible system libraries)"
+            );
 
         } else if (detectNodeJs) {
-            lines = new CharSequence[]{
+            addAll(
+                lines,
                 "Node.js can not be detected.",
                 "Potential reasons are:",
                 "  * this OS and CPU architecture are not supported",
                 "  * Node.js does not work on this OS (for example, incompatible system libraries)",
                 "",
-                "You can configure Node.js by using `sonarLint.nodeJs.nodeJsExecutable = ...`.",
-                };
+                "You can configure Node.js by using `sonarLint.nodeJs.nodeJsExecutable = ...`."
+            );
 
         } else {
-            lines = new CharSequence[]{
+            addAll(
+                lines,
                 "Node.js is not configured and its detection is disabled.",
                 "",
                 "You can configure Node.js by using `sonarLint.nodeJs.nodeJsExecutable = ...`.",
-                "Or you can enable Node.js detection by `sonarLint.nodeJs.detectNodeJs = true`.",
-                };
+                "Or you can enable Node.js detection by `sonarLint.nodeJs.detectNodeJs = true`."
+            );
         }
 
-        val messageSuffixLines = new CharSequence[]{
+
+        addAll(
+            lines,
             "",
             join(", ", LANGUAGES_REQUIRING_NODEJS) + " languages are excluded"
                 + ", because Sonar requires Node.js to process them.",
-            "To hide this message add `sonarLint.nodeJs.logNodeJsNotFound = false` to your build script.",
-            "",
-            };
+            "To hide this message, add `sonarLint.nodeJs.logNodeJsNotFound = false` to your build script."
+        );
 
-        val logLevel = logNodeJsNotFound ? LogLevel.QUIET : LogLevel.INFO;
+
+        lines.add("");
+
+        val maxPathsToLog = 25;
+        if (relativePathsRequiringNodeJs.size() > maxPathsToLog) {
+            addAll(lines, format(
+                "First %d files requiring Node.js (%d total):",
+                maxPathsToLog,
+                relativePathsRequiringNodeJs.size()
+            ));
+        } else {
+            addAll(lines, "Files requiring Node.js:");
+        }
+        relativePathsRequiringNodeJs.stream()
+            .limit(maxPathsToLog)
+            .forEach(path -> lines.add("  * " + path));
+
+        lines.add("");
+        lines.add("");
+
+
         val lineSeparator = format("%n");
-        val message = join(lineSeparator, lines)
-            + lineSeparator
-            + join(lineSeparator, messageSuffixLines);
+        val message = join(lineSeparator, lines);
+        val logLevel = logNodeJsNotFound ? LogLevel.QUIET : LogLevel.INFO;
         task.getLogger().log(logLevel, message);
 
         return null;
-    }
-
-    @Nullable
-    private static NodeJsFound getNodeJsInfo(BaseSonarLint task) {
-        val hasFilesRequiringNodeJs = defaultTrue(task.get$internals().getHasFilesRequiringNodeJs().getOrNull());
-        if (!hasFilesRequiringNodeJs) {
-            return null;
-        }
-
-        return task.get$internals().getNodeJsInfo().getOrNull();
     }
 
     private static boolean isIgnoreFailures(BaseSonarLint task) {
