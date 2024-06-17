@@ -40,3 +40,10 @@ jobs:
           sync-with-template
         skippedChangelogCommitPrefixes: |
           [push-back]
+        actionPathsAllowedToFail: |
+          .github/workflows/automatic-release.yml
+          .github/workflows/codeowners-validator.yml
+          .github/workflows/codeql-analysis.yml
+          .github/workflows/codespell.yml
+          .github/workflows/rebase-dependabot-pull-requests.yml
+          .github/workflows/sync-with-template.yml
