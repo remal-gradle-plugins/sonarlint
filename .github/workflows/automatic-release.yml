@@ -32,6 +32,7 @@ jobs:
           [release-later]
           [doc]
           [documentation]
+          [no-changelog]
           Update README.md
           Update renovate.json5
           Update renovate.json
@@ -40,6 +41,7 @@ jobs:
           sync-with-template
         skippedChangelogCommitPrefixes: |
           [push-back]
+          [no-changelog]
         actionPathsAllowedToFail: |
           .github/workflows/automatic-release.yml
           .github/workflows/codeowners-validator.yml
