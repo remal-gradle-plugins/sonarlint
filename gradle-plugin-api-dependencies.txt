@@ -7,7 +7,7 @@ org.sonarsource.html:sonar-html-plugin:3.16.0.5274:@sonar-plugin
 org.sonarsource.java:sonar-java-plugin:8.3.0.36747:@sonar-plugin
 org.sonarsource.javascript:sonar-javascript-plugin:10.14.0.26080:@sonar-plugin
 org.sonarsource.kotlin:sonar-kotlin-plugin:2.20.0.4382
-org.sonarsource.slang:sonar-ruby-plugin:1.15.2.6150
+org.sonarsource.slang:sonar-ruby-plugin:1.17.0.110
 org.sonarsource.slang:sonar-scala-plugin:1.15.2.6150
 org.sonarsource.sonarlint.core:sonarlint-core:9.8.0.76914
 org.sonarsource.xml:sonar-xml-plugin:2.10.0.4108:@sonar-plugin
