@@ -15,7 +15,7 @@ buildscript {
         //classpath("$rootGroupId:$rootArtifactId:$rootSnapshotVersion") { version { strictly(rootSnapshotVersion) } }
         classpath 'name.remal.gradle-plugins.toolkit:build-logic:0.64.11'
         classpath 'de.undercouch:gradle-download-task:5.6.0'
-        classpath 'com.tisonkun.os:os-detector-core:0.3.1'
+        classpath 'com.tisonkun.os:os-detector-core:0.4.0'
     }
     repositories {
         mavenCentral()
@@ -89,7 +89,7 @@ apply plugin: 'name.remal.classes-relocation'
 apply plugin: 'name.remal.generate-sources'
 
 dependencies {
-    relocateClasses 'com.tisonkun.os:os-detector-core:0.3.1'
+    relocateClasses 'com.tisonkun.os:os-detector-core:0.4.0'
 
     optional('org.sonarsource.sonarlint.core:sonarlint-core:9.8.0.76914') { transitive = false }
 }
