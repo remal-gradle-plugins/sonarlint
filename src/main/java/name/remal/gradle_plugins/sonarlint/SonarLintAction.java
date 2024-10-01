@@ -54,7 +54,7 @@ abstract class SonarLintAction implements WorkAction<SonarLintExecutionParams> {
 
             val htmlReportLocation = params.getHtmlReportLocation().getAsFile().getOrNull();
             if (htmlReportLocation != null) {
-                new CheckstyleHtmlIssuesRenderer().renderIssuesToFile(issues, htmlReportLocation);
+                new CheckstyleHtmlIssuesRenderer("SonarLint").renderIssuesToFile(issues, htmlReportLocation);
             }
 
             if (isNotEmpty(issues)) {
