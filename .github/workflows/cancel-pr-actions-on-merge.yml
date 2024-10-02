@@ -1,0 +1,21 @@
+name: Cancel PR actions on merge
+
+on:
+  pull_request:
+    types:
+    - closed
+    - merged
+
+permissions:
+  pull-requests: 'read'
+  checks: 'read'
+  actions: 'write'
+
+jobs:
+  cancel-pr-actions-on-merge:
+    if: ${{ github.event.pull_request.merged }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+    - name: Cancel PR actions on merge
+      uses: remal-github-actions/cancel-pr-actions@v1
