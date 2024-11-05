@@ -14,3 +14,9 @@ includes:
 - '.eslint*'
 - '.prettier*'
 - '.yarn*'
+excludes:
+- '.github/template-cleanup/**'
+- '.github/workflows/template-cleanup.*'
+modifiable-sections-exclusions:
+- '.yarn/plugins/**'
+- '.yarn/releases/**'
