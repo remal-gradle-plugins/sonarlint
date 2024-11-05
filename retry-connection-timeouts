@@ -27,6 +27,9 @@ for ATTEMPT in $(seq 1 2); do
     elif STR="connect timed out" && grep -q "\b$STR\b" "$LOGFILE"; then
         echo "::warning::'$STR' found in $* command log file $LOGFILE"
 
+    elif STR="Connect Timeout Error" && grep -q "\b$STR\b" "$LOGFILE"; then
+        echo "::warning::'$STR' found in $* command log file $LOGFILE"
+
     elif STR="GradleConnectionException: Could not install Gradle distribution from" && grep -q "\b$STR\b" "$LOGFILE"; then
         echo "::warning::'$STR' found in $* command log file $LOGFILE"
 
