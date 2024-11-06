@@ -13,12 +13,12 @@ pull_request_rules:
   - -closed
   - -merged
   - -draft
-  - -locked
   - '#changes-requested-reviews-by=0'
   - check-success=cross-versions-tests-success
   - check-success=WIP
   - '#check-pending=0'
   - '#check-failure=0'
+  - '#check-timed-out=0'
   actions:
     merge:
       method: squash
@@ -45,13 +45,37 @@ pull_request_rules:
   - -closed
   - -merged
   - -draft
-  - -locked
   - '#changes-requested-reviews-by=0'
   - check-success=cross-versions-tests-success
   - check-success=WIP
   - '#check-pending=0'
   - '#check-failure=0'
+  - '#check-timed-out=0'
   actions:
     review: { }
     merge:
       method: squash
+
+- name: Sync with template
+  conditions:
+  - author=remal
+  - label=sync-with-template
+  - '#added-files=0'
+  - '#removed-files=0'
+  - -conflict
+  - -closed
+  - -merged
+  - -draft
+  - '#changes-requested-reviews-by=0'
+  - check-success=cross-versions-tests-success
+  - check-success=WIP
+  - '#check-pending=0'
+  - '#check-failure=0'
+  - '#check-timed-out=0'
+  actions:
+    review: { }
+    merge:
+      method: squash
+
+
+$schema: 'https://docs.mergify.com/mergify-configuration-schema.json'

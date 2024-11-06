@@ -22,8 +22,17 @@ build-cache/
 .gradle/
 
 
+# Kotlin:
+.kotlin/
+
+
 # NodeJS:
 node_modules/
+
+
+# IntelliJ IDEA plugins:
+.intellijPlatform/
+.qodana/
 
 
 # IntelliJ:
