@@ -24,22 +24,22 @@ for ATTEMPT in $(seq 1 2); do
     if [ "$RESULT" -eq 0 ]; then
         exit 0
 
-    elif STR="connect timed out" && grep -q "\b$STR\b" "$LOGFILE"; then
+    elif STR="connect timed out" && grep --quiet --ignore-case "\b$STR\b" "$LOGFILE"; then
         echo "::warning::'$STR' found in $* command log file $LOGFILE"
 
-    elif STR="Connect Timeout Error" && grep -q "\b$STR\b" "$LOGFILE"; then
+    elif STR="Connect Timeout Error" && grep --quiet --ignore-case "\b$STR\b" "$LOGFILE"; then
         echo "::warning::'$STR' found in $* command log file $LOGFILE"
 
-    elif STR="GradleConnectionException: Could not install Gradle distribution from" && grep -q "\b$STR\b" "$LOGFILE"; then
+    elif STR="Could not install Gradle distribution from" && grep --quiet --ignore-case "\b$STR\b" "$LOGFILE"; then
         echo "::warning::'$STR' found in $* command log file $LOGFILE"
 
-    elif STR="Timeout has been exceeded" && grep -q "\b$STR\b" "$LOGFILE"; then
+    elif STR="Timeout has been exceeded" && grep --quiet --ignore-case "\b$STR\b" "$LOGFILE"; then
         echo "::warning::'$STR' found in $* command log file $LOGFILE"
 
-    elif STR="Could not pack tree 'jvmArgumentProviders.jacocoAgent" && grep -q "\b$STR\b" "$LOGFILE"; then
+    elif STR="Could not pack tree 'jvmArgumentProviders.jacocoAgent" && grep --quiet --ignore-case "\b$STR\b" "$LOGFILE"; then
         echo "::warning::'$STR' found in $* command log file $LOGFILE"
 
-    elif STR="Could not get resource" && grep -q "\b$STR\b" "$LOGFILE"; then
+    elif STR="Could not get resource" && grep --quiet --ignore-case "\b$STR\b" "$LOGFILE"; then
         echo "::warning::'$STR' found in $* command log file $LOGFILE"
 
     else
