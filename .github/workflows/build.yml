@@ -379,6 +379,7 @@ jobs:
     env:
       DISABLE_COMPILATION: 'true'
       DISABLE_VERIFICATION: 'true'
+      PUSH_BACK_TOKEN: ${{secrets.PUSH_BACK_TOKEN}}
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -410,6 +411,9 @@ jobs:
     - name: Publish to Gradle Plugin Portal
       run: |
         ./gradlew-retry-connection-timeouts publishPlugins "-Pgradle.publish.key=${{secrets.GRADLE_PLUGINS_PORTAL_KEY}}" "-Pgradle.publish.secret=${{secrets.GRADLE_PLUGINS_PORTAL_SECRET}}"
+    - name: Push back published versions
+      run: |
+        ./gradlew-retry-connection-timeouts pushBackPublishedVersions
 
 
   publish-to-maven-central:
@@ -430,6 +434,7 @@ jobs:
     env:
       DISABLE_COMPILATION: 'true'
       DISABLE_VERIFICATION: 'true'
+      PUSH_BACK_TOKEN: ${{secrets.PUSH_BACK_TOKEN}}
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -461,3 +466,6 @@ jobs:
     - name: Publish to Maven Central
       run: |
         ./gradlew-retry-connection-timeouts publishToSonatype closeAndReleaseSonatypeStagingRepository "-PsonatypeUsername=${{secrets.OSS_USER}}" "-PsonatypePassword=${{secrets.OSS_PASSWORD}}" "-Psigning.key=${{secrets.SIGNING_SECRET_KEY_RING}}" "-Psigning.keyId=${{secrets.SIGNING_KEY_ID}}" "-Psigning.password=${{secrets.SIGNING_PASSWORD}}"
+    - name: Push back published versions
+      run: |
+        ./gradlew-retry-connection-timeouts pushBackPublishedVersions
