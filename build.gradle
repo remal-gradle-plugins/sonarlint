@@ -180,7 +180,7 @@ dependencies {
 
 
     // Plugins:
-    sonarPluginArtifacts 'org.sonarsource.java:sonar-java-plugin:8.5.0.37199'
+    sonarPluginArtifacts 'org.sonarsource.java:sonar-java-plugin:8.6.0.37351'
     sonarPluginArtifacts 'org.sonarsource.kotlin:sonar-kotlin-plugin:2.20.0.4382'
     sonarPluginArtifacts 'org.sonarsource.slang:sonar-ruby-plugin:1.17.1.134'
     sonarPluginArtifacts 'org.sonarsource.slang:sonar-scala-plugin:1.17.1.166'
