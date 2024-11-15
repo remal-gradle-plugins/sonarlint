@@ -19,24 +19,24 @@ env:
   PUSH_BACK_TOKEN: ${{secrets.PUSH_BACK_TOKEN || github.token}}
 
 jobs:
-  rate-limits:
-    name: Check rate limits
+  rebase-dependabot-pull-requests:
+    name: Rebase Dependabot pull requests
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
     concurrency:
       group: rebase-dependabot-pull-requests
       cancel-in-progress: true
     steps:
     - name: Get rate limits
       uses: remal-github-actions/get-rate-limits@v1
-      id: getRateLimits
+      id: rate-limits
       with:
         githubToken: ${{env.PUSH_BACK_TOKEN || github.token}}
-    - name: Make decision
+    - name: Make rate limits decision
       id: decision
       run: |
-        echo "Core rate limit usage: ${{steps.getRateLimits.outputs.coreUsage}}"
-        if [ "${{steps.getRateLimits.outputs.coreUsage < 75}}" == "true" ]; then
+        echo "Core rate limit usage: ${{steps.rate-limits.outputs.coreUsage}}"
+        if [ "${{steps.rate-limits.outputs.coreUsage < 75}}" == "true" ]; then
           echo "Enough rate limits"
           echo 'enough=true' >> $GITHUB_OUTPUT
         else
@@ -46,21 +46,9 @@ jobs:
           fi
           echo 'enough=false' >> $GITHUB_OUTPUT
         fi
-    outputs:
-      enough: ${{steps.decision.outputs.enough}}
 
-  rebase-dependabot-pull-requests:
-    needs:
-    - rate-limits
-    if: ${{github.event_name != 'schedule' || fromJSON(needs.rate-limits.outputs.enough) == true}}
-    name: Rebase Dependabot pull requests
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    concurrency:
-      group: rebase-dependabot-pull-requests
-      cancel-in-progress: true
-    steps:
     - name: Rebase Dependabot pull requests
+      if: ${{github.event_name != 'schedule' || fromJSON(steps.decision.outputs.enough) == true}}
       uses: remal-github-actions/rebase-dependabot-pull-requests@v1
       with:
         githubToken: ${{env.PUSH_BACK_TOKEN}}

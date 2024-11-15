@@ -14,8 +14,8 @@ env:
   PUSH_BACK_TOKEN: ${{secrets.PUSH_BACK_TOKEN}}
 
 jobs:
-  rate-limits:
-    name: Check rate limits
+  bump-repository-activity:
+    name: Bump repository activity
     runs-on: ubuntu-latest
     timeout-minutes: 5
     concurrency:
@@ -24,14 +24,14 @@ jobs:
     steps:
     - name: Get rate limits
       uses: remal-github-actions/get-rate-limits@v1
-      id: getRateLimits
+      id: rate-limits
       with:
         githubToken: ${{env.PUSH_BACK_TOKEN || github.token}}
-    - name: Make decision
+    - name: Make rate limits decision
       id: decision
       run: |
-        echo "Core rate limit usage: ${{steps.getRateLimits.outputs.coreUsage}}"
-        if [ "${{steps.getRateLimits.outputs.coreUsage < 75}}" == "true" ]; then
+        echo "Core rate limit usage: ${{steps.rate-limits.outputs.coreUsage}}"
+        if [ "${{steps.rate-limits.outputs.coreUsage < 75}}" == "true" ]; then
           echo "Enough rate limits"
           echo 'enough=true' >> $GITHUB_OUTPUT
         else
@@ -41,22 +41,9 @@ jobs:
           fi
           echo 'enough=false' >> $GITHUB_OUTPUT
         fi
-    outputs:
-      enough: ${{steps.decision.outputs.enough}}
 
-  bump-repository-activity:
-    needs:
-    - rate-limits
-    if: ${{github.event_name != 'schedule' || fromJSON(needs.rate-limits.outputs.enough) == true}}
-    name: Bump repository activity
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    concurrency:
-      group: bump-repository-activity
-      cancel-in-progress: true
-    steps:
     - name: Bump repository activity
-      if: ${{env.PUSH_BACK_TOKEN}}
+      if: ${{env.PUSH_BACK_TOKEN && (github.event_name != 'schedule' || fromJSON(steps.decision.outputs.enough) == true)}}
       uses: remal-github-actions/bump-repository-activity@v1
       with:
         githubToken: ${{env.PUSH_BACK_TOKEN}}

@@ -30,14 +30,14 @@ jobs:
     steps:
     - name: Get rate limits
       uses: remal-github-actions/get-rate-limits@v1
-      id: getRateLimits
+      id: rate-limits
       with:
         githubToken: ${{env.VALIDATION_TOKEN || github.token}}
     - name: Make decision
       id: decision
       run: |
-        echo "Core rate limit usage: ${{steps.getRateLimits.outputs.coreUsage}}"
-        if [ "${{steps.getRateLimits.outputs.coreUsage < 75}}" == "true" ]; then
+        echo "Core rate limit usage: ${{steps.rate-limits.outputs.coreUsage}}"
+        if [ "${{steps.rate-limits.outputs.coreUsage < 75}}" == "true" ]; then
           echo "Enough rate limits"
           echo 'enough=true' >> $GITHUB_OUTPUT
         else
