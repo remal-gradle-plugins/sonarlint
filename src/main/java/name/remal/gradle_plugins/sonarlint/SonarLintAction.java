@@ -31,7 +31,7 @@ abstract class SonarLintAction implements WorkAction<SonarLintExecutionParams> {
 
     @Override
     @SneakyThrows
-    @SuppressWarnings("java:S3776")
+    @SuppressWarnings({"java:S3776", "Slf4jFormatShouldBeConst"})
     public void execute() {
         val params = getParameters();
 

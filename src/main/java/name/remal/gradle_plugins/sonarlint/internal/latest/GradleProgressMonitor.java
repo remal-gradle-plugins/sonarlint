@@ -24,6 +24,7 @@ class GradleProgressMonitor implements ClientProgressMonitor {
     }
 
 
+    @SuppressWarnings("Slf4jFormatShouldBeConst")
     private void logPercent(int percent) {
         if (isNotEmpty(message) && percent != prevPercent) {
             logger.info(format("%s: %d%%", message, percent));

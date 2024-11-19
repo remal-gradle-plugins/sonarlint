@@ -25,6 +25,7 @@ abstract class NodeJsDetectorPublished extends NodeJsDetector {
     @Nullable
     @Override
     @SneakyThrows
+    @SuppressWarnings("Slf4jFormatShouldBeConst")
     public NodeJsFound detectNodeJsExecutable() {
         val os = osDetector.getDetectedOs().os;
         val arch = osDetector.getDetectedOs().arch;
