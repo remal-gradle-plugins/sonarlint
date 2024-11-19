@@ -583,6 +583,7 @@ abstract class BaseSonarLintActions {
         return sourceFiles;
     }
 
+    @SuppressWarnings("Slf4jFormatShouldBeConst")
     private static Collection<String> getDisabledRulesFromCheckstyleConfig(BaseSonarLint task) {
         val checkstyleConfigFile = Optional.ofNullable(task.getCheckstyleConfig().getAsFile().getOrNull())
             .map(File::getAbsoluteFile)

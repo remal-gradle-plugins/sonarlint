@@ -154,6 +154,7 @@ abstract class BaseSonarLintInternals {
     }
 
     @Nullable
+    @SuppressWarnings("Slf4jFormatShouldBeConst")
     private static NodeJsFound calculateConfiguredNodeJsInfo(BaseSonarLint task, ObjectFactory objects) {
         val configuredNodeJsExecutable = task.getNodeJs()
             .flatMap(SonarLintNodeJs::getNodeJsExecutable)

@@ -14,6 +14,7 @@ abstract class ErrorLogging {
 
     private static final Set<String> LOGGED_MESSAGES = newSetFromMap(new ConcurrentHashMap<>());
 
+    @SuppressWarnings("Slf4jFormatShouldBeConst")
     public static void logError(String message) {
         if (LOGGED_MESSAGES.add(message)) {
             logger.error(message);

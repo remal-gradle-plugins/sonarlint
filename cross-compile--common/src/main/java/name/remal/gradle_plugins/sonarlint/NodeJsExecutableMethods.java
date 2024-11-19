@@ -24,6 +24,7 @@ abstract class NodeJsExecutableMethods {
     public abstract NodeJsInfo getNodeJsInfo(ProviderFactory providers, File file);
 
 
+    @SuppressWarnings("Slf4jFormatShouldBeConst")
     protected static void setExecutePermissionsIfNeeded(File file) {
         try {
             file = file.getAbsoluteFile();

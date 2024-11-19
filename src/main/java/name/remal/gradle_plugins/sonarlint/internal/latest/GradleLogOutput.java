@@ -54,6 +54,7 @@ class GradleLogOutput implements ClientLogOutput {
     private final Set<String> loggedMessages = newSetFromMap(new ConcurrentHashMap<>());
 
     @Override
+    @SuppressWarnings("Slf4jFormatShouldBeConst")
     public void log(String formattedMessage, Level level) {
         formattedMessage = formattedMessage.trim();
 

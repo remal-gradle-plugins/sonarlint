@@ -15,8 +15,11 @@ abstract class NodeJsDetector implements Comparable<NodeJsDetector> {
     public abstract NodeJsFound detectNodeJsExecutable();
 
 
+    @SuppressWarnings("Slf4jLoggerShouldBePrivate")
     protected final Logger logger = Logging.getLogger(unwrapGeneratedSubclass(getClass()));
+
     protected final NodeJsInfoRetriever nodeJsInfoRetriever = getObjects().newInstance(NodeJsInfoRetriever.class);
+    
     protected final OsDetector osDetector = getObjects().newInstance(OsDetector.class);
 
 

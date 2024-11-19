@@ -127,6 +127,7 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
     }
 
     @Override
+    @SuppressWarnings("Slf4jFormatShouldBeConst")
     protected void createConfigurations() {
         configureGlobalResolutionStrategy(project, resolutionStrategy -> {
             try {
