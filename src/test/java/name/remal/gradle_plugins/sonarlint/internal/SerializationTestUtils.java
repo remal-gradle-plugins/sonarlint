@@ -82,7 +82,6 @@ abstract class SerializationTestUtils {
     }
 
     @SneakyThrows
-    @SuppressWarnings("UnstableApiUsage")
     private static void populateBuilderWithValue(Object builder, Method method) {
         val type = TypeToken.of(builder.getClass()).method(method).getParameters().get(0).getType().getType();
         val value = createValue(type);

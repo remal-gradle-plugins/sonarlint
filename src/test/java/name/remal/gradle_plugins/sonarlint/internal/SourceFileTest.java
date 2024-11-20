@@ -1,6 +1,5 @@
 package name.remal.gradle_plugins.sonarlint.internal;
 
-import static name.remal.gradle_plugins.sonarlint.internal.SerializationTestUtils.populateBuilderWithValues;
 import static name.remal.gradle_plugins.sonarlint.internal.SourceFile.newSourceFileBuilder;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -15,7 +14,7 @@ class SourceFileTest {
 
     @Test
     void serialization() throws Throwable {
-        val originalObject = populateBuilderWithValues(newSourceFileBuilder()).build();
+        val originalObject = SerializationTestUtils.populateBuilderWithValues(newSourceFileBuilder()).build();
 
         final byte[] bytes;
         try (val bytesOutputStream = new ByteArrayOutputStream()) {
