@@ -75,7 +75,11 @@ public class RulesDocumentation implements Documentation {
                     Optional.ofNullable(paramDoc.getType())
                         .ifPresent(type -> message.append("\n      Type: ").append(type));
 
-                    Optional.ofNullable(paramDoc.getPossibleValues())
+                    Optional.ofNullable(paramDoc.getCurrentValue())
+                        .filter(ObjectUtils::isNotEmpty)
+                        .ifPresent(value -> message.append("\n      Current value: ").append(value));
+
+                    Optional.of(paramDoc.getPossibleValues())
                         .filter(ObjectUtils::isNotEmpty)
                         .ifPresent(values -> {
                             val valuesString = values.stream()
@@ -142,13 +146,16 @@ public class RulesDocumentation implements Documentation {
         String type;
 
         @Nullable
+        String currentValue;
+
+        @Nullable
         String defaultValue;
 
         final Collection<String> possibleValues = new LinkedHashSet<>();
 
         public void setPossibleValues(@Nullable Collection<String> possibleValues) {
             this.possibleValues.clear();
-            if (isNotEmpty(possibleValues)) {
+            if (possibleValues != null) {
                 possibleValues.stream()
                     .filter(Objects::nonNull)
                     .forEach(this.possibleValues::add);
