@@ -4,6 +4,9 @@ import java.nio.file.Files
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
+import org.objectweb.asm.ClassReader
+import org.objectweb.asm.ClassWriter
+import org.objectweb.asm.tree.ClassNode
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
@@ -16,6 +19,9 @@ buildscript {
         classpath 'name.remal.gradle-plugins.toolkit:build-logic:0.67.1'
         classpath 'de.undercouch:gradle-download-task:5.6.0'
         classpath 'com.tisonkun.os:os-detector-core:0.6.0'
+
+        classpath platform("org.ow2.asm:asm-bom:9.7.1")
+        classpath 'org.ow2.asm:asm-tree'
     }
     repositories {
         mavenCentral()
@@ -75,7 +81,6 @@ allprojects {
     pluginManager.withPlugin('java') {
         dependencies {
             relocateClasses 'name.remal.gradle-plugins.toolkit:toolkit'
-            relocateClasses 'com.google.guava:guava'
 
             optional 'name.remal.gradle-api:gradle-api'
         }
@@ -91,7 +96,7 @@ apply plugin: 'name.remal.generate-sources'
 dependencies {
     relocateClasses 'com.tisonkun.os:os-detector-core:0.6.0'
 
-    optional('org.sonarsource.sonarlint.core:sonarlint-core:9.8.0.76914') { transitive = false }
+    optional 'org.sonarsource.sonarlint.core:sonarlint-core:9.8.0.76914'
 }
 
 gradlePlugin {
@@ -142,9 +147,13 @@ allSonarArtifactsConf.resolutionStrategy.eachDependency { DependencyResolveDetai
     ModuleVersionSelector target = details.target
 
     String version = target.version
-    if (version == null) return
-    boolean isReproducible = version.endsWith('-SNAPSHOT') || ['(', '[', ']', ')'].any { version.contains(it) }
-    if (!isReproducible) return
+    if (version == null) {
+        return
+    }
+    boolean isNotReproducible = version.endsWith('-SNAPSHOT') || ['(', '[', ']', ')'].any { version.contains(it) }
+    if (!isNotReproducible) {
+        return
+    }
 
     String id = "${target.group}:${target.name}".toString()
     nonReproducibleSonarDependencyVersions.put(id, version)
@@ -355,13 +364,13 @@ allprojects {
     */
 
     Attribute<String> artifactType = Attribute.of('artifactType', String)
-    Attribute<Boolean> unshadedSonar = Attribute.of('unshaded', Boolean)
+    Attribute<Boolean> unprocessedSonar = Attribute.of('unprocessedSonar', Boolean)
     dependencies {
         attributesSchema {
-            attribute(unshadedSonar)
+            attribute(unprocessedSonar)
         }
         artifactTypes.getByName('jar') {
-            attributes.attribute(unshadedSonar, false)
+            attributes.attribute(unprocessedSonar, false)
         }
     }
 
@@ -369,28 +378,53 @@ allprojects {
         .matching { !it.name.startsWith('sonar') }
         .matching { !it.name.startsWith('allSonar') }
         .all { Configuration conf ->
-            if (conf.state != Configuration.State.UNRESOLVED) return
+            if (conf.state != Configuration.State.UNRESOLVED
+                || !conf.canBeResolved
+            ) {
+                return
+            }
+
+            Closure<Boolean> isSonarGroup = { String group ->
+                return group == 'org.sonarsource'
+                    || group.startsWith('org.sonarsource.')
+            }
 
             conf.dependencies.withType(ExternalModuleDependency).configureEach { ExternalModuleDependency dep ->
-                if ("${dep.group}:${dep.name}" == 'org.sonarsource.sonarlint.core:sonarlint-core') {
-                    dep.attributes {
-                        attribute(unshadedSonar, true)
+                if (isSonarGroup(dep.group)) {
+                    dep.exclude(group: 'com.google.guava')
+                }
+            }
+
+            conf.resolutionStrategy.dependencySubstitution { DependencySubstitutions substitutions ->
+                substitutions.all { DependencySubstitution substitution ->
+                    if (!(substitution.requested instanceof ModuleComponentSelector)) {
+                        return
+                    }
+
+                    ModuleComponentSelector requested = (ModuleComponentSelector) substitution.requested
+                    if (isSonarGroup(requested.group)) {
+                        ComponentSelector target = substitutions.variant(requested) { VariantSelectionDetails details ->
+                            details.attributes {
+                                attribute(unprocessedSonar, true)
+                            }
+                        }
+                        substitution.useTarget(target)
                     }
                 }
             }
         }
 
     dependencies {
-        registerTransform(UnshadeSonar) {
-            from.attribute(unshadedSonar, false).attribute(artifactType, 'jar')
-            to.attribute(unshadedSonar, true).attribute(artifactType, 'jar')
+        registerTransform(ProcessSonar) {
+            from.attribute(unprocessedSonar, false).attribute(artifactType, 'jar')
+            to.attribute(unprocessedSonar, true).attribute(artifactType, 'jar')
         }
     }
 }
 
-abstract class UnshadeSonar implements TransformAction<UnshadeParameters> {
+abstract class ProcessSonar implements TransformAction<ProcessSonarParameters> {
 
-    interface UnshadeParameters extends TransformParameters {}
+    interface ProcessSonarParameters extends TransformParameters {}
 
     @InputArtifact
     abstract Provider<FileSystemLocation> getInputArtifact()
@@ -398,25 +432,106 @@ abstract class UnshadeSonar implements TransformAction<UnshadeParameters> {
     @Override
     void transform(TransformOutputs outputs) {
         File file = inputArtifact.get().asFile
+        //println file
         File outputFile = outputs.file(file.name)
-        if (outputFile.exists() && outputFile.lastModified() >= rootProject.buildFile.lastModified()) return
+        if (outputFile.exists() && outputFile.lastModified() >= rootProject.buildFile.lastModified()) {
+            return
+        }
 
         Files.createDirectories(outputFile.parentFile.toPath())
         new ZipInputStream(new FileInputStream(file), UTF_8).withCloseable { ZipInputStream inputStream ->
             new ZipOutputStream(new FileOutputStream(outputFile), UTF_8).withCloseable { ZipOutputStream outputStream ->
                 while (true) {
                     ZipEntry zipEntry = inputStream.nextEntry
-                    if (zipEntry == null) break
+                    if (zipEntry == null) {
+                        break
+                    }
 
-                    if (zipEntry.name.contains('/shaded/')) continue
+                    if (zipEntry.directory) {
+                        continue
+                    }
 
-                    if (!zipEntry.name.contains('sonar') && !zipEntry.name.startsWith('META-INF/')) continue
+                    if (zipEntry.name.contains('/shaded/')) {
+                        continue
+                    }
+
+                    if (!zipEntry.name.contains('sonar')
+                        && !zipEntry.name.startsWith('META-INF/')
+                    ) {
+                        continue
+                    }
 
                     outputStream.putNextEntry(zipEntry)
-                    outputStream << inputStream
+
+                    if (!zipEntry.name.endsWith('.class')) {
+                        outputStream << inputStream
+                        continue
+                    }
+
+                    if (!zipEntry.name.startsWith('org/sonarsource/')
+                        && !zipEntry.name.startsWith('org/sonar/')
+                    ) {
+                        outputStream << inputStream
+                        continue
+                    }
+
+
+                    ClassNode classNode = new ClassNode()
+                    new ClassReader(inputStream).accept(classNode, 0)
+
+                    Closure processDeprecatedAnnotations = { node ->
+                        // remove parameters of @Deprecated
+                        node.visibleAnnotations
+                            ?.findAll { it.desc == 'Ljava/lang/Deprecated;' && it.values?.size() }
+                            ?.forEach {
+                                it.values = []
+                                //println classNode.name
+                            }
+                    }
+                    processDeprecatedAnnotations(classNode)
+                    classNode.fields?.forEach { processDeprecatedAnnotations(it) }
+                    classNode.methods?.forEach { processDeprecatedAnnotations(it) }
+
+                    ClassWriter classWriter = new ClassWriter(0)
+                    classNode.accept(classWriter)
+
+                    outputStream << classWriter.toByteArray()
                 }
             }
         }
+    }
+
+}
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+allprojects {
+    dependencies.components {
+        withModule('org.sonarsource.git.blame:git-files-blame', TargetJvmVersionRule) { params(8) }
+    }
+}
+
+@CacheableRule
+abstract class TargetJvmVersionRule implements ComponentMetadataRule {
+
+    final Integer jvmVersion
+
+    @Inject
+    TargetJvmVersionRule(Integer jvmVersion) {
+        this.jvmVersion = jvmVersion
+    }
+
+    void execute(ComponentMetadataContext context) {
+        context.details.allVariants {
+            attributes {
+                attribute(TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, jvmVersion)
+            }
+        }
+    }
+
+    @Override
+    String toString() {
+        return "${getClass().simpleName}[$jvmVersion]"
     }
 
 }
