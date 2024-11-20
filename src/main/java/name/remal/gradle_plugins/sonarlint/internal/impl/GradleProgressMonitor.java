@@ -1,4 +1,4 @@
-package name.remal.gradle_plugins.sonarlint.internal.latest;
+package name.remal.gradle_plugins.sonarlint.internal.impl;
 
 import static java.lang.Math.floor;
 import static java.lang.Math.round;

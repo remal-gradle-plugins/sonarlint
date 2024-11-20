@@ -51,6 +51,10 @@ public class PropertiesDocumentation implements Documentation {
             Optional.ofNullable(propDoc.getType())
                 .ifPresent(type -> message.append("\n  Type: ").append(type));
 
+            Optional.ofNullable(propDoc.getCurrentValue())
+                .filter(ObjectUtils::isNotEmpty)
+                .ifPresent(value -> message.append("\n  Current value: ").append(value));
+
             Optional.ofNullable(propDoc.getDefaultValue())
                 .filter(ObjectUtils::isNotEmpty)
                 .ifPresent(value -> message.append("\n  Default value: ").append(value));
@@ -72,6 +76,9 @@ public class PropertiesDocumentation implements Documentation {
 
         @Nullable
         String type;
+
+        @Nullable
+        String currentValue;
 
         @Nullable
         String defaultValue;

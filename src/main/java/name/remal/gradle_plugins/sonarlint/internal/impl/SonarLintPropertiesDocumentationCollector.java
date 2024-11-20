@@ -1,23 +1,17 @@
-package name.remal.gradle_plugins.sonarlint.internal.latest;
+package name.remal.gradle_plugins.sonarlint.internal.impl;
 
-import static name.remal.gradle_plugins.sonarlint.internal.StandaloneGlobalConfigurationFactory.createEngineConfig;
-
-import com.google.auto.service.AutoService;
 import java.util.Optional;
 import lombok.val;
 import name.remal.gradle_plugins.sonarlint.internal.PropertiesDocumentation;
 import name.remal.gradle_plugins.sonarlint.internal.SonarLintExecutionParams;
-import name.remal.gradle_plugins.sonarlint.internal.SonarLintPropertiesDocumentationCollector;
 
-@AutoService(SonarLintPropertiesDocumentationCollector.class)
-final class SonarLintPropertiesDocumentationCollectorLatest implements SonarLintPropertiesDocumentationCollector {
+public class SonarLintPropertiesDocumentationCollector {
 
-    @Override
     public PropertiesDocumentation collectPropertiesDocumentation(SonarLintExecutionParams params) {
-        val engineConfig = createEngineConfig(params);
-
-        val propertyDefinitionsExtractor = new PropertyDefinitionsExtractorContainer(engineConfig);
+        val propertyDefinitionsExtractor = new SonarLintPropertyDefinitionsExtractorContainer(params);
         propertyDefinitionsExtractor.execute();
+
+        val currentProperties = params.getSonarProperties().get();
 
         val propertiesDoc = new PropertiesDocumentation();
         propertyDefinitionsExtractor
@@ -28,6 +22,7 @@ final class SonarLintPropertiesDocumentationCollectorLatest implements SonarLint
                 Optional.ofNullable(propDef.type())
                     .map(Enum::name)
                     .ifPresent(propDoc::setType);
+                propDoc.setCurrentValue(currentProperties.get(propDef.key()));
                 propDoc.setDefaultValue(propDef.defaultValue());
             }));
         return propertiesDoc;

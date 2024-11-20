@@ -1,27 +1,22 @@
 package name.remal.gradle_plugins.sonarlint;
 
 import static java.lang.String.format;
-import static java.util.stream.Collectors.toList;
 import static name.remal.gradle_plugins.sonarlint.internal.SonarLintCommand.ANALYSE;
 import static name.remal.gradle_plugins.sonarlint.internal.SonarLintCommand.HELP_PROPERTIES;
 import static name.remal.gradle_plugins.sonarlint.internal.SonarLintCommand.HELP_RULES;
-import static name.remal.gradle_plugins.sonarlint.internal.SonarLintServices.loadSonarLintService;
 import static name.remal.gradle_plugins.toolkit.ObjectUtils.isNotEmpty;
-import static name.remal.gradle_plugins.toolkit.ProxyUtils.toDynamicInterface;
 
-import java.util.Objects;
 import javax.inject.Inject;
 import lombok.CustomLog;
 import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.val;
-import name.remal.gradle_plugins.sonarlint.internal.SonarLintAnalyzer;
 import name.remal.gradle_plugins.sonarlint.internal.SonarLintExecutionParams;
-import name.remal.gradle_plugins.sonarlint.internal.SonarLintPropertiesDocumentationCollector;
-import name.remal.gradle_plugins.sonarlint.internal.SonarLintRulesDocumentationCollector;
+import name.remal.gradle_plugins.sonarlint.internal.impl.SonarLintAnalyzer;
+import name.remal.gradle_plugins.sonarlint.internal.impl.SonarLintPropertiesDocumentationCollector;
+import name.remal.gradle_plugins.sonarlint.internal.impl.SonarLintRulesDocumentationCollector;
 import name.remal.gradle_plugins.toolkit.issues.CheckstyleHtmlIssuesRenderer;
 import name.remal.gradle_plugins.toolkit.issues.CheckstyleXmlIssuesRenderer;
-import name.remal.gradle_plugins.toolkit.issues.Issue;
 import name.remal.gradle_plugins.toolkit.issues.TextIssuesRenderer;
 import org.gradle.workers.WorkAction;
 
@@ -37,15 +32,8 @@ abstract class SonarLintAction implements WorkAction<SonarLintExecutionParams> {
 
         val command = params.getCommand().get();
         if (command == ANALYSE) {
-            val sonarLintAnalyzer = loadSonarLintService(
-                SonarLintAnalyzer.class,
-                params.getSonarLintVersion().get()
-            );
-            val untypedIssues = sonarLintAnalyzer.analyze(params);
-            val issues = untypedIssues.stream()
-                .filter(Objects::nonNull)
-                .map(untypedIssue -> toDynamicInterface(untypedIssue, Issue.class))
-                .collect(toList());
+            val sonarLintAnalyzer = new SonarLintAnalyzer();
+            val issues = sonarLintAnalyzer.analyze(params);
 
             val xmlReportLocation = params.getXmlReportLocation().getAsFile().getOrNull();
             if (xmlReportLocation != null) {
@@ -73,18 +61,12 @@ abstract class SonarLintAction implements WorkAction<SonarLintExecutionParams> {
             }
 
         } else if (command == HELP_RULES) {
-            val rulesDocumentationCollector = loadSonarLintService(
-                SonarLintRulesDocumentationCollector.class,
-                params.getSonarLintVersion().get()
-            );
+            val rulesDocumentationCollector = new SonarLintRulesDocumentationCollector();
             val rulesDoc = rulesDocumentationCollector.collectRulesDocumentation(params);
             logger.quiet(rulesDoc.renderToText());
 
         } else if (command == HELP_PROPERTIES) {
-            val propertiesDocumentationCollector = loadSonarLintService(
-                SonarLintPropertiesDocumentationCollector.class,
-                params.getSonarLintVersion().get()
-            );
+            val propertiesDocumentationCollector = new SonarLintPropertiesDocumentationCollector();
             val propertiesDoc = propertiesDocumentationCollector.collectPropertiesDocumentation(params);
             logger.quiet(propertiesDoc.renderToText());
 

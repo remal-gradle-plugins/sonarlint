@@ -1,21 +1,16 @@
-package name.remal.gradle_plugins.sonarlint.internal.latest;
+package name.remal.gradle_plugins.sonarlint.internal.impl;
 
 import static com.google.common.base.CaseFormat.UPPER_CAMEL;
 import static com.google.common.base.CaseFormat.UPPER_UNDERSCORE;
-import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.emptySet;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
-import static name.remal.gradle_plugins.sonarlint.internal.StandaloneGlobalConfigurationFactory.createEngineConfig;
-import static name.remal.gradle_plugins.toolkit.ObjectUtils.isNotEmpty;
+import static name.remal.gradle_plugins.sonarlint.internal.impl.SonarLintConfigurationUtils.createEngineConfig;
 import static name.remal.gradle_plugins.toolkit.PredicateUtils.not;
 import static name.remal.gradle_plugins.toolkit.issues.Issue.newIssue;
 import static name.remal.gradle_plugins.toolkit.issues.IssueSeverity.ERROR;
 import static name.remal.gradle_plugins.toolkit.issues.IssueSeverity.INFO;
 import static name.remal.gradle_plugins.toolkit.issues.IssueSeverity.WARNING;
 
-import com.google.auto.service.AutoService;
 import java.io.File;
 import java.util.Collection;
 import java.util.LinkedHashSet;
@@ -23,7 +18,6 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.function.Predicate;
 import lombok.val;
-import name.remal.gradle_plugins.sonarlint.internal.SonarLintAnalyzer;
 import name.remal.gradle_plugins.sonarlint.internal.SonarLintExecutionParams;
 import name.remal.gradle_plugins.sonarlint.internal.SourceFile;
 import name.remal.gradle_plugins.toolkit.ObjectUtils;
@@ -37,30 +31,28 @@ import org.sonarsource.sonarlint.core.client.api.standalone.StandaloneAnalysisCo
 import org.sonarsource.sonarlint.core.client.api.standalone.StandaloneRuleDetails;
 import org.sonarsource.sonarlint.core.commons.RuleKey;
 
-@AutoService(SonarLintAnalyzer.class)
-final class SonarLintAnalyzerLatest implements SonarLintAnalyzer {
+public class SonarLintAnalyzer {
 
-    @Override
     @SuppressWarnings("java:S3776")
-    public Collection<?> analyze(SonarLintExecutionParams params) {
+    public Collection<Issue> analyze(SonarLintExecutionParams params) {
         val engineConfig = createEngineConfig(params);
 
         val analysisConfig = StandaloneAnalysisConfiguration.builder()
             .setBaseDir(params.getProjectDir().get().getAsFile().toPath())
-            .addInputFiles(params.getSourceFiles().getOrElse(emptyList()).stream()
+            .addInputFiles(params.getSourceFiles().get().stream()
                 .map(GradleClientInputFile::new)
                 .collect(toList())
             )
-            .addIncludedRules(params.getEnabledRules().getOrElse(emptySet()).stream()
+            .addIncludedRules(params.getEnabledRules().get().stream()
                 .map(RuleKey::parse)
                 .collect(toList())
             )
-            .addExcludedRules(params.getDisabledRules().getOrElse(emptySet()).stream()
+            .addExcludedRules(params.getDisabledRules().get().stream()
                 .map(RuleKey::parse)
                 .collect(toList())
             )
-            .putAllExtraProperties(params.getSonarProperties().getOrElse(emptyMap()))
-            .addRuleParameters(params.getRulesProperties().getOrElse(emptyMap()).entrySet().stream().collect(toMap(
+            .putAllExtraProperties(params.getSonarProperties().get())
+            .addRuleParameters(params.getRulesProperties().get().entrySet().stream().collect(toMap(
                 entry -> RuleKey.parse(entry.getKey()),
                 Entry::getValue
             )))
@@ -100,8 +92,14 @@ final class SonarLintAnalyzerLatest implements SonarLintAnalyzer {
                     }
 
                     val issue = newIssue(builder -> {
-                        builder.sourceFile(sourceFile);
+                        builder.rule(sonarIssue.getRuleKey());
                         builder.message(message);
+
+                        builder.sourceFile(sourceFile);
+                        builder.startLine(sonarIssue.getStartLine());
+                        builder.startColumn(sonarIssue.getStartLineOffset());
+                        builder.endLine(sonarIssue.getEndLine());
+                        builder.endColumn(sonarIssue.getEndLineOffset());
 
                         Optional.ofNullable(sonarIssue.getSeverity())
                             .map(Enum::name)
@@ -111,9 +109,11 @@ final class SonarLintAnalyzerLatest implements SonarLintAnalyzer {
                                     case "BLOCKER":
                                     case "CRITICAL":
                                     case "MAJOR":
+                                    case "HIGH":
                                         builder.severity(ERROR);
                                         break;
                                     case "MINOR":
+                                    case "MEDIUM":
                                         builder.severity(WARNING);
                                         break;
                                     default:
@@ -126,20 +126,10 @@ final class SonarLintAnalyzerLatest implements SonarLintAnalyzer {
                             .map(UPPER_UNDERSCORE.converterTo(UPPER_CAMEL))
                             .ifPresent(builder::category);
 
-                        builder.startLine(sonarIssue.getStartLine());
-                        builder.startColumn(sonarIssue.getStartLineOffset());
-                        builder.endLine(sonarIssue.getEndLine());
-                        builder.endColumn(sonarIssue.getEndLineOffset());
-
-                        val ruleKey = sonarIssue.getRuleKey();
-                        if (isNotEmpty(ruleKey)) {
-                            builder.rule(sonarIssue.getRuleKey());
-
-                            engine.getRuleDetails(ruleKey)
-                                .map(StandaloneRuleDetails::getHtmlDescription)
-                                .map(HtmlMessage::htmlMessageOf)
-                                .ifPresent(builder::description);
-                        }
+                        engine.getRuleDetails(sonarIssue.getRuleKey())
+                            .map(StandaloneRuleDetails::getHtmlDescription)
+                            .map(HtmlMessage::htmlMessageOf)
+                            .ifPresent(builder::description);
                     });
                     issues.add(issue);
                 }

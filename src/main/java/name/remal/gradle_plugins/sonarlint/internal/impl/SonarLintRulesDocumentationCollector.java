@@ -1,38 +1,33 @@
-package name.remal.gradle_plugins.sonarlint.internal.latest;
+package name.remal.gradle_plugins.sonarlint.internal.impl;
 
 import static java.util.Collections.emptyMap;
-import static java.util.Collections.emptySet;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 import static name.remal.gradle_plugins.sonarlint.internal.RulesDocumentation.RuleStatus.DISABLED_BY_DEFAULT;
 import static name.remal.gradle_plugins.sonarlint.internal.RulesDocumentation.RuleStatus.DISABLED_EXPLICITLY;
 import static name.remal.gradle_plugins.sonarlint.internal.RulesDocumentation.RuleStatus.ENABLED_BY_DEFAULT;
 import static name.remal.gradle_plugins.sonarlint.internal.RulesDocumentation.RuleStatus.ENABLED_EXPLICITLY;
-import static name.remal.gradle_plugins.sonarlint.internal.StandaloneGlobalConfigurationFactory.createEngineConfig;
+import static name.remal.gradle_plugins.sonarlint.internal.impl.SonarLintConfigurationUtils.createEngineConfig;
 
-import com.google.auto.service.AutoService;
 import java.util.Map.Entry;
 import java.util.Optional;
 import lombok.val;
 import name.remal.gradle_plugins.sonarlint.internal.RulesDocumentation;
 import name.remal.gradle_plugins.sonarlint.internal.SonarLintExecutionParams;
-import name.remal.gradle_plugins.sonarlint.internal.SonarLintRulesDocumentationCollector;
 import org.sonar.api.rule.RuleKey;
 import org.sonarsource.sonarlint.core.StandaloneSonarLintEngineImpl;
 import org.sonarsource.sonarlint.core.commons.Language;
 
-@AutoService(SonarLintRulesDocumentationCollector.class)
-final class SonarLintRulesDocumentationCollectorLatest implements SonarLintRulesDocumentationCollector {
+public class SonarLintRulesDocumentationCollector {
 
-    @Override
     public RulesDocumentation collectRulesDocumentation(SonarLintExecutionParams params) {
-        val enabledRules = params.getEnabledRules().getOrElse(emptySet()).stream()
+        val enabledRules = params.getEnabledRules().get().stream()
             .map(RuleKey::parse)
             .collect(toList());
-        val disabledRules = params.getDisabledRules().getOrElse(emptySet()).stream()
+        val disabledRules = params.getDisabledRules().get().stream()
             .map(RuleKey::parse)
             .collect(toList());
-        val allRuleProperties = params.getRulesProperties().getOrElse(emptyMap()).entrySet().stream().collect(toMap(
+        val allRuleProperties = params.getRulesProperties().get().entrySet().stream().collect(toMap(
             entry -> RuleKey.parse(entry.getKey()),
             Entry::getValue
         ));

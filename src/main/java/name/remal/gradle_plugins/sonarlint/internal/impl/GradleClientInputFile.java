@@ -1,4 +1,4 @@
-package name.remal.gradle_plugins.sonarlint.internal.latest;
+package name.remal.gradle_plugins.sonarlint.internal.impl;
 
 import static com.google.common.io.ByteStreams.toByteArray;
 import static java.nio.file.Files.newInputStream;
@@ -15,7 +15,7 @@ import name.remal.gradle_plugins.sonarlint.internal.SourceFile;
 import org.sonarsource.sonarlint.core.analysis.api.ClientInputFile;
 
 @RequiredArgsConstructor
-@SuppressWarnings("deprecation")
+@SuppressWarnings({"deprecation", "RedundantSuppression"})
 class GradleClientInputFile implements ClientInputFile {
 
     private final SourceFile sourceFile;

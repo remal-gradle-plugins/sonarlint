@@ -1,5 +1,6 @@
 package name.remal.gradle_plugins.sonarlint;
 
+import static java.lang.String.format;
 import static java.nio.file.Files.getPosixFilePermissions;
 import static java.nio.file.Files.setPosixFilePermissions;
 import static java.nio.file.attribute.PosixFilePermission.GROUP_EXECUTE;
@@ -26,12 +27,12 @@ abstract class NodeJsExecutableMethods {
 
     @SuppressWarnings("Slf4jFormatShouldBeConst")
     protected static void setExecutePermissionsIfNeeded(File file) {
-        try {
-            file = file.getAbsoluteFile();
-            if (file.canExecute()) {
-                return;
-            }
+        file = file.getAbsoluteFile();
+        if (file.canExecute()) {
+            return;
+        }
 
+        try {
             val filePath = file.toPath();
             val permissionsToSet = EnumSet.of(OWNER_EXECUTE, GROUP_EXECUTE, OTHERS_EXECUTE);
             permissionsToSet.addAll(getPosixFilePermissions(filePath));
@@ -40,7 +41,7 @@ abstract class NodeJsExecutableMethods {
         } catch (UnsupportedOperationException ignored) {
             // do nothing
         } catch (Exception e) {
-            logger.warn(e.toString(), e);
+            logger.warn(format("Error setting execute permissions for %s: %s", file, e), e);
         }
     }
 

@@ -1,7 +1,8 @@
-package name.remal.gradle_plugins.sonarlint.internal.latest;
+package name.remal.gradle_plugins.sonarlint.internal.impl;
 
 import static java.util.Collections.newSetFromMap;
 import static java.util.Collections.unmodifiableMap;
+import static lombok.AccessLevel.PRIVATE;
 import static org.sonarsource.sonarlint.core.commons.log.ClientLogOutput.Level.DEBUG;
 import static org.sonarsource.sonarlint.core.commons.log.ClientLogOutput.Level.ERROR;
 import static org.sonarsource.sonarlint.core.commons.log.ClientLogOutput.Level.TRACE;
@@ -13,11 +14,16 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 import lombok.CustomLog;
+import lombok.NoArgsConstructor;
 import lombok.val;
 import org.sonarsource.sonarlint.core.commons.log.ClientLogOutput;
 
 @CustomLog
+@NoArgsConstructor(access = PRIVATE)
 class GradleLogOutput implements ClientLogOutput {
+
+    public static final GradleLogOutput GRADLE_LOG_OUTPUT = new GradleLogOutput();
+
 
     private static final Map<Pattern, Level> MESSAGE_LEVELS;
 

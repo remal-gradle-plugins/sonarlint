@@ -1,20 +1,20 @@
-package name.remal.gradle_plugins.sonarlint.internal.latest;
+package name.remal.gradle_plugins.sonarlint.internal.impl;
 
 import java.util.ArrayList;
 import java.util.List;
 import lombok.Getter;
 import lombok.val;
+import name.remal.gradle_plugins.sonarlint.internal.SonarLintExecutionParams;
 import org.sonar.api.config.PropertyDefinition;
 import org.sonar.api.config.PropertyDefinitions;
-import org.sonarsource.sonarlint.core.client.api.standalone.StandaloneGlobalConfiguration;
 
-@Getter
-class PropertyDefinitionsExtractorContainer extends AbstractExtractorContainer {
+class SonarLintPropertyDefinitionsExtractorContainer extends AbstractExtractorContainer {
 
+    @Getter
     private final List<PropertyDefinition> propertyDefinitions = new ArrayList<>();
 
-    public PropertyDefinitionsExtractorContainer(StandaloneGlobalConfiguration globalConfig) {
-        super(globalConfig);
+    public SonarLintPropertyDefinitionsExtractorContainer(SonarLintExecutionParams params) {
+        super(params);
     }
 
     @Override
