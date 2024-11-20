@@ -20,7 +20,6 @@ import static name.remal.gradle_plugins.sonarlint.BaseSonarLintActions.SONAR_SOU
 import static name.remal.gradle_plugins.sonarlint.DependencyWithBrokenPomSubstitutions.getVersionWithFixedPom;
 import static name.remal.gradle_plugins.sonarlint.ResolvedNonReproducibleSonarDependencies.getResolvedNonReproducibleSonarDependency;
 import static name.remal.gradle_plugins.sonarlint.SonarDependencies.getSonarDependencies;
-import static name.remal.gradle_plugins.sonarlint.SonarDependencies.getSonarDependency;
 import static name.remal.gradle_plugins.toolkit.ExtensionContainerUtils.findExtension;
 import static name.remal.gradle_plugins.toolkit.ExtensionContainerUtils.getExtension;
 import static name.remal.gradle_plugins.toolkit.PredicateUtils.not;
@@ -58,6 +57,7 @@ import name.remal.gradle_plugins.toolkit.annotations.ReliesOnInternalGradleApi;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.Dependency;
+import org.gradle.api.artifacts.ModuleDependency;
 import org.gradle.api.artifacts.dsl.DependencyHandler;
 import org.gradle.api.attributes.Category;
 import org.gradle.api.attributes.Usage;
@@ -118,12 +118,13 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
     protected void configureConfiguration(Configuration configuration) {
         configureSonarLintConfiguration(configuration);
 
-        configuration.defaultDependencies(dependencies -> {
-            dependencies.add(createDependency(
-                getSonarDependency("sonarlint-core"),
-                extension.getToolVersion()
-            ));
-        });
+        getSonarDependencies().values().stream()
+            .filter(sonarDependency -> sonarDependency.getType() == SonarDependencyType.CORE)
+            .forEach(sonarDependency -> {
+                configuration.getDependencies().add(
+                    createDependency(sonarDependency)
+                );
+            });
     }
 
     @Override
@@ -156,6 +157,10 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
             configureSonarLintConfiguration(conf);
             conf.setDescription(getToolName() + " plugins to be used for this project.");
 
+            conf.getDependencies().withType(ModuleDependency.class).configureEach(dep -> {
+                dep.setTransitive(false);
+            });
+
             getSonarDependencies().values().stream()
                 .filter(sonarDependency -> sonarDependency.getType() == SonarDependencyType.PLUGIN)
                 .forEach(sonarDependency -> {
@@ -184,8 +189,6 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
     protected CodeQualityExtension createExtension() {
         val extension = project.getExtensions().create("sonarLint", SonarLintExtension.class);
         this.extension = extension;
-
-        extension.setToolVersion(getSonarDependency("sonarlint-core").getVersion());
 
         Collection<SourceSet> testSourceSets = new ArrayList<>();
         whenTestSourceSetRegistered(project, testSourceSets::add);
@@ -537,15 +540,6 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
             sonarDependency.getGroup(),
             sonarDependency.getName(),
             sonarDependency.getVersion()
-        ));
-    }
-
-    private Dependency createDependency(SonarDependency sonarDependency, String version) {
-        return getDependencies().create(format(
-            "%s:%s:%s",
-            sonarDependency.getGroup(),
-            sonarDependency.getName(),
-            version
         ));
     }
 

@@ -1,7 +1,11 @@
 package name.remal.gradle_plugins.sonarlint;
 
+import static name.remal.gradle_plugins.sonarlint.SonarDependencies.getSonarDependency;
+
 import java.util.Collection;
+import javax.annotation.Nullable;
 import javax.inject.Inject;
+import lombok.CustomLog;
 import lombok.Getter;
 import lombok.Setter;
 import org.gradle.api.Action;
@@ -14,7 +18,19 @@ import org.gradle.api.tasks.SourceSet;
 
 @Getter
 @Setter
+@CustomLog
 public abstract class SonarLintExtension extends CodeQualityExtension {
+
+    @Override
+    public final String getToolVersion() {
+        return getSonarDependency("sonarlint-core").getVersion();
+    }
+
+    @Override
+    public final void setToolVersion(@Nullable String toolVersion) {
+        logger.warn("SonarLint tool version is readonly and can't be changed");
+    }
+
 
     private Collection<SourceSet> testSourceSets;
 
