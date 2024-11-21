@@ -96,7 +96,7 @@ apply plugin: 'name.remal.generate-sources'
 dependencies {
     relocateClasses 'com.tisonkun.os:os-detector-core:0.6.0'
 
-    optional 'org.sonarsource.sonarlint.core:sonarlint-core:9.8.0.76914'
+    optional 'org.sonarsource.sonarlint.core:sonarlint-core:10.10.0.79572'
 }
 
 gradlePlugin {
@@ -185,7 +185,7 @@ createSonarArtifactsConfiguration('sonarPluginArtifacts')
 
 dependencies {
     // Core:
-    sonarCoreArtifacts 'org.sonarsource.sonarlint.core:sonarlint-core:9.8.0.76914'
+    sonarCoreArtifacts 'org.sonarsource.sonarlint.core:sonarlint-core:10.10.0.79572'
 
 
     // Plugins:
