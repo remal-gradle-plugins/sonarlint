@@ -7,11 +7,10 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
 import static java.util.Collections.singletonList;
-import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
-import static name.remal.gradle_plugins.sonarlint.internal.impl.GradleLogOutput.GRADLE_LOG_OUTPUT;
-import static name.remal.gradle_plugins.sonarlint.internal.impl.GradleProgressMonitor.GRADLE_PROGRESS_MONITOR;
+import static name.remal.gradle_plugins.sonarlint.internal.impl.SimpleLogOutput.SIMPLE_LOG_OUTPUT;
+import static name.remal.gradle_plugins.sonarlint.internal.impl.SimpleProgressMonitor.SIMPLE_PROGRESS_MONITOR;
 import static name.remal.gradle_plugins.sonarlint.internal.impl.SonarLintUtils.extractRules;
 import static name.remal.gradle_plugins.sonarlint.internal.impl.SonarLintUtils.getEnabledLanguages;
 import static name.remal.gradle_plugins.sonarlint.internal.impl.SonarLintUtils.getNodeJsExecutable;
@@ -44,13 +43,13 @@ import name.remal.gradle_plugins.toolkit.issues.Issue;
 import name.remal.gradle_plugins.toolkit.issues.TextMessage;
 import org.sonar.api.rule.RuleKey;
 import org.sonar.api.server.rule.RulesDefinition.Rule;
-import org.sonarsource.sonarlint.core.analysis.AnalysisEngine;
 import org.sonarsource.sonarlint.core.analysis.api.ActiveRule;
 import org.sonarsource.sonarlint.core.analysis.api.AnalysisConfiguration;
 import org.sonarsource.sonarlint.core.analysis.api.AnalysisEngineConfiguration;
 import org.sonarsource.sonarlint.core.analysis.api.ClientInputFile;
 import org.sonarsource.sonarlint.core.analysis.api.ClientModuleInfo;
 import org.sonarsource.sonarlint.core.analysis.command.AnalyzeCommand;
+import org.sonarsource.sonarlint.core.analysis.container.global.GlobalAnalysisContainer;
 import org.sonarsource.sonarlint.core.commons.api.SonarLanguage;
 
 public class SonarLintAnalyzer {
@@ -63,7 +62,7 @@ public class SonarLintAnalyzer {
         val nodeJsVersion = getNodeJsVersion(params);
 
         val filesToAnalyze = params.getSourceFiles().getOrElse(emptyList()).stream()
-            .map(GradleClientInputFile::new)
+            .map(SimpleClientInputFile::new)
             .collect(toList());
 
         val module = new ClientModuleInfo("module-key", new SimpleClientModuleFileSystem(filesToAnalyze));
@@ -212,27 +211,28 @@ public class SonarLintAnalyzer {
                 }
             };
 
-            val engine = new AnalysisEngine(
-                analysisEngineConfiguration,
-                loadedPlugins.getLoadedPlugins(),
-                GRADLE_LOG_OUTPUT
+            val analyzeCommand = new AnalyzeCommand(
+                module.key(),
+                analysisConfiguration,
+                issueListener,
+                SIMPLE_LOG_OUTPUT
             );
+
+            val globalAnalysisContainer = new GlobalAnalysisContainer(
+                analysisEngineConfiguration,
+                loadedPlugins.getLoadedPlugins()
+            );
+            globalAnalysisContainer.startComponents();
             try {
-                engine.post(
-                    new AnalyzeCommand(
-                        module.key(),
-                        analysisConfiguration,
-                        issueListener,
-                        GRADLE_LOG_OUTPUT
-                    ),
-                    GRADLE_PROGRESS_MONITOR
-                ).get(1, HOURS);
-
-                return issues;
-
+                analyzeCommand.execute(
+                    globalAnalysisContainer.getModuleRegistry(),
+                    SIMPLE_PROGRESS_MONITOR
+                );
             } finally {
-                engine.stop();
+                globalAnalysisContainer.stopComponents();
             }
+
+            return issues;
         }
     }
 

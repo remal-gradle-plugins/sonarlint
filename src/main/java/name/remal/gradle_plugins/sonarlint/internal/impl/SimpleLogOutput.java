@@ -25,9 +25,9 @@ import org.sonarsource.sonarlint.core.commons.log.LogOutput;
 
 @CustomLog
 @NoArgsConstructor(access = PRIVATE)
-class GradleLogOutput implements LogOutput {
+class SimpleLogOutput implements LogOutput {
 
-    public static final GradleLogOutput GRADLE_LOG_OUTPUT = new GradleLogOutput();
+    public static final SimpleLogOutput SIMPLE_LOG_OUTPUT = new SimpleLogOutput();
 
 
     private static final Map<Pattern, Level> MESSAGE_LEVELS;

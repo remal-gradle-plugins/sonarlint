@@ -6,12 +6,12 @@ import lombok.CustomLog;
 import org.sonarsource.sonarlint.core.commons.progress.ProgressMonitor;
 
 @CustomLog
-class GradleProgressMonitor extends ProgressMonitor {
+class SimpleProgressMonitor extends ProgressMonitor {
 
-    public static final GradleProgressMonitor GRADLE_PROGRESS_MONITOR = new GradleProgressMonitor();
+    public static final SimpleProgressMonitor SIMPLE_PROGRESS_MONITOR = new SimpleProgressMonitor();
 
 
-    private GradleProgressMonitor() {
+    private SimpleProgressMonitor() {
         super(null);
     }
 

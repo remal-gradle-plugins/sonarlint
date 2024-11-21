@@ -5,7 +5,7 @@ import static java.util.Collections.emptySet;
 import static java.util.stream.Collectors.toCollection;
 import static java.util.stream.Collectors.toList;
 import static lombok.AccessLevel.PRIVATE;
-import static name.remal.gradle_plugins.sonarlint.internal.impl.GradleLogOutput.GRADLE_LOG_OUTPUT;
+import static name.remal.gradle_plugins.sonarlint.internal.impl.SimpleLogOutput.SIMPLE_LOG_OUTPUT;
 
 import java.io.File;
 import java.nio.file.Path;
@@ -38,7 +38,7 @@ import org.sonarsource.sonarlint.core.rule.extractor.RulesDefinitionExtractorCon
 abstract class SonarLintUtils {
 
     static {
-        SonarLintLogger.setTarget(GRADLE_LOG_OUTPUT);
+        SonarLintLogger.setTarget(SIMPLE_LOG_OUTPUT);
     }
 
 
