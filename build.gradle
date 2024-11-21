@@ -190,13 +190,23 @@ dependencies {
 
     // Plugins:
     // See full list of supported plugins here: https://github.com/SonarSource/sonarlint-intellij/blob/master/gradle/libs.versions.toml
+    sonarPluginArtifacts 'org.sonarsource.java:sonar-java-symbolic-execution-plugin:8.6.0.37351'
     sonarPluginArtifacts 'org.sonarsource.java:sonar-java-plugin:8.6.0.37351'
-    sonarPluginArtifacts 'org.sonarsource.kotlin:sonar-kotlin-plugin:2.20.0.4382'
-    sonarPluginArtifacts 'org.sonarsource.slang:sonar-ruby-plugin:1.17.1.134'
-    sonarPluginArtifacts 'org.sonarsource.slang:sonar-scala-plugin:1.17.1.166'
-    sonarPluginArtifacts 'org.sonarsource.xml:sonar-xml-plugin:2.11.0.5671'
     sonarPluginArtifacts 'org.sonarsource.javascript:sonar-javascript-plugin:10.16.0.27621'
+    //sonarPluginArtifacts 'org.sonarsource.php:sonar-php-plugin:3.39.0.12526' // PHP projects are unlikely built with Gradle
+    //sonarPluginArtifacts 'org.sonarsource.python:sonar-python-plugin:4.23.0.17664' // Python projects are unlikely built with Gradle
+    sonarPluginArtifacts 'org.sonarsource.kotlin:sonar-kotlin-plugin:2.20.0.4382'
+    //sonarPluginArtifacts 'org.sonarsource.slang:sonar-ruby-plugin:1.17.1.134' // Ruby projects are unlikely built with Gradle
     sonarPluginArtifacts 'org.sonarsource.html:sonar-html-plugin:3.16.0.5274'
+    sonarPluginArtifacts 'org.sonarsource.xml:sonar-xml-plugin:2.11.0.5671'
+    //sonarPluginArtifacts 'org.sonarsource.sonarlint.omnisharp:sonarlint-omnisharp-plugin:1.25.0.100205' // OmniSharp projects are unlikely built with Gradle
+    sonarPluginArtifacts 'org.sonarsource.text:sonar-text-plugin:2.16.0.4008'
+    //sonarPluginArtifacts 'org.sonarsource.slang:sonar-go-plugin:1.17.1.145' // Go projects are unlikely built with Gradle
+    sonarPluginArtifacts 'org.sonarsource.iac:sonar-iac-plugin:1.37.0.12742'
+    //sonarPluginArtifacts 'com.sonarsource.cpp:sonar-cfamily-plugin:6.60.0.76379' // C++ projects are unlikely built with Gradle
+    //sonarPluginArtifacts 'org.sonarsource.dotnet:sonar-csharp-plugin:10.2.0.103721' // C# projects are unlikely built with Gradle
+    //sonarPluginArtifacts 'com.sonarsource.dotnet:sonar-csharp-enterprise-plugin:10.2.0.103721' // C# projects are unlikely built with Gradle
+    sonarPluginArtifacts 'org.sonarsource.slang:sonar-scala-plugin:1.17.1.166'
 }
 
 tasks.named('generateJava') { Task task ->
