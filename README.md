@@ -11,13 +11,15 @@ This plugin executes [SonarLint](https://www.sonarlint.org/) inspections without
 The plugin uses these Sonar plugins:
 <!--sonar-plugins-list-->
 
+* [`java-symbolic-execution`](https://rules.sonarsource.com/java-symbolic-execution)
 * [`java`](https://rules.sonarsource.com/java)
-* [`kotlin`](https://rules.sonarsource.com/kotlin)
-* [`ruby`](https://rules.sonarsource.com/ruby)
-* [`scala`](https://rules.sonarsource.com/scala)
-* [`xml`](https://rules.sonarsource.com/xml)
 * [`javascript`](https://rules.sonarsource.com/javascript)
+* [`kotlin`](https://rules.sonarsource.com/kotlin)
 * [`html`](https://rules.sonarsource.com/html)
+* [`xml`](https://rules.sonarsource.com/xml)
+* [`text`](https://rules.sonarsource.com/text)
+* [`iac`](https://rules.sonarsource.com/iac)
+* [`scala`](https://rules.sonarsource.com/scala)
 
 <!--/sonar-plugins-list-->
 
