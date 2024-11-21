@@ -10,7 +10,7 @@ org.sonarsource.java:sonar-java-symbolic-execution-plugin:8.6.0.37351:@sonar-plu
 org.sonarsource.javascript:sonar-javascript-plugin:10.16.0.27621:@sonar-plugin
 org.sonarsource.kotlin:sonar-kotlin-plugin:2.20.0.4382
 org.sonarsource.slang:sonar-scala-plugin:1.17.1.166
-org.sonarsource.sonarlint.core:sonarlint-core:9.8.0.76914
+org.sonarsource.sonarlint.core:sonarlint-core:10.10.0.79572
 org.sonarsource.text:sonar-text-plugin:2.17.0.4070
 org.sonarsource.xml:sonar-xml-plugin:2.11.0.5671:@sonar-plugin
 zzzz-classes-relying-on-external-dependency:name.remal.gradle_plugins.sonarlint.internal._relocated.name.remal.gradle_plugins.toolkit.WhenTestSourceSetRegisteredRemalTestSourceSets:ea62c93d26d4c7964e53da0cfedabb58e5f05e5e0b54a0e4c989e54e995c0743

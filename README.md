@@ -102,7 +102,7 @@ Two additional help tasks are created:
 ## Node.js detection
 
 SonarLint requires Node.js of the version <!--property:minSupportedNodeJsVersion-->18.17.0<!--/property--> or greater
-to process <!--property:requiringNodeJsLanguagesString-->CSS, HTML, JavaScript, TypeScript, YAML<!--/property--> languages.
+to process <!--property:requiringNodeJsLanguagesString-->css, web, js, ts, yaml<!--/property--> languages.
 
 If Node.js detection is enabled, the plugin tries to find a Node.js executable automatically. The detection algorithm is:
 
@@ -111,7 +111,7 @@ If Node.js detection is enabled, the plugin tries to find a Node.js executable a
 
 If Node.js is successfully detected, is will be used.
 
-If Node.js cannot be detected, <!--property:requiringNodeJsLanguagesString-->CSS, HTML, JavaScript, TypeScript, YAML<!--/property--> languages will be excluded.
+If Node.js cannot be detected, <!--property:requiringNodeJsLanguagesString-->css, web, js, ts, yaml<!--/property--> languages will be excluded.
 
 If OS or CPU architecture does not support official Node.js, the detection won't detect any executable.
 
