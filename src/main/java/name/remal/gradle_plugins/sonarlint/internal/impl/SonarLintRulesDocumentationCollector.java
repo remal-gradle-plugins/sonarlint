@@ -7,7 +7,7 @@ import static name.remal.gradle_plugins.sonarlint.internal.RulesDocumentation.Ru
 import static name.remal.gradle_plugins.sonarlint.internal.RulesDocumentation.RuleStatus.DISABLED_EXPLICITLY;
 import static name.remal.gradle_plugins.sonarlint.internal.RulesDocumentation.RuleStatus.ENABLED_BY_DEFAULT;
 import static name.remal.gradle_plugins.sonarlint.internal.RulesDocumentation.RuleStatus.ENABLED_EXPLICITLY;
-import static name.remal.gradle_plugins.sonarlint.internal.impl.SonarLintConfigurationUtils.createEngineConfig;
+import static name.remal.gradle_plugins.sonarlint.internal.impl.SonarLintUtils.createEngineConfig;
 
 import java.util.Map.Entry;
 import java.util.Optional;

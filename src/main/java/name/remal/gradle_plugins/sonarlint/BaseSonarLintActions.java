@@ -15,6 +15,7 @@ import static java.util.Collections.emptySet;
 import static java.util.Collections.unmodifiableCollection;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toCollection;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static lombok.AccessLevel.PRIVATE;
@@ -291,12 +292,12 @@ abstract class BaseSonarLintActions {
                         .map(Provider::getOrNull)
                         .orElse(null)
                     );
-                    spec.getClasspath().from(task.getToolClasspath());
+                    spec.getClasspath().from(task.getCoreClasspath());
                 });
 
             } else {
                 workQueue = workerExecutor.classLoaderIsolation(spec -> {
-                    spec.getClasspath().from(task.getToolClasspath());
+                    spec.getClasspath().from(task.getCoreClasspath());
                 });
             }
         }
@@ -324,11 +325,13 @@ abstract class BaseSonarLintActions {
             params.getBaseGeneratedDirs().add(task.get$internals().getBuildDir());
             params.getHomeDir().set(new File(tempDir, "home"));
             params.getWorkDir().set(new File(tempDir, "work"));
-            params.getToolClasspath().from(task.getToolClasspath().getFiles().stream()
+            params.getCoreClasspath().from(task.getCoreClasspath().getFiles().stream()
                 .filter(File::exists)
-                .map(FileUtils::normalizeFile)
-                .distinct()
-                .collect(toList())
+                .collect(toCollection(LinkedHashSet::new))
+            );
+            params.getPluginsClasspath().from(task.getPluginsClasspath().getFiles().stream()
+                .filter(File::exists)
+                .collect(toCollection(LinkedHashSet::new))
             );
             params.getSourceFiles().set(collectSourceFiles(task));
             params.getEnabledRules().set(task.getEnabledRules());
@@ -351,7 +354,6 @@ abstract class BaseSonarLintActions {
     }
 
     @Contract(mutates = "param1")
-    @SuppressWarnings("UnstableApiUsage")
     private static void addRuleByPathIgnore(
         Map<String, String> sonarProperties,
         String scope,
@@ -505,7 +507,7 @@ abstract class BaseSonarLintActions {
 
     @SneakyThrows
     private static String getSonarLintVersionFor(BaseSonarLint task) {
-        for (val classpathFile : task.getToolClasspath().getFiles()) {
+        for (val classpathFile : task.getCoreClasspath().getFiles()) {
             val matcher = SONARLINT_CORE_FILE_NAME.matcher(classpathFile.getName());
             if (matcher.matches()) {
                 return requireNonNull(matcher.group(1));

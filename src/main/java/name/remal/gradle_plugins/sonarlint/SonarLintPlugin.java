@@ -110,10 +110,6 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
         return getConfigurationName() + "Plugins";
     }
 
-    protected String getClasspathConfigurationName() {
-        return getConfigurationName() + "Classpath";
-    }
-
     @Override
     protected void configureConfiguration(Configuration configuration) {
         configureSonarLintConfiguration(configuration);
@@ -151,7 +147,7 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
 
         project.getConfigurations().create(getPluginsConfigurationName(), conf -> {
             if (conf.isCanBeResolved()) {
-                conf.setCanBeResolved(false);
+                conf.setCanBeResolved(true);
             }
 
             configureSonarLintConfiguration(conf);
@@ -168,20 +164,6 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
                         createDependency(sonarDependency)
                     );
                 });
-        });
-
-        project.getConfigurations().create(getClasspathConfigurationName(), conf -> {
-            if (!conf.isCanBeResolved()) {
-                conf.setCanBeResolved(true);
-            }
-
-            configureSonarLintConfiguration(conf);
-            conf.setDescription("Full " + getToolName() + " classpath to be used for this project.");
-
-            conf.extendsFrom(
-                project.getConfigurations().getByName(getConfigurationName()),
-                project.getConfigurations().getByName(getPluginsConfigurationName())
-            );
         });
     }
 
@@ -209,8 +191,11 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
             setPropertyConvention(task, "ignoreFailures", extension::isIgnoreFailures);
         }
 
-        task.getToolClasspath().setFrom(
-            project.getConfigurations().getByName(getClasspathConfigurationName())
+        task.getCoreClasspath().setFrom(
+            project.getConfigurations().getByName(getConfigurationName())
+        );
+        task.getPluginsClasspath().setFrom(
+            project.getConfigurations().getByName(getPluginsConfigurationName())
         );
 
         val extension = (SonarLintExtension) this.extension;
@@ -430,6 +415,7 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
     }
 
     @Unmodifiable
+    @SuppressWarnings("ConstantValue")
     private Collection<SourceSet> getTestSourceSets() {
         val extension = (SonarLintExtension) this.extension;
         val testSourceSets = extension.getTestSourceSets();

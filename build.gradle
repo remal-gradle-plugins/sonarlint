@@ -189,6 +189,7 @@ dependencies {
 
 
     // Plugins:
+    // See full list of supported plugins here: https://github.com/SonarSource/sonarlint-intellij/blob/master/gradle/libs.versions.toml
     sonarPluginArtifacts 'org.sonarsource.java:sonar-java-plugin:8.6.0.37351'
     sonarPluginArtifacts 'org.sonarsource.kotlin:sonar-kotlin-plugin:2.20.0.4382'
     sonarPluginArtifacts 'org.sonarsource.slang:sonar-ruby-plugin:1.17.1.134'
@@ -196,25 +197,6 @@ dependencies {
     sonarPluginArtifacts 'org.sonarsource.xml:sonar-xml-plugin:2.11.0.5671'
     sonarPluginArtifacts 'org.sonarsource.javascript:sonar-javascript-plugin:10.16.0.27621'
     sonarPluginArtifacts 'org.sonarsource.html:sonar-html-plugin:3.16.0.5274'
-
-    // Plugins for languages that are highly unlikely built with Gradle:
-    //sonarPluginArtifacts 'org.sonarsource.php:sonar-php-plugin:3.25.0.9077'
-    //sonarPluginArtifacts 'org.sonarsource.python:sonar-python-plugin:3.17.0.10029'
-    //sonarPluginArtifacts 'org.sonarsource.sonarlint.omnisharp:sonarlint-omnisharp-plugin:1.4.0.50839'
-
-    // Known SonarQube plugins without SonarLint support:
-    //sonarPluginArtifacts 'org.sonarsource.css:sonar-css-plugin:1.4.2.2002'
-    //sonarPluginArtifacts 'org.sonarsource.dotnet:sonar-csharp-plugin:8.45.0.54064'
-    //sonarPluginArtifacts 'org.sonarsource.dotnet:sonar-vbnet-plugin:8.45.0.54064'
-    //sonarPluginArtifacts 'org.sonarsource.flex:sonar-flex-plugin:2.7.0.2865'
-    //sonarPluginArtifacts 'org.sonarsource.groovy:sonar-groovy-plugin:1.4'
-    //sonarPluginArtifacts 'org.sonarsource.iac:sonar-iac-plugin:1.9.2.2279'
-    //sonarPluginArtifacts 'org.sonarsource.slang:sonar-go-plugin:1.10.0.3710'
-    //sonarPluginArtifacts 'org.sonarsource.text:sonar-text-plugin:1.1.0.282'
-    //sonarPluginArtifacts 'org.sonarsource.typescript:sonar-typescript-plugin:2.1.0.4359'
-    //sonarPluginArtifacts 'com.github.sbaudoin:sonar-shellcheck-plugin:2.5.0'
-    //sonarPluginArtifacts 'com.github.sbaudoin:sonar-yaml-plugin:1.7.0' // broken (depends on Logback)
-    //sonarPluginArtifacts 'com.github.sbaudoin:sonar-ansible-plugin:2.5.1'
 }
 
 tasks.named('generateJava') { Task task ->

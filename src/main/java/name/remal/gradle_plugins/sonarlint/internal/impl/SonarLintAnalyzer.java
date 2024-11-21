@@ -4,7 +4,7 @@ import static com.google.common.base.CaseFormat.UPPER_CAMEL;
 import static com.google.common.base.CaseFormat.UPPER_UNDERSCORE;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
-import static name.remal.gradle_plugins.sonarlint.internal.impl.SonarLintConfigurationUtils.createEngineConfig;
+import static name.remal.gradle_plugins.sonarlint.internal.impl.SonarLintUtils.createEngineConfig;
 import static name.remal.gradle_plugins.toolkit.PredicateUtils.not;
 import static name.remal.gradle_plugins.toolkit.issues.Issue.newIssue;
 import static name.remal.gradle_plugins.toolkit.issues.IssueSeverity.ERROR;

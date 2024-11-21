@@ -20,9 +20,14 @@ import org.gradle.jvm.toolchain.JavaLauncher;
 
 interface BaseSonarLint extends Task {
 
-    @Classpath
     @InputFiles
-    ConfigurableFileCollection getToolClasspath();
+    @Classpath
+    ConfigurableFileCollection getCoreClasspath();
+
+    @InputFiles
+    @Classpath
+    @org.gradle.api.tasks.Optional
+    ConfigurableFileCollection getPluginsClasspath();
 
     @Nested
     @org.gradle.api.tasks.Optional

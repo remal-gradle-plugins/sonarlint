@@ -13,6 +13,7 @@ import java.util.LinkedHashSet;
 import java.util.Optional;
 import java.util.Set;
 import javax.annotation.Nullable;
+import lombok.CustomLog;
 import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.val;
@@ -28,7 +29,8 @@ import org.sonarsource.sonarlint.core.plugin.commons.PluginsLoader.Configuration
 import org.sonarsource.sonarlint.core.plugin.commons.loading.PluginInfo;
 
 @NoArgsConstructor(access = PRIVATE)
-abstract class SonarLintConfigurationUtils {
+@CustomLog
+abstract class SonarLintUtils {
 
     static {
         SonarLintLogger.setTarget(GRADLE_LOG_OUTPUT);
@@ -36,14 +38,16 @@ abstract class SonarLintConfigurationUtils {
 
 
     public static Set<Path> getPluginJarLocations(SonarLintExecutionParams params) {
-        return params.getToolClasspath().getFiles().stream()
+        return params.getPluginsClasspath().getFiles().stream()
             .distinct()
             .map(File::toPath)
             .filter(path -> {
                 try {
-                    PluginInfo.create(path);
+                    val pluginInfo = PluginInfo.create(path);
+                    logger.debug("plugin={}: {}", pluginInfo, path);
                     return true;
                 } catch (Exception ignored) {
+                    logger.debug("not a plugin: {}", path);
                     return false;
                 }
             })
@@ -77,16 +81,12 @@ abstract class SonarLintConfigurationUtils {
         val includedLanguages = params.getIncludedLanguages().get();
         val excludedLanguages = params.getExcludedLanguages().get();
         return stream(Language.values())
-            .filter(language -> isLanguageInFilter(language, includedLanguages))
-            .filter(language -> !isLanguageInFilter(language, excludedLanguages))
+            .filter(language -> includedLanguages.isEmpty() || isLanguageInFilter(language, includedLanguages))
+            .filter(language -> excludedLanguages.isEmpty() || !isLanguageInFilter(language, excludedLanguages))
             .collect(toCollection(LinkedHashSet::new));
     }
 
     private static boolean isLanguageInFilter(Language language, Collection<String> filter) {
-        if (filter.isEmpty()) {
-            return false;
-        }
-
         return filter.stream().anyMatch(id ->
             id.equalsIgnoreCase(language.getLanguageKey())
                 || id.equalsIgnoreCase(language.getPluginKey())

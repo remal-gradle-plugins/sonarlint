@@ -29,7 +29,9 @@ public interface SonarLintExecutionParams extends WorkParameters {
 
     DirectoryProperty getWorkDir();
 
-    ConfigurableFileCollection getToolClasspath();
+    ConfigurableFileCollection getCoreClasspath();
+
+    ConfigurableFileCollection getPluginsClasspath();
 
     ListProperty<SourceFile> getSourceFiles();
 

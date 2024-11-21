@@ -21,7 +21,7 @@ abstract class CanonizationUtils {
 
     public static Collection<String> canonizeRules(@Nullable Collection<?> rules) {
         Collection<String> result = new LinkedHashSet<>();
-        if (isNotEmpty(rules)) {
+        if (rules != null) {
             rules.stream()
                 .filter(Objects::nonNull)
                 .map(ObjectUtils::unwrapProviders)
@@ -36,7 +36,7 @@ abstract class CanonizationUtils {
 
     public static Collection<String> canonizeLanguages(@Nullable Collection<?> languages) {
         Collection<String> result = new LinkedHashSet<>();
-        if (isNotEmpty(languages)) {
+        if (languages != null) {
             languages.stream()
                 .filter(Objects::nonNull)
                 .map(ObjectUtils::unwrapProviders)
@@ -54,7 +54,7 @@ abstract class CanonizationUtils {
         @Nullable Map<?, ?> properties
     ) {
         Map<String, String> result = new LinkedHashMap<>();
-        if (isNotEmpty(properties)) {
+        if (properties != null) {
             properties.entrySet().stream()
                 .filter(entry -> entry.getKey() != null)
                 .map(entry -> immutableEntry(String.valueOf(entry.getKey()), unwrapProviders(entry.getValue())))
@@ -69,7 +69,7 @@ abstract class CanonizationUtils {
         @Nullable Map<?, ? extends Map<?, ?>> properties
     ) {
         Map<String, Map<String, String>> result = new LinkedHashMap<>();
-        if (isNotEmpty(properties)) {
+        if (properties != null) {
             properties.entrySet().stream()
                 .map(entry -> immutableEntry(String.valueOf(entry.getKey()), canonizeProperties(entry.getValue())))
                 .filter(entry -> isNotEmpty(entry.getValue()))

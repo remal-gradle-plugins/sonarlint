@@ -30,24 +30,13 @@ Provider<String> minSupportedNodeJsVersion = rootProject.ext.minSupportedNodeJsV
         Configuration classpathConfiguration = project.configurations.detachedConfiguration()
         classpathConfiguration.dependencies.withType(ModuleDependency).configureEach { dep ->
             dep.attributes {
-                attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage.class, Usage.JAVA_RUNTIME))
-                attribute(Category.CATEGORY_ATTRIBUTE, objects.named(Category.class, Category.LIBRARY))
+                it.attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage.class, Usage.JAVA_RUNTIME))
+                it.attribute(Category.CATEGORY_ATTRIBUTE, objects.named(Category.class, Category.LIBRARY))
             }
         }
 
-        Dependency coreArtifactDependency = project.configurations.sonarCoreArtifacts.dependencies
-            .find { "${it.group}:${it.name}" == 'org.sonarsource.sonarlint.core:sonarlint-core' }
-        if (coreArtifactDependency == null) {
-            throw new GradleException("Sonar core dependency can't be found")
-        }
-        classpathConfiguration.dependencies.add(
-            project.dependencies.create(
-                [
-                    coreArtifactDependency.group,
-                    coreArtifactDependency.name,
-                    coreArtifactDependency.version,
-                ].join(':')
-            )
+        classpathConfiguration.dependencies.addAll(
+            project.configurations.sonarCoreArtifacts.dependencies.collect { it.copy() }
         )
 
         Dependency javascriptPluginArtifactDependency = project.configurations.sonarPluginArtifacts.dependencies
