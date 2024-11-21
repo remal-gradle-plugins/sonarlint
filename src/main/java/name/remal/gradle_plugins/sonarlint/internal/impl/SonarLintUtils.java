@@ -1,39 +1,44 @@
 package name.remal.gradle_plugins.sonarlint.internal.impl;
 
-import static java.nio.file.Files.createDirectories;
 import static java.util.Arrays.stream;
+import static java.util.Collections.emptySet;
 import static java.util.stream.Collectors.toCollection;
+import static java.util.stream.Collectors.toList;
 import static lombok.AccessLevel.PRIVATE;
-import static name.remal.gradle_plugins.sonarlint.internal.impl.GradleLogOutput.GRADLE_LOG_OUTPUT;
+import static name.remal.gradle_plugins.sonarlint.internal.impl.SimpleLogOutput.SIMPLE_LOG_OUTPUT;
 
 import java.io.File;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import javax.annotation.Nullable;
 import lombok.CustomLog;
 import lombok.NoArgsConstructor;
-import lombok.SneakyThrows;
 import lombok.val;
 import name.remal.gradle_plugins.sonarlint.internal.NodeJsFound;
 import name.remal.gradle_plugins.sonarlint.internal.SonarLintExecutionParams;
-import org.sonarsource.sonarlint.core.client.api.standalone.StandaloneGlobalConfiguration;
-import org.sonarsource.sonarlint.core.commons.Language;
+import org.sonar.api.Plugin;
+import org.sonar.api.rule.RuleKey;
+import org.sonar.api.server.rule.RulesDefinition.Rule;
 import org.sonarsource.sonarlint.core.commons.Version;
+import org.sonarsource.sonarlint.core.commons.api.SonarLanguage;
 import org.sonarsource.sonarlint.core.commons.log.SonarLintLogger;
 import org.sonarsource.sonarlint.core.plugin.commons.PluginsLoadResult;
 import org.sonarsource.sonarlint.core.plugin.commons.PluginsLoader;
 import org.sonarsource.sonarlint.core.plugin.commons.PluginsLoader.Configuration;
 import org.sonarsource.sonarlint.core.plugin.commons.loading.PluginInfo;
+import org.sonarsource.sonarlint.core.rule.extractor.RulesDefinitionExtractorContainer;
 
 @NoArgsConstructor(access = PRIVATE)
 @CustomLog
 abstract class SonarLintUtils {
 
     static {
-        SonarLintLogger.setTarget(GRADLE_LOG_OUTPUT);
+        SonarLintLogger.setTarget(SIMPLE_LOG_OUTPUT);
     }
 
 
@@ -64,7 +69,7 @@ abstract class SonarLintUtils {
 
     public static PluginsLoadResult loadPlugins(
         Set<Path> pluginJarLocations,
-        Set<Language> enabledLanguages,
+        Set<SonarLanguage> enabledLanguages,
         @Nullable Version nodeJsVersion
     ) {
         val config = new Configuration(
@@ -73,22 +78,22 @@ abstract class SonarLintUtils {
             true,
             Optional.ofNullable(nodeJsVersion)
         );
-        return new PluginsLoader().load(config);
+        return new PluginsLoader().load(config, emptySet());
     }
 
 
-    public static Set<Language> getEnabledLanguages(SonarLintExecutionParams params) {
+    public static Set<SonarLanguage> getEnabledLanguages(SonarLintExecutionParams params) {
         val includedLanguages = params.getIncludedLanguages().get();
         val excludedLanguages = params.getExcludedLanguages().get();
-        return stream(Language.values())
+        return stream(SonarLanguage.values())
             .filter(language -> includedLanguages.isEmpty() || isLanguageInFilter(language, includedLanguages))
             .filter(language -> excludedLanguages.isEmpty() || !isLanguageInFilter(language, excludedLanguages))
             .collect(toCollection(LinkedHashSet::new));
     }
 
-    private static boolean isLanguageInFilter(Language language, Collection<String> filter) {
+    private static boolean isLanguageInFilter(SonarLanguage language, Collection<String> filter) {
         return filter.stream().anyMatch(id ->
-            id.equalsIgnoreCase(language.getLanguageKey())
+            id.equalsIgnoreCase(language.getSonarLanguageKey())
                 || id.equalsIgnoreCase(language.getPluginKey())
                 || id.equalsIgnoreCase(language.name())
         );
@@ -112,17 +117,29 @@ abstract class SonarLintUtils {
     }
 
 
-    @SneakyThrows
-    @SuppressWarnings("DataFlowIssue")
-    public static StandaloneGlobalConfiguration createEngineConfig(SonarLintExecutionParams params) {
-        return StandaloneGlobalConfiguration.builder()
-            .addEnabledLanguages(getEnabledLanguages(params).toArray(new Language[0]))
-            .addPlugins(getPluginJarLocations(params).toArray(new Path[0]))
-            .setSonarLintUserHome(createDirectories(params.getHomeDir().get().getAsFile().toPath()))
-            .setWorkDir(createDirectories(params.getWorkDir().get().getAsFile().toPath()))
-            .setLogOutput(GRADLE_LOG_OUTPUT)
-            .setNodeJs(getNodeJsExecutable(params), getNodeJsVersion(params))
-            .build();
+    public static Map<RuleKey, Rule> extractRules(
+        Map<String, Plugin> pluginInstancesByKeys,
+        Set<SonarLanguage> enabledLanguages
+    ) {
+        val container = new RulesDefinitionExtractorContainer(pluginInstancesByKeys);
+        container.execute();
+
+        val context = container.getRulesDefinitionContext();
+        val rules = context.repositories().stream()
+            .filter(repo -> !repo.isExternal())
+            .filter(repo -> {
+                val language = SonarLanguage.forKey(repo.language()).orElse(null);
+                return language != null && enabledLanguages.contains(language);
+            })
+            .flatMap(repo -> repo.rules().stream())
+            .collect(toList());
+
+        val result = new LinkedHashMap<RuleKey, Rule>(rules.size());
+        for (val rule : rules) {
+            val key = RuleKey.of(rule.repository().key(), rule.key());
+            result.putIfAbsent(key, rule);
+        }
+        return result;
     }
 
 }

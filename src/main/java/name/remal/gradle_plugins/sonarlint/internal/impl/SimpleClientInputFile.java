@@ -16,7 +16,7 @@ import org.sonarsource.sonarlint.core.analysis.api.ClientInputFile;
 
 @RequiredArgsConstructor
 @SuppressWarnings({"deprecation", "RedundantSuppression"})
-class GradleClientInputFile implements ClientInputFile {
+class SimpleClientInputFile implements ClientInputFile {
 
     private final SourceFile sourceFile;
 
