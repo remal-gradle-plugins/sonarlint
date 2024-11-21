@@ -24,7 +24,7 @@ abstract class AbstractDefinitionExtractorContainer extends RulesDefinitionExtra
 
     @SuppressWarnings("java:S1144")
     private AbstractDefinitionExtractorContainer(PluginsLoadResult pluginsLoadResult) {
-        super(pluginsLoadResult.getLoadedPlugins().getPluginInstancesByKeys());
+        super(pluginsLoadResult.getLoadedPlugins().getAllPluginInstancesByKeys());
         this.pluginsLoadResult = pluginsLoadResult;
     }
 

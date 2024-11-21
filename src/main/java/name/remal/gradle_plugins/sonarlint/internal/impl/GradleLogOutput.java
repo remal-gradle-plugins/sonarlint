@@ -2,25 +2,30 @@ package name.remal.gradle_plugins.sonarlint.internal.impl;
 
 import static java.util.Collections.newSetFromMap;
 import static java.util.Collections.unmodifiableMap;
+import static java.util.stream.Collectors.joining;
 import static lombok.AccessLevel.PRIVATE;
-import static org.sonarsource.sonarlint.core.commons.log.ClientLogOutput.Level.DEBUG;
-import static org.sonarsource.sonarlint.core.commons.log.ClientLogOutput.Level.ERROR;
-import static org.sonarsource.sonarlint.core.commons.log.ClientLogOutput.Level.TRACE;
-import static org.sonarsource.sonarlint.core.commons.log.ClientLogOutput.Level.WARN;
+import static org.sonarsource.sonarlint.core.commons.log.LogOutput.Level.DEBUG;
+import static org.sonarsource.sonarlint.core.commons.log.LogOutput.Level.ERROR;
+import static org.sonarsource.sonarlint.core.commons.log.LogOutput.Level.OFF;
+import static org.sonarsource.sonarlint.core.commons.log.LogOutput.Level.TRACE;
+import static org.sonarsource.sonarlint.core.commons.log.LogOutput.Level.WARN;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
+import javax.annotation.Nullable;
 import lombok.CustomLog;
 import lombok.NoArgsConstructor;
 import lombok.val;
-import org.sonarsource.sonarlint.core.commons.log.ClientLogOutput;
+import name.remal.gradle_plugins.toolkit.ObjectUtils;
+import org.sonarsource.sonarlint.core.commons.log.LogOutput;
 
 @CustomLog
 @NoArgsConstructor(access = PRIVATE)
-class GradleLogOutput implements ClientLogOutput {
+class GradleLogOutput implements LogOutput {
 
     public static final GradleLogOutput GRADLE_LOG_OUTPUT = new GradleLogOutput();
 
@@ -60,7 +65,17 @@ class GradleLogOutput implements ClientLogOutput {
     private final Set<String> loggedMessages = newSetFromMap(new ConcurrentHashMap<>());
 
     @Override
-    @SuppressWarnings("Slf4jFormatShouldBeConst")
+    public void log(@Nullable String formattedMessage, Level level, @Nullable String stacktrace) {
+        log(
+            Stream.of(formattedMessage, stacktrace)
+                .filter(ObjectUtils::isNotEmpty)
+                .collect(joining("\n")),
+            level
+        );
+    }
+
+    @Override
+    @SuppressWarnings({"Slf4jFormatShouldBeConst", "java:S1874", "deprecation"})
     public void log(String formattedMessage, Level level) {
         formattedMessage = formattedMessage.trim();
 
@@ -75,7 +90,9 @@ class GradleLogOutput implements ClientLogOutput {
             }
         }
 
-        if (level == ERROR) {
+        if (level == OFF) {
+            // do nothing
+        } else if (level == ERROR) {
             logger.error(formattedMessage);
         } else if (level == WARN) {
             logger.warn(formattedMessage);

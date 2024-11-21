@@ -19,7 +19,7 @@ class LanguageInfo {
     boolean requireNodeJs
 }
 
-Configuration sonarLintCoreConf = configurations.create('sonarLintCore') { Configuration conf ->
+Configuration sonarLintLanguagesConf = configurations.create('sonarLintLanguages') { Configuration conf ->
     conf.canBeResolved = true
     conf.canBeConsumed = false
 
@@ -38,29 +38,27 @@ Configuration sonarLintCoreConf = configurations.create('sonarLintCore') { Confi
                 throw new GradleException("Sonar core dependency can't be found")
             }
 
-            project.dependencies.create(
-                [
-                    coreDependency.group,
-                    coreDependency.name,
-                    coreDependency.version,
-                ].join(':')
-            )
+            project.dependencies.create([
+                coreDependency.group,
+                coreDependency.name,
+                coreDependency.version,
+            ].join(':'))
         }
     )
 }
 
 ListProperty<List<LanguageInfo>> languageInfos = rootProject.ext.languageInfos = project.objects.listProperty(LanguageInfo).value(
     project.provider {
-        Collection<File> classpathFiles = sonarLintCoreConf.files
+        Collection<File> classpathFiles = sonarLintLanguagesConf.files
         Collection<URL> classpathUrls = classpathFiles.collect { it.toURI().toURL() }
         new URL("jar", "", "file:test.jar!/resource.txt").openConnection().setDefaultUseCaches(false)
         new URLClassLoader(classpathUrls.toArray(new URL[0]), Logger.classLoader).withCloseable { classLoader ->
-            Class<?> languageClass = Class.forName('org.sonarsource.sonarlint.core.commons.Language', true, classLoader)
+            Class<?> languageClass = Class.forName('org.sonarsource.sonarlint.core.commons.api.SonarLanguage', true, classLoader)
             List<LanguageInfo> infos = languageClass.enumConstants.collect()
                 .collect { language ->
                     return new LanguageInfo(
                         name: language.name(),
-                        label: language.label,
+                        label: language.sonarLanguageKey,
                         defaultFileSuffixes: language.defaultFileSuffixes.collect(),
                         fileSuffixesPropKey: language.fileSuffixesPropKey,
                         requireNodeJs: languageNamesRequiringNodeJs.contains(language.name()),
@@ -86,7 +84,7 @@ rootProject.ext.requiringNodeJsLanguagesString = project.objects.property(String
 ).with { it.finalizeValueOnRead(); it }
 
 rootProject.afterEvaluate {
-    rootProject.tasks.processReadme.inputs.files(sonarLintCoreConf).withPropertyName('sonarLintCore').optional()
+    rootProject.tasks.processReadme.inputs.files(sonarLintLanguagesConf).withPropertyName('sonarLintCore').optional()
 }
 
 tasks.named('generateJava') {

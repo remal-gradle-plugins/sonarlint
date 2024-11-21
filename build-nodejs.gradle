@@ -36,7 +36,13 @@ Provider<String> minSupportedNodeJsVersion = rootProject.ext.minSupportedNodeJsV
         }
 
         classpathConfiguration.dependencies.addAll(
-            project.configurations.sonarCoreArtifacts.dependencies.collect { it.copy() }
+            project.configurations.sonarCoreArtifacts.dependencies.collect { Dependency coreDependency ->
+                project.dependencies.create([
+                    coreDependency.group,
+                    coreDependency.name,
+                    coreDependency.version,
+                ].join(':'))
+            }
         )
 
         Dependency javascriptPluginArtifactDependency = project.configurations.sonarPluginArtifacts.dependencies

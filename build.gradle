@@ -135,8 +135,8 @@ tasks.named('generateJava') {
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 project.ext.DownloadTask = Class.forName('de.undercouch.gradle.tasks.download.Download')
-apply from: 'nodejs.gradle'
-apply from: 'languages.gradle'
+apply from: 'build-nodejs.gradle'
+apply from: 'build-languages.gradle'
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
