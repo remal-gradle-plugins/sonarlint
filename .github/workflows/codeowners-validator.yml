@@ -44,8 +44,10 @@ jobs:
           echo "::warning::Not enough rate limits!"
           if [ "${{github.event_name != 'schedule'}}" == "true" ]; then
             echo "::warning::Executing anyway, as event is '${{github.event_name}}'"
+            echo 'enough=true' >> $GITHUB_OUTPUT
+          else
+            echo 'enough=false' >> $GITHUB_OUTPUT
           fi
-          echo 'enough=false' >> $GITHUB_OUTPUT
         fi
     outputs:
       enough: ${{steps.decision.outputs.enough}}
@@ -53,7 +55,7 @@ jobs:
   codeowners-validation:
     needs:
     - rate-limits
-    if: ${{github.event_name != 'schedule' || fromJSON(needs.rate-limits.outputs.enough) == true}}
+    if: ${{fromJSON(needs.rate-limits.outputs.enough) == true}}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     concurrency:
