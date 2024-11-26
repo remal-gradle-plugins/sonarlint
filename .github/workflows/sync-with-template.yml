@@ -45,12 +45,14 @@ jobs:
           echo "::warning::Not enough rate limits!"
           if [ "${{github.event_name != 'schedule'}}" == "true" ]; then
             echo "::warning::Executing anyway, as event is '${{github.event_name}}'"
+            echo 'enough=true' >> $GITHUB_OUTPUT
+          else
+            echo 'enough=false' >> $GITHUB_OUTPUT
           fi
-          echo 'enough=false' >> $GITHUB_OUTPUT
         fi
 
     - name: Sync with template repository
-      if: ${{env.PUSH_BACK_TOKEN && (github.event_name != 'schedule' || fromJSON(steps.decision.outputs.enough) == true)}}
+      if: ${{env.PUSH_BACK_TOKEN && fromJSON(steps.decision.outputs.enough) == true}}
       uses: remal-github-actions/sync-with-template@v3
       with:
         githubToken: ${{env.PUSH_BACK_TOKEN}}
