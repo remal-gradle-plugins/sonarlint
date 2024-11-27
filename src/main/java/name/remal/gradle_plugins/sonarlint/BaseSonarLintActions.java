@@ -110,7 +110,7 @@ abstract class BaseSonarLintActions {
     static final List<String> LANGUAGES_REQUIRING_NODEJS = ImmutableList.copyOf(
         stream(SonarLanguage.values())
             .filter(SonarLanguage::isRequireNodeJs)
-            .map(SonarLanguage::getLabel)
+            .map(SonarLanguage::getName)
             .collect(toList())
     );
 
