@@ -19,6 +19,7 @@ buildscript {
         classpath 'name.remal.gradle-plugins.toolkit:build-logic:0.68.0'
         classpath 'de.undercouch:gradle-download-task:5.6.0'
         classpath 'com.tisonkun.os:os-detector-core:0.6.0'
+        classpath 'io.github.classgraph:classgraph:4.8.179'
 
         classpath platform("org.ow2.asm:asm-bom:9.7.1")
         classpath 'org.ow2.asm:asm-tree'
@@ -134,12 +135,6 @@ tasks.named('generateJava') {
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-project.ext.DownloadTask = Class.forName('de.undercouch.gradle.tasks.download.Download')
-apply from: 'build-nodejs.gradle'
-apply from: 'build-languages.gradle'
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
 Configuration allSonarArtifactsConf = project.configurations.create('allSonarArtifacts')
 
 Map<String, String> nonReproducibleSonarDependencyVersions = new TreeMap<>().asSynchronized()
@@ -208,6 +203,14 @@ dependencies {
     //sonarPluginArtifacts 'com.sonarsource.dotnet:sonar-csharp-enterprise-plugin:10.2.0.103721' // C# projects are unlikely built with Gradle
     sonarPluginArtifacts 'org.sonarsource.slang:sonar-scala-plugin:1.17.1.166'
 }
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+project.ext.DownloadTask = Class.forName('de.undercouch.gradle.tasks.download.Download')
+apply from: 'build-nodejs.gradle'
+apply from: 'build-languages.gradle'
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 tasks.named('generateJava') { Task task ->
     inputs.files(allSonarArtifactsConf).withPropertyName(allSonarArtifactsConf.name + 'Conf').optional()
@@ -318,23 +321,12 @@ tasks.named('processReadme') {
                 String tag = it[1]
                 logger.lifecycle('  Handling {}', tag)
                 StringBuilder listContent = new StringBuilder()
-                listContent.append('\n')
 
-                configurations.sonarPluginArtifacts.dependencies.forEach { Dependency dep ->
-                    if ((dep.group + '.').startsWith('org.sonarsource.')
-                        && dep.name.startsWith('sonar-') && dep.name.endsWith('-plugin')
-                    ) {
-                        String lang = dep.name.substring('sonar-'.length(), dep.name.length() - '-plugin'.length())
-                        if (!lang.isEmpty()) {
-                            listContent.append("* [`${lang}`](https://rules.sonarsource.com/${lang})\n")
-                            return
-                        }
-                    }
+                rootProject.pluginLanguageInfos.get()
+                    .toSorted { it.key }
+                    .forEach { listContent.append("\n* ${it.key}") }
 
-                    listContent.append("* [`${dep.group}:${dep.name}:${dep.version}`](https://mvnrepository.com/artifact/${dep.group}/{$dep.name}/${dep.version})\n")
-                }
-
-                return "<!--$tag-->\n$listContent\n<!--/$tag-->"
+                return "<!--$tag-->$listContent\n<!--/$tag-->"
             }
 
             readmeFile.setText(content, 'UTF-8')
