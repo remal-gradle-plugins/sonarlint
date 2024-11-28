@@ -3,16 +3,16 @@
 
 Node.js:lts:18.20.5
 org.ow2.asm:asm-bom:9.7.1:@pom
-org.sonarsource.html:sonar-html-plugin:3.16.0.5274:@sonar-plugin
-org.sonarsource.iac:sonar-iac-plugin:1.38.0.13264
+org.sonarsource.html:sonar-html-plugin:3.17.0.5548:@sonar-plugin
+org.sonarsource.iac:sonar-iac-plugin:1.39.0.13718
 org.sonarsource.java:sonar-java-plugin:8.6.0.37351:@sonar-plugin
 org.sonarsource.java:sonar-java-symbolic-execution-plugin:8.6.0.37351:@sonar-plugin
 org.sonarsource.javascript:sonar-javascript-plugin:10.17.0.28100:@sonar-plugin
-org.sonarsource.kotlin:sonar-kotlin-plugin:2.20.0.4382
+org.sonarsource.kotlin:sonar-kotlin-plugin:2.21.0.5736
 org.sonarsource.slang:sonar-scala-plugin:1.17.1.166
 org.sonarsource.sonarlint.core:sonarlint-core:10.10.0.79572
-org.sonarsource.text:sonar-text-plugin:2.17.0.4070
-org.sonarsource.xml:sonar-xml-plugin:2.11.0.5671:@sonar-plugin
+org.sonarsource.text:sonar-text-plugin:2.18.0.4866
+org.sonarsource.xml:sonar-xml-plugin:2.12.0.5749:@sonar-plugin
 zzzz-classes-relying-on-external-dependency:name.remal.gradle_plugins.sonarlint.internal._relocated.name.remal.gradle_plugins.toolkit.WhenTestSourceSetRegisteredRemalTestSourceSets:ea62c93d26d4c7964e53da0cfedabb58e5f05e5e0b54a0e4c989e54e995c0743
 zzzz-classes-relying-on-external-dependency:name.remal.gradle_plugins.sonarlint.internal._relocated.name.remal.gradle_plugins.toolkit.WhenTestSourceSetRegisteredSofteqITest:13c6849a7285962282325ca3af5d3e90a41b0dc7ade6d4a6b088640ae8d19ae7
 zzzz-classes-relying-on-external-dependency:name.remal.gradle_plugins.sonarlint.internal._relocated.name.remal.gradle_plugins.toolkit.WhenTestSourceSetRegisteredUnbrokenDomeTestSets:a1156f4e04e3fedb1026b7d93ba218176c6998cbc4687e2ee2d0323f9d6d8117

@@ -10,17 +10,24 @@ This plugin executes [SonarLint](https://www.sonarlint.org/) inspections without
 
 The plugin uses these Sonar plugins:
 <!--sonar-plugins-list-->
-
-* [`java-symbolic-execution`](https://rules.sonarsource.com/java-symbolic-execution)
-* [`java`](https://rules.sonarsource.com/java)
-* [`javascript`](https://rules.sonarsource.com/javascript)
-* [`kotlin`](https://rules.sonarsource.com/kotlin)
-* [`html`](https://rules.sonarsource.com/html)
-* [`xml`](https://rules.sonarsource.com/xml)
-* [`text`](https://rules.sonarsource.com/text)
-* [`iac`](https://rules.sonarsource.com/iac)
-* [`scala`](https://rules.sonarsource.com/scala)
-
+* azureresourcemanager
+* cloudformation
+* css
+* docker
+* java
+* js
+* json
+* jsp
+* kotlin
+* kubernetes
+* scala
+* secrets
+* terraform
+* text
+* ts
+* web
+* xml
+* yaml
 <!--/sonar-plugins-list-->
 
 For every [`SourceSet`](https://docs.gradle.org/current/javadoc/org/gradle/api/tasks/SourceSet.html) a SonarLint task is created by default.
@@ -102,7 +109,7 @@ Two additional help tasks are created:
 ## Node.js detection
 
 SonarLint requires Node.js of the version <!--property:minSupportedNodeJsVersion-->18.17.0<!--/property--> or greater
-to process <!--property:requiringNodeJsLanguagesString-->css, web, js, ts, yaml<!--/property--> languages.
+to process <!--property:requiringNodeJsLanguagesString-->CSS, HTML, JavaScript, TypeScript, YAML<!--/property--> languages.
 
 If Node.js detection is enabled, the plugin tries to find a Node.js executable automatically. The detection algorithm is:
 
@@ -111,7 +118,7 @@ If Node.js detection is enabled, the plugin tries to find a Node.js executable a
 
 If Node.js is successfully detected, is will be used.
 
-If Node.js cannot be detected, <!--property:requiringNodeJsLanguagesString-->css, web, js, ts, yaml<!--/property--> languages will be excluded.
+If Node.js cannot be detected, <!--property:requiringNodeJsLanguagesString-->CSS, HTML, JavaScript, TypeScript, YAML<!--/property--> languages will be excluded.
 
 If OS or CPU architecture does not support official Node.js, the detection won't detect any executable.
 
