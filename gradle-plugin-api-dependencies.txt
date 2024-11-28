@@ -7,11 +7,11 @@ org.sonarsource.html:sonar-html-plugin:3.17.0.5548:@sonar-plugin
 org.sonarsource.iac:sonar-iac-plugin:1.39.0.13718
 org.sonarsource.java:sonar-java-plugin:8.6.0.37351:@sonar-plugin
 org.sonarsource.java:sonar-java-symbolic-execution-plugin:8.6.0.37351:@sonar-plugin
-org.sonarsource.javascript:sonar-javascript-plugin:10.17.0.28100:@sonar-plugin
+org.sonarsource.javascript:sonar-javascript-plugin:10.18.0.28572:@sonar-plugin
 org.sonarsource.kotlin:sonar-kotlin-plugin:2.21.0.5736
 org.sonarsource.slang:sonar-scala-plugin:1.17.1.166
 org.sonarsource.sonarlint.core:sonarlint-core:10.10.0.79572
-org.sonarsource.text:sonar-text-plugin:2.18.0.4866
+org.sonarsource.text:sonar-text-plugin:2.19.0.4883
 org.sonarsource.xml:sonar-xml-plugin:2.12.0.5749:@sonar-plugin
 zzzz-classes-relying-on-external-dependency:name.remal.gradle_plugins.sonarlint.internal._relocated.name.remal.gradle_plugins.toolkit.WhenTestSourceSetRegisteredRemalTestSourceSets:ea62c93d26d4c7964e53da0cfedabb58e5f05e5e0b54a0e4c989e54e995c0743
 zzzz-classes-relying-on-external-dependency:name.remal.gradle_plugins.sonarlint.internal._relocated.name.remal.gradle_plugins.toolkit.WhenTestSourceSetRegisteredSofteqITest:13c6849a7285962282325ca3af5d3e90a41b0dc7ade6d4a6b088640ae8d19ae7
