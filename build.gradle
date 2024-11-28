@@ -186,7 +186,7 @@ dependencies {
     compileOnly('org.sonarsource.java:sonar-java-plugin:8.6.0.37351') { transitive = false }
     compileOnly('org.sonarsource.java:sonar-java-symbolic-execution-plugin:8.6.0.37351') { transitive = false }
     compileOnly('org.sonarsource.javascript:sonar-javascript-plugin:10.17.0.28100') { transitive = false }
-    compileOnly('org.sonarsource.iac:sonar-iac-plugin:1.38.0.13264') { transitive = false }
+    compileOnly('org.sonarsource.iac:sonar-iac-plugin:1.39.0.13718') { transitive = false }
 
     // Plugins:
     // See full list of supported plugins here: https://github.com/SonarSource/sonarlint-intellij/blob/master/gradle/libs.versions.toml
