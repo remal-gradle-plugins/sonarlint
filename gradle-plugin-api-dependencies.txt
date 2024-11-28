@@ -9,7 +9,7 @@ org.sonarsource.java:sonar-java-plugin:8.6.0.37351:@sonar-plugin
 org.sonarsource.java:sonar-java-symbolic-execution-plugin:8.6.0.37351:@sonar-plugin
 org.sonarsource.javascript:sonar-javascript-plugin:10.18.0.28572:@sonar-plugin
 org.sonarsource.kotlin:sonar-kotlin-plugin:2.21.0.5736
-org.sonarsource.slang:sonar-scala-plugin:1.17.1.166
+org.sonarsource.slang:sonar-scala-plugin:1.18.0.266
 org.sonarsource.sonarlint.core:sonarlint-core:10.10.0.79572
 org.sonarsource.text:sonar-text-plugin:2.19.0.4883
 org.sonarsource.xml:sonar-xml-plugin:2.12.0.5749:@sonar-plugin
