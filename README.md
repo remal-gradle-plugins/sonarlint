@@ -10,24 +10,26 @@ This plugin executes [SonarLint](https://www.sonarlint.org/) inspections without
 
 The plugin uses these Sonar plugins:
 <!--sonar-plugins-list-->
-* azureresourcemanager
-* cloudformation
-* css
-* docker
-* java
-* js
-* json
-* jsp
-* kotlin
-* kubernetes
-* scala
-* secrets
-* terraform
-* text
-* ts
-* web
-* xml
-* yaml
+
+* [AzureResourceManager](https://rules.sonarsource.com/azureresourcemanager/)
+* [CloudFormation](https://rules.sonarsource.com/cloudformation/)
+* [CSS](https://rules.sonarsource.com/css/)
+* [Docker](https://rules.sonarsource.com/docker/)
+* [Java](https://rules.sonarsource.com/java/)
+* [JavaScript](https://rules.sonarsource.com/javascript/)
+* JSON
+* JSP
+* [Kotlin](https://rules.sonarsource.com/kotlin/)
+* [Kubernetes](https://rules.sonarsource.com/kubernetes/)
+* [Scala](https://rules.sonarsource.com/scala/)
+* [Secrets](https://rules.sonarsource.com/secrets/)
+* [Terraform](https://rules.sonarsource.com/terraform/)
+* [Text](https://rules.sonarsource.com/text/)
+* [TypeScript](https://rules.sonarsource.com/typescript/)
+* [HTML](https://rules.sonarsource.com/web/)
+* [XML](https://rules.sonarsource.com/xml/)
+* YAML
+
 <!--/sonar-plugins-list-->
 
 For every [`SourceSet`](https://docs.gradle.org/current/javadoc/org/gradle/api/tasks/SourceSet.html) a SonarLint task is created by default.
