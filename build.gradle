@@ -322,11 +322,37 @@ tasks.named('processReadme') {
                 logger.lifecycle('  Handling {}', tag)
                 StringBuilder listContent = new StringBuilder()
 
+                Map<String, String> languageDocPaths = [
+                    'js': 'javascript',
+                    'ts': 'typescript',
+                ]
+
                 rootProject.pluginLanguageInfos.get()
                     .toSorted { it.key }
-                    .forEach { listContent.append("\n* ${it.key}") }
+                    .forEach { info ->
+                        String languageDocPath = languageDocPaths[info.key] ?: info.key
+                        URL url = new URL("https://rules.sonarsource.com/${languageDocPath}/")
+                        HttpURLConnection connection = url.openConnection()
+                        connection.useCaches = false
+                        connection.connectTimeout = 5_000
+                        connection.readTimeout = 60_000
+                        connection.connect()
+                        try {
+                            int responseCode = connection.responseCode
+                            if (responseCode == 200) {
+                                listContent.append("\n* [${info.name}]($url)")
+                            } else if (responseCode == 404) {
+                                listContent.append("\n* ${info.name}")
+                            } else {
+                                throw new GradleException("$url returned unexpected status: $responseCode")
+                            }
 
-                return "<!--$tag-->$listContent\n<!--/$tag-->"
+                        } finally {
+                            connection.disconnect()
+                        }
+                    }
+
+                return "<!--$tag-->\n$listContent\n\n<!--/$tag-->"
             }
 
             readmeFile.setText(content, 'UTF-8')
