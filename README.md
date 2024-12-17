@@ -8,7 +8,13 @@
 
 Usage:
 
-<!--plugin-usage:name.remal.sonarlint--><!--/plugin-usage-->
+<!--plugin-usage:name.remal.sonarlint-->
+```groovy
+plugins {
+    id 'name.remal.sonarlint' version '4.3.2'
+}
+```
+<!--/plugin-usage-->
 
 &nbsp;
 
