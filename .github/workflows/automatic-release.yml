@@ -36,12 +36,13 @@ jobs:
           Update README.md
           Update renovate.json5
           Update renovate.json
-        allowedPullRequestLabels: |
-          dependencies
-          sync-with-template
         skippedChangelogCommitPrefixes: |
           [push-back]
           [no-changelog]
+        dependencyUpdatesPullRequestLabels: |
+          dependencies
+        miscPullRequestLabels: |
+          sync-with-template
         actionPathsAllowedToFail: |
           .github/workflows/automatic-release.yml
           .github/workflows/codeowners-validator.yml
