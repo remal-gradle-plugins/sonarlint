@@ -11,7 +11,7 @@ Usage:
 <!--plugin-usage:name.remal.sonarlint-->
 ```groovy
 plugins {
-    id 'name.remal.sonarlint' version '4.3.2'
+    id 'name.remal.sonarlint' version '4.3.3'
 }
 ```
 <!--/plugin-usage-->
