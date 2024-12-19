@@ -42,6 +42,9 @@ for ATTEMPT in $(seq 1 2); do
     elif STR="Could not get resource" && grep --quiet --ignore-case "\b$STR\b" "$LOGFILE"; then
         echo "::warning::'$STR' found in $* command log file $LOGFILE"
 
+    elif STR="Received status code 429 from server" && grep --quiet --ignore-case "\b$STR\b" "$LOGFILE"; then
+        echo "::warning::'$STR' found in $* command log file $LOGFILE"
+
     else
         break
     fi
