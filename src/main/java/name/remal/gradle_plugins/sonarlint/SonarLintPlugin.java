@@ -20,6 +20,7 @@ import static name.remal.gradle_plugins.sonarlint.BaseSonarLintActions.SONAR_SOU
 import static name.remal.gradle_plugins.sonarlint.DependencyWithBrokenPomSubstitutions.getVersionWithFixedPom;
 import static name.remal.gradle_plugins.sonarlint.ResolvedNonReproducibleSonarDependencies.getResolvedNonReproducibleSonarDependency;
 import static name.remal.gradle_plugins.sonarlint.SonarDependencies.getSonarDependencies;
+import static name.remal.gradle_plugins.toolkit.AttributeContainerUtils.javaRuntimeLibrary;
 import static name.remal.gradle_plugins.toolkit.ExtensionContainerUtils.findExtension;
 import static name.remal.gradle_plugins.toolkit.ExtensionContainerUtils.getExtension;
 import static name.remal.gradle_plugins.toolkit.PredicateUtils.not;
@@ -29,10 +30,6 @@ import static name.remal.gradle_plugins.toolkit.SourceSetUtils.isSourceSetTask;
 import static name.remal.gradle_plugins.toolkit.SourceSetUtils.whenTestSourceSetRegistered;
 import static org.gradle.api.artifacts.ExcludeRule.GROUP_KEY;
 import static org.gradle.api.artifacts.ExcludeRule.MODULE_KEY;
-import static org.gradle.api.attributes.Category.CATEGORY_ATTRIBUTE;
-import static org.gradle.api.attributes.Category.LIBRARY;
-import static org.gradle.api.attributes.Usage.JAVA_RUNTIME;
-import static org.gradle.api.attributes.Usage.USAGE_ATTRIBUTE;
 
 import com.google.common.collect.ImmutableMap;
 import java.io.File;
@@ -59,8 +56,6 @@ import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.Dependency;
 import org.gradle.api.artifacts.ModuleDependency;
 import org.gradle.api.artifacts.dsl.DependencyHandler;
-import org.gradle.api.attributes.Category;
-import org.gradle.api.attributes.Usage;
 import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.internal.tasks.compile.HasCompileOptions;
 import org.gradle.api.model.ObjectFactory;
@@ -145,7 +140,7 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
 
         super.createConfigurations();
 
-        project.getConfigurations().create(getPluginsConfigurationName(), conf -> {
+        project.getConfigurations().register(getPluginsConfigurationName(), conf -> {
             if (conf.isCanBeResolved()) {
                 conf.setCanBeResolved(true);
             }
@@ -474,16 +469,7 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
 
 
         if (configuration.isCanBeResolved() || configuration.isCanBeConsumed()) {
-            configuration.attributes(attrs -> {
-                attrs.attribute(
-                    USAGE_ATTRIBUTE,
-                    project.getObjects().named(Usage.class, JAVA_RUNTIME)
-                );
-                attrs.attribute(
-                    CATEGORY_ATTRIBUTE,
-                    project.getObjects().named(Category.class, LIBRARY)
-                );
-            });
+            configuration.attributes(javaRuntimeLibrary(getObjects()));
         }
 
 
