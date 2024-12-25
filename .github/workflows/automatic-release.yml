@@ -43,6 +43,7 @@ jobs:
           dependencies
         miscPullRequestLabels: |
           sync-with-template
+          remal-gradle-plugins-toolkit
         actionPathsAllowedToFail: |
           .github/workflows/automatic-release.yml
           .github/workflows/codeowners-validator.yml
