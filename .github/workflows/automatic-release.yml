@@ -41,6 +41,8 @@ jobs:
           [no-changelog]
         dependencyUpdatesPullRequestLabels: |
           dependencies
+        dependencyUpdatesPullRequestExcludeLabels: |
+          remal-gradle-plugins-toolkit
         miscPullRequestLabels: |
           sync-with-template
           remal-gradle-plugins-toolkit
