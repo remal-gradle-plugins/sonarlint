@@ -27,3 +27,6 @@ categories:
 - title: 📦 Dependency updates
   labels:
   - dependencies
+- title: 🛠️ Misc
+  labels:
+  - sync-with-template
