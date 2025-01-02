@@ -95,7 +95,9 @@ apply plugin: 'name.remal.generate-sources'
 dependencies {
     classesRelocation 'com.tisonkun.os:os-detector-core:0.6.0'
 
-    optional 'org.sonarsource.sonarlint.core:sonarlint-core:10.12.1.79852'
+    optional('org.sonarsource.sonarlint.core:sonarlint-core:10.12.1.79852') {
+        exclude group: 'com.google.guava'
+    }
 }
 
 gradlePlugin {
@@ -309,6 +311,7 @@ tasks.named('generateJava') { Task task ->
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 tasks.named('processReadme') {
+    ListProperty pluginLanguageInfos = rootProject.pluginLanguageInfos
     readmeFileProcessors.add(
         { File readmeFile ->
             String content = readmeFile.getText('UTF-8')
@@ -325,7 +328,7 @@ tasks.named('processReadme') {
                     'ts': 'typescript',
                 ]
 
-                rootProject.pluginLanguageInfos.get()
+                pluginLanguageInfos.get()
                     .toSorted { it.key }
                     .forEach { info ->
                         String languageDocPath = languageDocPaths[info.key] ?: info.key
