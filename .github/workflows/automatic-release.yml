@@ -3,8 +3,17 @@ name: Automatic release
 on:
   schedule:
   - cron: '14 8 * * 3' # sync-with-template: adjust
-  workflow_dispatch: { }
-
+  workflow_dispatch:
+    inputs:
+      dryRun:
+        required: true
+        default: 'false'
+        description: Set to 'true' to enable dry run
+        type: choice
+        options:
+        - 'true'
+        - 'false'
+        
 defaults:
   run:
     shell: bash
@@ -19,6 +28,7 @@ jobs:
     - name: Automatic release
       uses: remal-github-actions/automatic-release@v1
       with:
+        dryRun: ${{inputs.dryRun}}
         githubToken: ${{secrets.PUSH_BACK_TOKEN}}
         versionIncrementMode: 'patch'
         versionTagPrefix: 'v'
