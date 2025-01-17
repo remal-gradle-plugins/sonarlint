@@ -135,6 +135,8 @@ tasks.named('generateJava') {
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+project.redefineDependencyTargetJvmVersion('org.sonarsource.git.blame:git-files-blame', 8)
+
 Configuration allSonarArtifactsConf = project.configurations.create('allSonarArtifacts')
 
 Map<String, String> nonReproducibleSonarDependencyVersions = new TreeMap<>().asSynchronized()
@@ -510,39 +512,6 @@ abstract class ProcessSonar implements TransformAction<ProcessSonarParameters> {
                 }
             }
         }
-    }
-
-}
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-allprojects {
-    dependencies.components {
-        withModule('org.sonarsource.git.blame:git-files-blame', TargetJvmVersionRule) { params(8) }
-    }
-}
-
-@CacheableRule
-abstract class TargetJvmVersionRule implements ComponentMetadataRule {
-
-    final Integer jvmVersion
-
-    @Inject
-    TargetJvmVersionRule(Integer jvmVersion) {
-        this.jvmVersion = jvmVersion
-    }
-
-    void execute(ComponentMetadataContext context) {
-        context.details.allVariants {
-            attributes {
-                attribute(TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, jvmVersion)
-            }
-        }
-    }
-
-    @Override
-    String toString() {
-        return "${getClass().simpleName}[$jvmVersion]"
     }
 
 }
