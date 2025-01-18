@@ -77,26 +77,25 @@ Provider<String> minSupportedNodeJsVersion = rootProject.ext.minSupportedNodeJsV
     }
 ).with { it.finalizeValueOnRead(); it }
 
-tasks.named('generateJava') {
+generateSources.forMainSourceSet.java {
     inputs.property('ltsNodeJsVersion', ltsNodeJsVersion)
     inputs.property('minSupportedNodeJsVersion', minSupportedNodeJsVersion)
-    classFile(project.calculateBaseJavaPackage(), 'NodeJsVersions') {
-        it.writePackage()
-        it.println("")
-        it.writeStaticImport("lombok.AccessLevel", "PRIVATE")
-        it.println("")
-        it.writeImport("lombok.NoArgsConstructor")
-        it.writeImport("name.remal.gradle_plugins.toolkit.Version")
-        it.println("")
-        it.println("@NoArgsConstructor(access = PRIVATE)")
-        it.writeBlock("abstract class ${it.simpleName}") {
-            it.println("public static final Version DEFAULT_NODEJS_VERSION = Version.parse(\"${it.escapeJava(ltsNodeJsVersion.get())}\");")
-            it.println("public static final Version MIN_SUPPORTED_NODEJS_VERSION = Version.parse(\"${it.escapeJava(minSupportedNodeJsVersion.get())}\");")
 
-            it.println("")
-            it.writeBlock("static") {
-                it.writeBlock("if (DEFAULT_NODEJS_VERSION.compareTo(MIN_SUPPORTED_NODEJS_VERSION) < 0)") {
-                    it.println("throw new AssertionError(DEFAULT_NODEJS_VERSION + \" is less than \" + MIN_SUPPORTED_NODEJS_VERSION);")
+    classFile(project.calculateBaseJavaPackage(), 'NodeJsVersions') {
+        addStaticImport("lombok.AccessLevel", "PRIVATE")
+
+        addImport("lombok.NoArgsConstructor")
+        addImport("name.remal.gradle_plugins.toolkit.Version")
+
+        line("@NoArgsConstructor(access = PRIVATE)")
+        block("abstract class ${simpleName}") {
+            line("public static final Version DEFAULT_NODEJS_VERSION = Version.parse(\"${escapeString(ltsNodeJsVersion.get())}\");")
+            line("public static final Version MIN_SUPPORTED_NODEJS_VERSION = Version.parse(\"${escapeString(minSupportedNodeJsVersion.get())}\");")
+
+            line("")
+            block("static") {
+                block("if (DEFAULT_NODEJS_VERSION.compareTo(MIN_SUPPORTED_NODEJS_VERSION) < 0)") {
+                    line("throw new AssertionError(DEFAULT_NODEJS_VERSION + \" is less than \" + MIN_SUPPORTED_NODEJS_VERSION);")
                 }
             }
         }
@@ -107,24 +106,25 @@ tasks.named('generateJava') {
 
 Map<OS, Set<Arch>> publishedNodeJsOs = new TreeMap<>()
 
-tasks.named('generateJava') {
+generateSources.forMainSourceSet.java {
     inputs.property('publishedNodeJsOs', publishedNodeJsOs)
+
     classFile(project.calculateBaseJavaPackage(), 'PublishedNodeJs') {
-        it.writePackage()
-        it.println("")
-        it.writeImport("com.google.common.collect.ImmutableMap")
-        it.writeImport("com.google.common.collect.ImmutableSet")
-        it.writeImport(Arch)
-        it.writeImport(OS)
-        it.writeImport("java.util.Map")
-        it.writeImport("java.util.Set")
-        it.println("")
-        it.writeBlock("interface ${it.simpleName}") {
-            it.println("Map<OS, Set<Arch>> PUBLISHED_NODEJS_OS = ImmutableMap.<OS, Set<Arch>>builder()")
-            publishedNodeJsOs.forEach { os, arches ->
-                it.println("    .put(OS.$os, ImmutableSet.of(${arches.collect { "Arch.$it" }.join(', ')}))")
+        addImport("com.google.common.collect.ImmutableMap")
+        addImport("com.google.common.collect.ImmutableSet")
+        addImport(Arch)
+        addImport(OS)
+        addImport("java.util.Map")
+        addImport("java.util.Set")
+
+        block("interface ${simpleName}") {
+            line("Map<OS, Set<Arch>> PUBLISHED_NODEJS_OS = ImmutableMap.<OS, Set<Arch>>builder()")
+            indent {
+                publishedNodeJsOs.forEach { os, arches ->
+                    line(".put(OS.$os, ImmutableSet.of(${arches.collect { "Arch.$it" }.join(', ')}))")
+                }
+                line(".build();")
             }
-            it.println("    .build();")
         }
     }
 }

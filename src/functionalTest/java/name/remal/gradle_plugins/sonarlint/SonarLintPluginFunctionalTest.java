@@ -1,10 +1,8 @@
 package name.remal.gradle_plugins.sonarlint;
 
-import static java.lang.String.format;
 import static java.lang.String.join;
 import static java.util.Arrays.asList;
 import static name.remal.gradle_plugins.toolkit.SneakyThrowUtils.sneakyThrows;
-import static name.remal.gradle_plugins.toolkit.StringUtils.escapeGroovy;
 import static name.remal.gradle_plugins.toolkit.StringUtils.normalizeString;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -44,13 +42,13 @@ class SonarLintPluginFunctionalTest {
             build.applyPlugin("java");
             build.addMavenCentralRepository();
             build.addBuildDirMavenRepositories();
-            build.append("sonarLint.ignoreFailures = true");
+            build.line("sonarLint.ignoreFailures = true");
 
             DISABLED_RULES.forEach(ruleId ->
-                project.getBuildFile().append(format(
+                project.getBuildFile().line(
                     "sonarLint.rules.disable('%s')",
-                    escapeGroovy(ruleId)
-                ))
+                    build.escapeString(ruleId)
+                )
             );
         });
 
@@ -91,30 +89,25 @@ class SonarLintPluginFunctionalTest {
 
     @Test
     void sonarLintProperties() {
-        project.getBuildFile().registerDefaultTask("sonarLintProperties");
-        project.assertBuildSuccessfully();
+        project.assertBuildSuccessfully("sonarLintProperties");
     }
 
     @Test
     void sonarLintRules() {
-        project.getBuildFile().registerDefaultTask("sonarLintRules");
-        project.assertBuildSuccessfully();
+        project.assertBuildSuccessfully("sonarLintRules");
     }
 
 
     @Test
     void emptyBuildPerformsSuccessfully() {
-        project.getBuildFile().registerDefaultTask("sonarlintMain");
-        project.assertBuildSuccessfully();
+        project.assertBuildSuccessfully("sonarlintMain");
     }
 
     @Test
     void java() {
-        project.getBuildFile().registerDefaultTask("sonarlintMain");
-
         val sourceFileRelativePath = addJavaS1171RuleExample("src/main/java");
 
-        project.assertBuildSuccessfully();
+        project.assertBuildSuccessfully("sonarlintMain");
 
         val issues = parseSonarLintIssuesOf("src/main/java/" + sourceFileRelativePath);
         assertThat(issues)
@@ -127,8 +120,6 @@ class SonarLintPluginFunctionalTest {
 
         @Test
         void htmlWithDefaultConfiguration() {
-            project.getBuildFile().registerDefaultTask("sonarlintMain");
-
             val sourceFileRelativePath = addRuleExample(
                 "src/main/resources",
                 "Web:S5254",
@@ -137,10 +128,10 @@ class SonarLintPluginFunctionalTest {
                     "<!DOCTYPE html>",
                     "<html>",
                     "</html>",
-                    })
+                })
             );
 
-            project.assertBuildSuccessfully();
+            project.assertBuildSuccessfully("sonarlintMain");
 
             val issues = parseSonarLintIssuesOf("src/main/resources/" + sourceFileRelativePath);
             assertThat(issues)
@@ -149,9 +140,7 @@ class SonarLintPluginFunctionalTest {
 
         @Test
         void htmlWithNodeJsDetection() {
-            project.getBuildFile().append("sonarLint { nodeJs { detectNodeJs = true } }");
-
-            project.getBuildFile().registerDefaultTask("sonarlintMain");
+            project.getBuildFile().line("sonarLint { nodeJs { detectNodeJs = true } }");
 
             val sourceFileRelativePath = addRuleExample(
                 "src/main/resources",
@@ -161,10 +150,10 @@ class SonarLintPluginFunctionalTest {
                     "<!DOCTYPE html>",
                     "<html>",
                     "</html>",
-                    })
+                })
             );
 
-            project.assertBuildSuccessfully();
+            project.assertBuildSuccessfully("sonarlintMain");
 
             val issues = parseSonarLintIssuesOf("src/main/resources/" + sourceFileRelativePath);
             assertThat(issues)
@@ -174,10 +163,8 @@ class SonarLintPluginFunctionalTest {
 
         @Test
         void htmlWithNodeJsDetectionAndCustomSuffix() {
-            project.getBuildFile().append("sonarLint { nodeJs { detectNodeJs = true } }");
-            project.getBuildFile().append("sonarLint { sonarProperty('sonar.html.file.suffixes', '.custom-html') }");
-
-            project.getBuildFile().registerDefaultTask("sonarlintMain");
+            project.getBuildFile().line("sonarLint { nodeJs { detectNodeJs = true } }");
+            project.getBuildFile().line("sonarLint { sonarProperty('sonar.html.file.suffixes', '.custom-html') }");
 
             val sourceFileRelativePath = addRuleExample(
                 "src/main/resources",
@@ -187,10 +174,10 @@ class SonarLintPluginFunctionalTest {
                     "<!DOCTYPE html>",
                     "<html>",
                     "</html>",
-                    })
+                })
             );
 
-            project.assertBuildSuccessfully();
+            project.assertBuildSuccessfully("sonarlintMain");
 
             val issues = parseSonarLintIssuesOf("src/main/resources/" + sourceFileRelativePath);
             assertThat(issues)
@@ -200,9 +187,7 @@ class SonarLintPluginFunctionalTest {
 
         @Test
         void htmlWithoutNodeJsDetection() {
-            project.getBuildFile().append("sonarLint { nodeJs { detectNodeJs = false } }");
-
-            project.getBuildFile().registerDefaultTask("sonarlintMain");
+            project.getBuildFile().line("sonarLint { nodeJs { detectNodeJs = false } }");
 
             val sourceFileRelativePath = addRuleExample(
                 "src/main/resources",
@@ -212,10 +197,10 @@ class SonarLintPluginFunctionalTest {
                     "<!DOCTYPE html>",
                     "<html>",
                     "</html>",
-                    })
+                })
             );
 
-            project.assertBuildSuccessfully();
+            project.assertBuildSuccessfully("sonarlintMain");
 
             val issues = parseSonarLintIssuesOf("src/main/resources/" + sourceFileRelativePath);
             assertThat(issues)
@@ -226,12 +211,10 @@ class SonarLintPluginFunctionalTest {
 
     @Test
     void generatedFiles() {
-        project.getBuildFile().registerDefaultTask("sonarlintMain");
-
         val javaS1171SourceRelativePath = addJavaS1171RuleExample("build/generated-java");
         val javaS1133SourceRelativePath = addJavaS1133RuleExample("src/main/java");
 
-        project.assertBuildSuccessfully();
+        project.assertBuildSuccessfully("sonarlintMain");
 
         assertThat(parseSonarLintIssuesOf("build/generated-java/" + javaS1171SourceRelativePath))
             .isEmpty();
@@ -242,17 +225,15 @@ class SonarLintPluginFunctionalTest {
 
     @Test
     void ignoredPaths() {
-        project.getBuildFile().registerDefaultTask("sonarlintMain");
-
         val javaS1171SourceRelativePath = addJavaS1171RuleExample("src/main/java");
         val javaS1133SourceRelativePath = addJavaS1133RuleExample("src/main/java");
 
-        project.getBuildFile().append(format(
+        project.getBuildFile().line(
             "sonarLint.ignoredPaths.add('%s')",
-            escapeGroovy("**/*S1171*")
-        ));
+            "**/*S1171*"
+        );
 
-        project.assertBuildSuccessfully();
+        project.assertBuildSuccessfully("sonarlintMain");
 
         assertThat(parseSonarLintIssuesOf("src/main/java/" + javaS1171SourceRelativePath))
             .isEmpty();
@@ -263,17 +244,15 @@ class SonarLintPluginFunctionalTest {
 
     @Test
     void ruleIgnoredPaths() {
-        project.getBuildFile().registerDefaultTask("sonarlintMain");
-
         val javaS1171SourceRelativePath = addJavaS1171RuleExample("src/main/java");
         val javaS1133SourceRelativePath = addJavaS1133RuleExample("src/main/java");
 
-        project.getBuildFile().append(format(
+        project.forBuildFile(build -> build.line(
             "sonarLint.rules.rule('java:S1171', { ignoredPaths.add('%s') })",
-            escapeGroovy(javaS1171SourceRelativePath)
+            build.escapeString(javaS1171SourceRelativePath)
         ));
 
-        project.assertBuildSuccessfully();
+        project.assertBuildSuccessfully("sonarlintMain");
 
         assertThat(parseSonarLintIssuesOf("src/main/java/" + javaS1171SourceRelativePath))
             .isEmpty();
@@ -296,12 +275,12 @@ class SonarLintPluginFunctionalTest {
             .map(File::new)
             .map(File::getAbsoluteFile)
             .forEach(file -> {
-                project.getBuildFile().append(
-                    "dependencies { testImplementation files('" + escapeGroovy(file.getPath()) + "') }"
-                );
+                project.forBuildFile(build -> build.line(
+                    "dependencies { testImplementation files('" + build.escapeString(file.getPath()) + "') }"
+                ));
             });
 
-        project.getBuildFile().append(join("\n", new String[]{
+        project.getBuildFile().line(join("\n", new String[]{
             "tasks.withType(JavaCompile).configureEach {",
             "    options.compilerArgs.add('-Xlint:none')",
             "}"
@@ -317,7 +296,7 @@ class SonarLintPluginFunctionalTest {
             "    }",
             "",
             "}",
-            }));
+        }));
 
         project.writeTextFile("src/test/java/pkg/JavaDependencyTest.java", join("\n", new String[]{
             "package pkg;",
@@ -336,13 +315,11 @@ class SonarLintPluginFunctionalTest {
             "    }",
             "",
             "}",
-            }));
+        }));
 
-        project.getBuildFile().append("sonarLint.rules.enable('java:S5785')");
+        project.getBuildFile().line("sonarLint.rules.enable('java:S5785')");
 
-        project.getBuildFile().registerDefaultTask("sonarlintTest");
-
-        project.assertBuildSuccessfully();
+        project.assertBuildSuccessfully("sonarlintTest");
 
         assertThat(parseSonarLintIssuesOf(
             "build/reports/sonarlint/sonarlintTest/sonarlintTest.xml",
@@ -359,16 +336,15 @@ class SonarLintPluginFunctionalTest {
 
         @BeforeEach
         void beforeEach() {
-            project.getBuildFile().registerDefaultTask("sonarlintMain");
             sourceFileRelativePath = addJavaS1171RuleExample("src/main/java");
         }
 
 
         @Test
         void includedLanguage() {
-            project.getBuildFile().append("sonarLint.languages.include('java')");
+            project.getBuildFile().line("sonarLint.languages.include('java')");
 
-            val buildLog = project.assertBuildSuccessfully().getOutput();
+            val buildLog = project.assertBuildSuccessfully("sonarlintMain").getOutput();
             assertThat(buildLog)
                 .doesNotContainPattern("^Plugin .+ is excluded because language")
                 .doesNotContainPattern("^Plugin .+ is excluded because none of languages");
@@ -381,9 +357,9 @@ class SonarLintPluginFunctionalTest {
 
         @Test
         void includedOtherLanguage() {
-            project.getBuildFile().append("sonarLint.languages.include('kotlin')");
+            project.getBuildFile().line("sonarLint.languages.include('kotlin')");
 
-            val buildLog = project.assertBuildSuccessfully().getOutput();
+            val buildLog = project.assertBuildSuccessfully("sonarlintMain").getOutput();
             assertThat(buildLog)
                 .doesNotContainPattern("^Plugin .+ is excluded because language")
                 .doesNotContainPattern("^Plugin .+ is excluded because none of languages");
@@ -396,9 +372,9 @@ class SonarLintPluginFunctionalTest {
 
         @Test
         void excludedLanguage() {
-            project.getBuildFile().append("sonarLint.languages.exclude('java')");
+            project.getBuildFile().line("sonarLint.languages.exclude('java')");
 
-            val buildLog = project.assertBuildSuccessfully().getOutput();
+            val buildLog = project.assertBuildSuccessfully("sonarlintMain").getOutput();
             assertThat(buildLog)
                 .doesNotContainPattern("^Plugin .+ is excluded because language")
                 .doesNotContainPattern("^Plugin .+ is excluded because none of languages");
@@ -411,9 +387,9 @@ class SonarLintPluginFunctionalTest {
 
         @Test
         void excludedOtherLanguage() {
-            project.getBuildFile().append("sonarLint.languages.exclude('kotlin')");
+            project.getBuildFile().line("sonarLint.languages.exclude('kotlin')");
 
-            val buildLog = project.assertBuildSuccessfully().getOutput();
+            val buildLog = project.assertBuildSuccessfully("sonarlintMain").getOutput();
             assertThat(buildLog)
                 .doesNotContainPattern("^Plugin .+ is excluded because language")
                 .doesNotContainPattern("^Plugin .+ is excluded because none of languages");
@@ -428,9 +404,7 @@ class SonarLintPluginFunctionalTest {
 
     @Test
     void doesNotUseNonReproducibleVersions() {
-        project.getBuildFile().registerDefaultTask("sonarlintMain");
-
-        project.getBuildFile().append(join("\n", new String[]{
+        project.getBuildFile().line(join("\n", new String[]{
             "configurations.configureEach {",
             "    resolutionStrategy {",
             "        failOnNonReproducibleResolution()",
@@ -440,7 +414,7 @@ class SonarLintPluginFunctionalTest {
 
         addJavaS1171RuleExample("src/main/java");
 
-        project.assertBuildSuccessfully();
+        project.assertBuildSuccessfully("sonarlintMain");
     }
 
     @Nested
@@ -448,10 +422,9 @@ class SonarLintPluginFunctionalTest {
 
         @Test
         void issueDescriptionIsDisplayedByDefault() {
-            project.getBuildFile().registerDefaultTask("sonarlintMain");
             addJavaS1171RuleExample("src/main/java");
 
-            val buildResult = project.assertBuildSuccessfully();
+            val buildResult = project.assertBuildSuccessfully("sonarlintMain");
             val output = normalizeString(buildResult.getOutput());
 
             assertThat(output).contains("\n  Why is this an issue?\n");
@@ -459,12 +432,11 @@ class SonarLintPluginFunctionalTest {
 
         @Test
         void issueDescriptionIsHidden() {
-            project.getBuildFile().registerDefaultTask("sonarlintMain");
             addJavaS1171RuleExample("src/main/java");
 
-            project.getBuildFile().append("sonarLint { logging { withDescription = false } }");
+            project.getBuildFile().line("sonarLint { logging { withDescription = false } }");
 
-            val buildResult = project.assertBuildSuccessfully();
+            val buildResult = project.assertBuildSuccessfully("sonarlintMain");
             val output = normalizeString(buildResult.getOutput());
 
             assertThat(output).doesNotContain("\n  Why is this an issue?\n");
@@ -474,14 +446,14 @@ class SonarLintPluginFunctionalTest {
 
 
     private String addRuleExample(String srcDir, String rule, String sourceFileRelativePath, String content) {
-        project.getBuildFile().append(format(
+        project.forBuildFile(build -> build.line(
             "tasks.sonarlintMain.source('%s')",
-            escapeGroovy(srcDir)
+            build.escapeString(srcDir)
         ));
 
-        project.getBuildFile().append(format(
+        project.forBuildFile(build -> build.line(
             "sonarLint.rules.enable('%s')",
-            escapeGroovy(rule)
+            build.escapeString(rule)
         ));
 
         project.writeTextFile(srcDir + '/' + sourceFileRelativePath, content);
@@ -502,7 +474,7 @@ class SonarLintPluginFunctionalTest {
             "    }",
             "",
             "}",
-            }));
+        }));
     }
 
     private String addJavaS1133RuleExample(String srcDir) {
@@ -517,7 +489,7 @@ class SonarLintPluginFunctionalTest {
             "    }",
             "",
             "}",
-            }));
+        }));
     }
 
 }
