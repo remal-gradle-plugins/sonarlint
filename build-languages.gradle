@@ -217,43 +217,41 @@ rootProject.ext.requiringNodeJsLanguagesString = project.objects.property(String
 ).with { it.finalizeValueOnRead(); it }
 
 
-tasks.named('generateJava') {
+generateSources.forMainSourceSet.java {
     inputs.files(sonarPluginLanguagesConf).withPropertyName('sonarPluginLanguagesConf').optional()
     inputs.files(sonarAllLanguagesConf).withPropertyName('sonarAllLanguagesConf').optional()
 
     classFile(project.calculateBaseJavaPackage() + '.internal', 'SonarLanguage') {
-        it.writePackage()
-        it.println("")
-        it.writeStaticImport("lombok.AccessLevel", "PRIVATE")
-        it.println("")
-        it.writeImport("com.google.common.collect.ImmutableList")
-        it.writeImport("java.util.List")
-        it.writeImport("javax.annotation.Nullable")
-        it.writeImport("lombok.Getter")
-        it.writeImport("lombok.RequiredArgsConstructor")
-        it.println("")
-        it.println("@Getter")
-        it.println("@RequiredArgsConstructor(access = PRIVATE)")
-        it.println("@SuppressWarnings(\"all\")")
-        it.writeBlock("public enum ${it.simpleName}") {
+        addStaticImport("lombok.AccessLevel", "PRIVATE")
+
+        addImport("com.google.common.collect.ImmutableList")
+        addImport("java.util.List")
+        addImport("javax.annotation.Nullable")
+        addImport("lombok.Getter")
+        addImport("lombok.RequiredArgsConstructor")
+
+        line("@Getter")
+        line("@RequiredArgsConstructor(access = PRIVATE)")
+        line("@SuppressWarnings(\"all\")")
+        block("public enum ${simpleName}") {
             allLanguageInfos.get().forEach { LanguageInfo info ->
-                it.println("${info.key}(")
-                it.println("    \"${it.escapeJava(info.name)}\",")
-                it.println("    ImmutableList.of(${info.defaultFileSuffixes.collect { suffix -> '"' + it.escapeJava(suffix) + '"' }.join(', ')}),")
+                line("${info.key}(")
+                line("    \"${escapeString(info.name)}\",")
+                line("    ImmutableList.of(${info.defaultFileSuffixes.collect { suffix -> '"' + escapeString(suffix) + '"' }.join(', ')}),")
                 if (info.fileSuffixesPropKey.isEmpty() || info.fileSuffixesPropKey.find(/[^\w.]/)) {
-                    it.println("    null,")
+                    line("    null,")
                 } else {
-                    it.println("    \"${it.escapeJava(info.fileSuffixesPropKey)}\",")
+                    line("    \"${escapeString(info.fileSuffixesPropKey)}\",")
                 }
-                it.println("    ${info.requireNodeJs}")
-                it.println("),")
+                line("    ${info.requireNodeJs}")
+                line("),")
             }
-            it.println(";")
-            it.println("")
-            it.println("private final String name;")
-            it.println("private final List<String> defaultFileSuffixes;")
-            it.println("private final @Nullable String fileSuffixesPropKey;")
-            it.println("private final boolean requireNodeJs;")
+            line(";")
+            line("")
+            line("private final String name;")
+            line("private final List<String> defaultFileSuffixes;")
+            line("private final @Nullable String fileSuffixesPropKey;")
+            line("private final boolean requireNodeJs;")
         }
     }
 }
