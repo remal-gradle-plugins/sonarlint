@@ -1,7 +1,7 @@
 # This file is generated automatically by `collectAllGradlePluginApiDependencies` Gradle task.
 # Do not modify it yourself unless you know what you are doing.
 
-Node.js:lts:18.20.5
+Node.js:lts:18.20.6
 org.ow2.asm:asm-bom:9.7.1:@pom
 org.sonarsource.html:sonar-html-plugin:3.18.0.5605:@sonar-plugin
 org.sonarsource.iac:sonar-iac-plugin:1.41.0.14206
