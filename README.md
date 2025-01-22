@@ -140,6 +140,10 @@ If there are no files requiring Node.js in the sources, Node.js detection will b
 
 # Migration guide
 
+## Version 4.* to 5.*
+
+The minimum Java version is 11 (from 8).
+
 ## Version 3.* to 4.*
 
 Gradle 6 support was removed.

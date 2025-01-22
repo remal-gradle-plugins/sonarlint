@@ -10,7 +10,6 @@ import com.google.auto.service.AutoService;
 import java.io.File;
 import lombok.CustomLog;
 import lombok.SneakyThrows;
-import lombok.val;
 import name.remal.gradle_plugins.sonarlint.internal.NodeJsFound;
 import name.remal.gradle_plugins.sonarlint.internal.NodeJsInfo;
 import org.gradle.api.provider.ProviderFactory;
@@ -24,14 +23,14 @@ class NodeJsExecutableMethods_7_4 extends NodeJsExecutableMethods {
     public NodeJsInfo getNodeJsInfo(ProviderFactory providers, File file) {
         setExecutePermissionsIfNeeded(file);
 
-        val command = new String[]{file.getAbsolutePath(), "--version"};
-        val process = getRuntime().exec(command);
+        var command = new String[]{file.getAbsolutePath(), "--version"};
+        var process = getRuntime().exec(command);
 
-        val exitCode = process.waitFor();
+        var exitCode = process.waitFor();
         if (exitCode != 0) {
-            try (val errorStream = process.getErrorStream()) {
-                val errorBytes = readBytes(errorStream);
-                val errorOutput = new String(errorBytes, UTF_8);
+            try (var errorStream = process.getErrorStream()) {
+                var errorBytes = errorStream.readAllBytes();
+                var errorOutput = new String(errorBytes, UTF_8);
                 return nodeJsNotFound(format(
                     "%s returned %d exit code with error output:%n%s",
                     join(" ", command),
@@ -41,10 +40,10 @@ class NodeJsExecutableMethods_7_4 extends NodeJsExecutableMethods {
             }
         }
 
-        try (val inputStream = process.getInputStream()) {
-            val bytes = readBytes(inputStream);
-            val output = new String(bytes, UTF_8);
-            val version = parseVersion(output);
+        try (var inputStream = process.getInputStream()) {
+            var bytes = inputStream.readAllBytes();
+            var output = new String(bytes, UTF_8);
+            var version = parseVersion(output);
             if (version == null) {
                 return nodeJsNotFound(format(
                     "%s produced not a Node.js version output:%n%s",

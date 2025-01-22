@@ -34,7 +34,6 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import lombok.SneakyThrows;
-import lombok.val;
 import name.remal.gradle_plugins.sonarlint.internal.SonarLintExecutionParams;
 import name.remal.gradle_plugins.sonarlint.internal.SourceFile;
 import name.remal.gradle_plugins.toolkit.ObjectUtils;
@@ -57,17 +56,17 @@ public class SonarLintAnalyzer {
     @SneakyThrows
     @SuppressWarnings({"java:S3776", "EnumOrdinal"})
     public Collection<Issue> analyze(SonarLintExecutionParams params) {
-        val pluginJarLocations = getPluginJarLocations(params);
-        val enabledLanguages = getEnabledLanguages(params);
-        val nodeJsVersion = getNodeJsVersion(params);
+        var pluginJarLocations = getPluginJarLocations(params);
+        var enabledLanguages = getEnabledLanguages(params);
+        var nodeJsVersion = getNodeJsVersion(params);
 
-        val filesToAnalyze = params.getSourceFiles().getOrElse(emptyList()).stream()
+        var filesToAnalyze = params.getSourceFiles().getOrElse(emptyList()).stream()
             .map(SimpleClientInputFile::new)
             .collect(toList());
 
-        val module = new ClientModuleInfo("module-key", new SimpleClientModuleFileSystem(filesToAnalyze));
+        var module = new ClientModuleInfo("module-key", new SimpleClientModuleFileSystem(filesToAnalyze));
 
-        val analysisEngineConfiguration = AnalysisEngineConfiguration.builder()
+        var analysisEngineConfiguration = AnalysisEngineConfiguration.builder()
             .setWorkDir(createDirectories(params.getWorkDir().get().getAsFile().toPath()))
             .setClientPid(0)
             .setExtraProperties(emptyMap())
@@ -83,20 +82,20 @@ public class SonarLintAnalyzer {
             return false;
         };
 
-        try (val loadedPlugins = loadPlugins(pluginJarLocations, enabledLanguages, nodeJsVersion)) {
-            val rules = extractRules(loadedPlugins.getLoadedPlugins().getAllPluginInstancesByKeys(), enabledLanguages);
+        try (var loadedPlugins = loadPlugins(pluginJarLocations, enabledLanguages, nodeJsVersion)) {
+            var rules = extractRules(loadedPlugins.getLoadedPlugins().getAllPluginInstancesByKeys(), enabledLanguages);
 
-            val enabledRules = params.getEnabledRules().getOrElse(emptySet()).stream()
+            var enabledRules = params.getEnabledRules().getOrElse(emptySet()).stream()
                 .map(RuleKey::parse)
                 .collect(toList());
-            val disabledRules = params.getDisabledRules().getOrElse(emptySet()).stream()
+            var disabledRules = params.getDisabledRules().getOrElse(emptySet()).stream()
                 .map(RuleKey::parse)
                 .collect(toList());
-            val allRuleProperties = params.getRulesProperties().getOrElse(emptyMap()).entrySet().stream().collect(toMap(
+            var allRuleProperties = params.getRulesProperties().getOrElse(emptyMap()).entrySet().stream().collect(toMap(
                 entry -> RuleKey.parse(entry.getKey()),
                 Entry::getValue
             ));
-            val activeRules = new ArrayList<ActiveRule>();
+            var activeRules = new ArrayList<ActiveRule>();
             rules.forEach((ruleKey, rule) -> {
                 if (disabledRules.contains(ruleKey)) {
                     return;
@@ -104,16 +103,16 @@ public class SonarLintAnalyzer {
                 if (!rule.activatedByDefault() && !enabledRules.contains(ruleKey)) {
                     return;
                 }
-                val language = SonarLanguage.forKey(rule.repository().language()).orElse(null);
+                var language = SonarLanguage.forKey(rule.repository().language()).orElse(null);
                 if (language == null) {
                     return;
                 }
-                val activeRule = new ActiveRule(ruleKey.toString(), language.getSonarLanguageKey());
+                var activeRule = new ActiveRule(ruleKey.toString(), language.getSonarLanguageKey());
                 activeRule.setParams(allRuleProperties.getOrDefault(ruleKey, emptyMap()));
                 activeRules.add(activeRule);
             });
 
-            val analysisConfiguration = AnalysisConfiguration.builder()
+            var analysisConfiguration = AnalysisConfiguration.builder()
                 .setBaseDir(params.getProjectDir().get().getAsFile().toPath())
                 .addInputFiles(filesToAnalyze)
                 .putAllExtraProperties(params.getSonarProperties().getOrElse(emptyMap()))
@@ -123,7 +122,7 @@ public class SonarLintAnalyzer {
             Collection<Issue> issues = new LinkedHashSet<>();
             Consumer<org.sonarsource.sonarlint.core.analysis.api.Issue> issueListener = sonarIssue -> {
                 synchronized (issues) {
-                    val sourceFile = Optional.ofNullable(sonarIssue.getInputFile())
+                    var sourceFile = Optional.ofNullable(sonarIssue.getInputFile())
                         .map(ClientInputFile::getClientObject)
                         .filter(SourceFile.class::isInstance)
                         .map(SourceFile.class::cast)
@@ -135,7 +134,7 @@ public class SonarLintAnalyzer {
                         return;
                     }
 
-                    val message = Optional.ofNullable(sonarIssue.getMessage())
+                    var message = Optional.ofNullable(sonarIssue.getMessage())
                         .filter(ObjectUtils::isNotEmpty)
                         .map(TextMessage::textMessageOf)
                         .orElse(null);
@@ -143,7 +142,7 @@ public class SonarLintAnalyzer {
                         return;
                     }
 
-                    val issue = newIssue(builder -> {
+                    var issue = newIssue(builder -> {
                         builder.rule(sonarIssue.getRuleKey());
                         builder.message(message);
 
@@ -154,7 +153,7 @@ public class SonarLintAnalyzer {
                         builder.endColumn(sonarIssue.getEndLineOffset());
 
 
-                        val rule = Optional.ofNullable(sonarIssue.getRuleKey())
+                        var rule = Optional.ofNullable(sonarIssue.getRuleKey())
                             .map(RuleKey::parse)
                             .map(rules::get)
                             .orElse(null);
@@ -168,7 +167,7 @@ public class SonarLintAnalyzer {
                         }
                         Enum<?> impactSeverity = null;
                         Enum<?> softwareQuality = null;
-                        for (val entry : impacts.entrySet()) {
+                        for (var entry : impacts.entrySet()) {
                             if (impactSeverity == null
                                 || impactSeverity.ordinal() < entry.getValue().ordinal()
                             ) {
@@ -211,14 +210,14 @@ public class SonarLintAnalyzer {
                 }
             };
 
-            val analyzeCommand = new AnalyzeCommand(
+            var analyzeCommand = new AnalyzeCommand(
                 module.key(),
                 analysisConfiguration,
                 issueListener,
                 SIMPLE_LOG_OUTPUT
             );
 
-            val globalAnalysisContainer = new GlobalAnalysisContainer(
+            var globalAnalysisContainer = new GlobalAnalysisContainer(
                 analysisEngineConfiguration,
                 loadedPlugins.getLoadedPlugins()
             );

@@ -18,6 +18,7 @@ import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toCollection;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
+import static java.util.stream.Collectors.toUnmodifiableList;
 import static lombok.AccessLevel.PRIVATE;
 import static name.remal.gradle_plugins.sonarlint.CanonizationUtils.canonizeLanguages;
 import static name.remal.gradle_plugins.sonarlint.CanonizationUtils.canonizeProperties;
@@ -41,7 +42,6 @@ import static name.remal.gradle_plugins.toolkit.xml.DomUtils.streamNodeList;
 import static name.remal.gradle_plugins.toolkit.xml.XmlUtils.parseXml;
 
 import com.google.common.base.Splitter;
-import com.google.common.collect.ImmutableList;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -60,7 +60,6 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;
-import lombok.val;
 import name.remal.gradle_plugins.sonarlint.internal.NodeJsFound;
 import name.remal.gradle_plugins.sonarlint.internal.SonarLanguage;
 import name.remal.gradle_plugins.sonarlint.internal.SonarLintCommand;
@@ -107,18 +106,16 @@ abstract class BaseSonarLintActions {
     static final String SONAR_NODEJS_EXECUTABLE_TS = "sonar.typescript.node";
     static final String SONAR_NODEJS_VERSION = "sonar.nodejs.version";
 
-    static final List<String> LANGUAGES_REQUIRING_NODEJS = ImmutableList.copyOf(
-        stream(SonarLanguage.values())
-            .filter(SonarLanguage::isRequireNodeJs)
-            .map(SonarLanguage::getName)
-            .collect(toList())
-    );
+    static final List<String> LANGUAGES_REQUIRING_NODEJS = stream(SonarLanguage.values())
+        .filter(SonarLanguage::isRequireNodeJs)
+        .map(SonarLanguage::getName)
+        .collect(toUnmodifiableList());
 
     public static void init(BaseSonarLint task) {
         task.getIsTest().convention(false);
 
-        val project = task.getProject();
-        val extensionProvider = project.provider(() -> findExtension(project, SonarLintExtension.class));
+        var project = task.getProject();
+        var extensionProvider = project.provider(() -> findExtension(project, SonarLintExtension.class));
         task.getIsGeneratedCodeIgnored().convention(extensionProvider
             .flatMap(SonarLintExtension::getIsGeneratedCodeIgnored)
             .orElse(true)
@@ -165,10 +162,10 @@ abstract class BaseSonarLintActions {
         );
 
         task.getJavaLauncher().convention(getJavaLauncherProviderFor(task.getProject(), spec -> {
-            val minSupportedJavaLanguageVersion = JavaLanguageVersion.of(
+            var minSupportedJavaLanguageVersion = JavaLanguageVersion.of(
                 MIN_SUPPORTED_SONAR_JAVA_VERSION.getMajorVersion()
             );
-            val javaMajorVersion = spec.getLanguageVersion()
+            var javaMajorVersion = spec.getLanguageVersion()
                 .orElse(JavaLanguageVersion.of(JavaVersion.current().getMajorVersion()))
                 .map(JavaLanguageVersion::asInt)
                 .get();
@@ -190,7 +187,7 @@ abstract class BaseSonarLintActions {
     @SneakyThrows
     @SuppressWarnings("java:S3776")
     public static void execute(BaseSonarLint task, SonarLintCommand command) {
-        val sonarProperties = new LinkedHashMap<>(task.getSonarProperties().get());
+        var sonarProperties = new LinkedHashMap<>(task.getSonarProperties().get());
 
         task.getIgnoredPaths().get().forEach(ignoredPath ->
             addRuleByPathIgnore(sonarProperties, "ignore_all", "*", ignoredPath)
@@ -231,8 +228,8 @@ abstract class BaseSonarLintActions {
                 || key.endsWith(".libraries")
             )
             .forEach(key -> {
-                val value = sonarProperties.get(key);
-                val processedValue = Splitter.on(SONAR_LIST_PROPERTY_DELIMITER).splitToStream(value)
+                var value = sonarProperties.get(key);
+                var processedValue = Splitter.on(SONAR_LIST_PROPERTY_DELIMITER).splitToStream(value)
                     .map(String::trim)
                     .filter(ObjectUtils::isNotEmpty)
                     .filter(item -> exists(Paths.get(item)))
@@ -246,7 +243,7 @@ abstract class BaseSonarLintActions {
             SONAR_NODEJS_EXECUTABLE_TS,
             SONAR_NODEJS_VERSION
         ).forEach(property -> {
-            val value = sonarProperties.remove(property);
+            var value = sonarProperties.remove(property);
             if (value != null) {
                 task.getLogger().warn(
                     "`{}` Sonar property is configured, but it's not used."
@@ -256,8 +253,8 @@ abstract class BaseSonarLintActions {
             }
         });
 
-        val nodeJsInfo = getNodeJsInfoAndLogIssues(task);
-        val additionalExcludedLanguages = new ArrayList<String>();
+        var nodeJsInfo = getNodeJsInfoAndLogIssues(task);
+        var additionalExcludedLanguages = new ArrayList<String>();
         if (task instanceof SourceTask && nodeJsInfo == null) {
             additionalExcludedLanguages.addAll(LANGUAGES_REQUIRING_NODEJS);
         }
@@ -265,8 +262,8 @@ abstract class BaseSonarLintActions {
 
         final WorkQueue workQueue;
         {
-            val workerExecutor = task.get$internals().getWorkerExecutor().get();
-            val forkParams = Optional.ofNullable(task.getForkOptions().getOrNull());
+            var workerExecutor = task.get$internals().getWorkerExecutor().get();
+            var forkParams = Optional.ofNullable(task.getForkOptions().getOrNull());
             boolean isForkEnabled = forkParams
                 .map(SonarLintForkOptions::getEnabled)
                 .map(Provider::getOrNull)
@@ -303,7 +300,7 @@ abstract class BaseSonarLintActions {
         }
 
         workQueue.submit(SonarLintAction.class, params -> {
-            val sonarLintVersion = getSonarLintVersionFor(task);
+            var sonarLintVersion = getSonarLintVersionFor(task);
             if (Version.parse(sonarLintVersion).compareTo(SONARLINT_DEFAULT_VERSION) > 0) {
                 task.getLogger().log(
                     defaultFalse(task.getLoggingOptions().flatMap(SonarLintLoggingOptions::getHideWarnings).getOrNull())
@@ -315,7 +312,7 @@ abstract class BaseSonarLintActions {
                 );
             }
 
-            val tempDir = normalizeFile(task.getTemporaryDir());
+            var tempDir = normalizeFile(task.getTemporaryDir());
 
             params.getIsIgnoreFailures().set(isIgnoreFailures(task));
             params.getCommand().set(command);
@@ -363,9 +360,9 @@ abstract class BaseSonarLintActions {
         int multicriteriaNumber = 0;
         while (true) {
             ++multicriteriaNumber;
-            val multicriteriaId = format("_%s_%d", scope, multicriteriaNumber);
-            val ruleKey = format("sonar.issue.ignore.multicriteria.%s.ruleKey", multicriteriaId);
-            val resourceKey = format("sonar.issue.ignore.multicriteria.%s.resourceKey", multicriteriaId);
+            var multicriteriaId = format("_%s_%d", scope, multicriteriaNumber);
+            var ruleKey = format("sonar.issue.ignore.multicriteria.%s.ruleKey", multicriteriaId);
+            var resourceKey = format("sonar.issue.ignore.multicriteria.%s.resourceKey", multicriteriaId);
             if (sonarProperties.containsKey(ruleKey) || sonarProperties.containsKey(resourceKey)) {
                 continue;
             }
@@ -392,34 +389,34 @@ abstract class BaseSonarLintActions {
             return null;
         }
 
-        val configuredNodeJsInfo = task.get$internals().getConfiguredNodeJsInfo().getOrNull();
+        var configuredNodeJsInfo = task.get$internals().getConfiguredNodeJsInfo().getOrNull();
         if (configuredNodeJsInfo != null) {
             return configuredNodeJsInfo;
         }
 
-        val relativePathsRequiringNodeJs = task.get$internals().getRelativePathsRequiringNodeJs().getOrElse(emptySet());
+        var relativePathsRequiringNodeJs = task.get$internals().getRelativePathsRequiringNodeJs().getOrElse(emptySet());
         if (relativePathsRequiringNodeJs.isEmpty()) {
             return null;
         }
 
-        val nodeJsInfo = task.get$internals().getDetectedNodeJsInfo().getOrNull();
+        var nodeJsInfo = task.get$internals().getDetectedNodeJsInfo().getOrNull();
         if (nodeJsInfo != null) {
             return nodeJsInfo;
         }
 
 
-        val logNodeJsNotFound = defaultTrue(task.getNodeJs()
+        var logNodeJsNotFound = defaultTrue(task.getNodeJs()
             .flatMap(SonarLintNodeJs::getLogNodeJsNotFound)
             .getOrNull()
         );
-        val configuredNodeJs = task.getNodeJs()
+        var configuredNodeJs = task.getNodeJs()
             .flatMap(SonarLintNodeJs::getNodeJsExecutable)
             .getOrNull();
-        val detectNodeJs = defaultFalse(task.getNodeJs()
+        var detectNodeJs = defaultFalse(task.getNodeJs()
             .flatMap(SonarLintNodeJs::getDetectNodeJs)
             .getOrNull()
         );
-        val lines = new ArrayList<String>();
+        var lines = new ArrayList<String>();
         if (configuredNodeJs != null) {
             addAll(
                 lines,
@@ -464,7 +461,7 @@ abstract class BaseSonarLintActions {
 
         lines.add("");
 
-        val maxPathsToLog = 25;
+        var maxPathsToLog = 25;
         if (relativePathsRequiringNodeJs.size() > maxPathsToLog) {
             addAll(lines, format(
                 "First %d files requiring Node.js (%d total):",
@@ -482,9 +479,9 @@ abstract class BaseSonarLintActions {
         lines.add("");
 
 
-        val lineSeparator = format("%n");
-        val message = join(lineSeparator, lines);
-        val logLevel = logNodeJsNotFound ? LogLevel.QUIET : LogLevel.INFO;
+        var lineSeparator = format("%n");
+        var message = join(lineSeparator, lines);
+        var logLevel = logNodeJsNotFound ? LogLevel.QUIET : LogLevel.INFO;
         task.getLogger().log(logLevel, message);
 
         return null;
@@ -507,8 +504,8 @@ abstract class BaseSonarLintActions {
 
     @SneakyThrows
     private static String getSonarLintVersionFor(BaseSonarLint task) {
-        for (val classpathFile : task.getCoreClasspath().getFiles()) {
-            val matcher = SONARLINT_CORE_FILE_NAME.matcher(classpathFile.getName());
+        for (var classpathFile : task.getCoreClasspath().getFiles()) {
+            var matcher = SONARLINT_CORE_FILE_NAME.matcher(classpathFile.getName());
             if (matcher.matches()) {
                 return requireNonNull(matcher.group(1));
             }
@@ -536,7 +533,7 @@ abstract class BaseSonarLintActions {
         boolean isTest,
         Path buildDirPath
     ) {
-        val editorConfig = new EditorConfig(repositoryRootPath);
+        var editorConfig = new EditorConfig(repositoryRootPath);
         Set<Path> processedPaths = new LinkedHashSet<>();
         List<SourceFile> sourceFiles = new ArrayList<>();
         fileTree.visit(details -> {
@@ -544,12 +541,12 @@ abstract class BaseSonarLintActions {
                 return;
             }
 
-            val path = normalizePath(details.getFile().toPath());
+            var path = normalizePath(details.getFile().toPath());
             if (!processedPaths.add(path)) {
                 return;
             }
 
-            val isGenerated = path.startsWith(buildDirPath);
+            var isGenerated = path.startsWith(buildDirPath);
 
             final String charsetName;
             {
@@ -557,7 +554,7 @@ abstract class BaseSonarLintActions {
                 try {
                     editorConfigProperties = editorConfig.getPropertiesFor(path);
                 } catch (PathIsOutOfRootPathException e) {
-                    val extension = getFileExtension(path.getFileName().toString());
+                    var extension = getFileExtension(path.getFileName().toString());
                     if (isEmpty(extension)) {
                         editorConfigProperties = emptyMap();
                     } else {
@@ -565,7 +562,7 @@ abstract class BaseSonarLintActions {
                     }
                 }
 
-                val charsetString = editorConfigProperties.get("charset");
+                var charsetString = editorConfigProperties.get("charset");
                 if (isNotEmpty(charsetString)) {
                     charsetName = charsetString.toUpperCase();
                 } else {
@@ -587,7 +584,7 @@ abstract class BaseSonarLintActions {
 
     @SuppressWarnings("Slf4jFormatShouldBeConst")
     private static Collection<String> getDisabledRulesFromCheckstyleConfig(BaseSonarLint task) {
-        val checkstyleConfigFile = Optional.ofNullable(task.getCheckstyleConfig().getAsFile().getOrNull())
+        var checkstyleConfigFile = Optional.ofNullable(task.getCheckstyleConfig().getAsFile().getOrNull())
             .map(File::getAbsoluteFile)
             .filter(File::isFile)
             .orElse(null);
@@ -604,12 +601,12 @@ abstract class BaseSonarLintActions {
             return emptyList();
         }
 
-        val moduleElements = streamNodeList(document.getElementsByTagName("module"))
+        var moduleElements = streamNodeList(document.getElementsByTagName("module"))
             .filter(Element.class::isInstance)
             .map(Element.class::cast)
             .filter(not(module -> "ignore".equalsIgnoreCase(module.getAttribute("severity"))))
             .collect(toList());
-        val moduleNames = moduleElements.stream()
+        var moduleNames = moduleElements.stream()
             .map(module -> module.getAttribute("name"))
             .filter(ObjectUtils::isNotEmpty)
             .collect(toSet());
@@ -662,7 +659,7 @@ abstract class BaseSonarLintActions {
 
         Collection<String> disabledRules = new ArrayList<>();
 
-        val sourceJavaVersion = getSourceJavaVersion(task);
+        var sourceJavaVersion = getSourceJavaVersion(task);
         if (!sourceJavaVersion.isJava10Compatible()) {
             // An iteration on a Collection should be performed on the type handled by the Collection
             disabledRules.add("java:S4838");
@@ -672,7 +669,7 @@ abstract class BaseSonarLintActions {
     }
 
     private static JavaVersion getSourceJavaVersion(BaseSonarLint task) {
-        val properties = task.getSonarProperties().get();
+        var properties = task.getSonarProperties().get();
         return Optional.ofNullable(properties.get(SONAR_JAVA_SOURCE_PROPERTY))
             .filter(ObjectUtils::isNotEmpty)
             .map(version -> {
@@ -706,7 +703,7 @@ abstract class BaseSonarLintActions {
             return Optional.empty();
         }
 
-        val reports = (SonarLintReports) ((Reporting<?>) task).getReports();
+        var reports = (SonarLintReports) ((Reporting<?>) task).getReports();
         return Optional.of(reports);
     }
 

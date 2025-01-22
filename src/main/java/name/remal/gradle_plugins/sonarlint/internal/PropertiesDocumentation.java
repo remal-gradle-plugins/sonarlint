@@ -11,7 +11,6 @@ import java.util.function.Consumer;
 import javax.annotation.Nullable;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
-import lombok.val;
 import name.remal.gradle_plugins.toolkit.ObjectUtils;
 
 public class PropertiesDocumentation implements Documentation {
@@ -19,7 +18,7 @@ public class PropertiesDocumentation implements Documentation {
     private final SortedMap<String, PropertyDocumentation> properties = new TreeMap<>();
 
     public void property(String propertyKey, Consumer<PropertyDocumentation> action) {
-        val propertyDocumentation = new PropertyDocumentation();
+        var propertyDocumentation = new PropertyDocumentation();
         propertyDocumentation.setName(propertyKey);
         action.accept(propertyDocumentation);
         properties.put(propertyKey, propertyDocumentation);
@@ -32,7 +31,7 @@ public class PropertiesDocumentation implements Documentation {
             return "No properties SonarLint found";
         }
 
-        val message = new StringBuilder();
+        var message = new StringBuilder();
         properties.forEach((propKey, propDoc) -> {
             if (isNotEmpty(message)) {
                 message.append("\n\n");

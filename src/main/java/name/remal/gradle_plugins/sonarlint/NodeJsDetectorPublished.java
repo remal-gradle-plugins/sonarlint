@@ -13,7 +13,6 @@ import javax.annotation.Nullable;
 import javax.inject.Inject;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
-import lombok.val;
 import name.remal.gradle_plugins.sonarlint.internal.NodeJsFound;
 import name.remal.gradle_plugins.sonarlint.internal.NodeJsNotFound;
 import org.gradle.api.artifacts.ConfigurationContainer;
@@ -27,14 +26,14 @@ abstract class NodeJsDetectorPublished extends NodeJsDetector {
     @SneakyThrows
     @SuppressWarnings("Slf4jFormatShouldBeConst")
     public NodeJsFound detectNodeJsExecutable() {
-        val os = osDetector.getDetectedOs().os;
-        val arch = osDetector.getDetectedOs().arch;
-        val isPublished = PUBLISHED_NODEJS_OS.getOrDefault(os, emptySet()).contains(arch);
+        var os = osDetector.getDetectedOs().os;
+        var arch = osDetector.getDetectedOs().arch;
+        var isPublished = PUBLISHED_NODEJS_OS.getOrDefault(os, emptySet()).contains(arch);
         if (!isPublished) {
             return null;
         }
 
-        val dependency = getDependencies().create(format(
+        var dependency = getDependencies().create(format(
             "%s:%s:%s:%s@%s",
             SONARLINT_PLUGIN_GROUP,
             SONARLINT_PLUGIN_ARTIFACT_ID,
@@ -42,17 +41,17 @@ abstract class NodeJsDetectorPublished extends NodeJsDetector {
             os + "-" + arch,
             os == OS.windows ? "exe" : ""
         ));
-        val configuration = getConfigurations().detachedConfiguration(dependency);
-        val targetFile = configuration.getFiles().iterator().next();
+        var configuration = getConfigurations().detachedConfiguration(dependency);
+        var targetFile = configuration.getFiles().iterator().next();
 
-        val info = nodeJsInfoRetriever.getNodeJsInfo(targetFile);
+        var info = nodeJsInfoRetriever.getNodeJsInfo(targetFile);
 
         if (info instanceof NodeJsNotFound) {
-            val error = ((NodeJsNotFound) info).getError();
+            var error = ((NodeJsNotFound) info).getError();
             if (isInTest()) {
                 throw error;
             } else {
-                val message = format(
+                var message = format(
                     "Downloaded Node.js from the plugin artifacts can't be used: %s",
                     error
                 );

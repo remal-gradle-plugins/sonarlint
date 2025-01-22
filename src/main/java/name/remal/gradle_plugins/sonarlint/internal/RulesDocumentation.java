@@ -18,7 +18,6 @@ import java.util.function.Consumer;
 import javax.annotation.Nullable;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
-import lombok.val;
 import name.remal.gradle_plugins.toolkit.ObjectUtils;
 
 public class RulesDocumentation implements Documentation {
@@ -26,7 +25,7 @@ public class RulesDocumentation implements Documentation {
     private final SortedMap<String, RuleDoc> rules = new TreeMap<>();
 
     public void rule(String ruleKey, Consumer<RuleDoc> action) {
-        val ruleDoc = new RuleDoc();
+        var ruleDoc = new RuleDoc();
         ruleDoc.setName(ruleKey);
         action.accept(ruleDoc);
         rules.put(ruleKey, ruleDoc);
@@ -39,7 +38,7 @@ public class RulesDocumentation implements Documentation {
             return "No SonarLint rules found";
         }
 
-        val message = new StringBuilder();
+        var message = new StringBuilder();
         rules.forEach((ruleKey, ruleDoc) -> {
             if (isNotEmpty(message)) {
                 message.append("\n\n");
@@ -82,7 +81,7 @@ public class RulesDocumentation implements Documentation {
                     Optional.of(paramDoc.getPossibleValues())
                         .filter(ObjectUtils::isNotEmpty)
                         .ifPresent(values -> {
-                            val valuesString = values.stream()
+                            var valuesString = values.stream()
                                 .filter(Objects::nonNull)
                                 .map(value -> {
                                     if (value.trim().isEmpty()) {
@@ -128,7 +127,7 @@ public class RulesDocumentation implements Documentation {
         private final SortedMap<String, RuleParamDoc> params = new TreeMap<>();
 
         public void param(String paramKey, Consumer<RuleParamDoc> action) {
-            val ruleParamDoc = new RuleParamDoc();
+            var ruleParamDoc = new RuleParamDoc();
             action.accept(ruleParamDoc);
             params.put(paramKey, ruleParamDoc);
         }

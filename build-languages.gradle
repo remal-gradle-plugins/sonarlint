@@ -224,11 +224,11 @@ generateSources.forMainSourceSet.java {
     classFile(project.calculateBaseJavaPackage() + '.internal', 'SonarLanguage') {
         addStaticImport("lombok.AccessLevel", "PRIVATE")
 
-        addImport("com.google.common.collect.ImmutableList")
         addImport("java.util.List")
         addImport("javax.annotation.Nullable")
         addImport("lombok.Getter")
         addImport("lombok.RequiredArgsConstructor")
+        addImport("org.jetbrains.annotations.Unmodifiable")
 
         line("@Getter")
         line("@RequiredArgsConstructor(access = PRIVATE)")
@@ -237,7 +237,7 @@ generateSources.forMainSourceSet.java {
             allLanguageInfos.get().forEach { LanguageInfo info ->
                 line("${info.key}(")
                 line("    \"${escapeString(info.name)}\",")
-                line("    ImmutableList.of(${info.defaultFileSuffixes.collect { suffix -> '"' + escapeString(suffix) + '"' }.join(', ')}),")
+                line("    List.of(${info.defaultFileSuffixes.collect { suffix -> '"' + escapeString(suffix) + '"' }.join(', ')}),")
                 if (info.fileSuffixesPropKey.isEmpty() || info.fileSuffixesPropKey.find(/[^\w.]/)) {
                     line("    null,")
                 } else {
@@ -249,7 +249,7 @@ generateSources.forMainSourceSet.java {
             line(";")
             line("")
             line("private final String name;")
-            line("private final List<String> defaultFileSuffixes;")
+            line("private final @Unmodifiable List<String> defaultFileSuffixes;")
             line("private final @Nullable String fileSuffixesPropKey;")
             line("private final boolean requireNodeJs;")
         }

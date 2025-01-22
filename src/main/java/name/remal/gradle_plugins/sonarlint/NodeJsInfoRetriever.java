@@ -9,7 +9,6 @@ import java.io.File;
 import java.time.Duration;
 import javax.inject.Inject;
 import lombok.RequiredArgsConstructor;
-import lombok.val;
 import name.remal.gradle_plugins.sonarlint.internal.NodeJsInfo;
 import org.gradle.api.provider.ProviderFactory;
 
@@ -20,7 +19,7 @@ abstract class NodeJsInfoRetriever {
 
     public NodeJsInfo getNodeJsInfo(File file) {
         try {
-            val normalizedFile = normalizeFile(file);
+            var normalizedFile = normalizeFile(file);
             return withTimeout(Duration.ofSeconds(5), () ->
                 METHODS.getNodeJsInfo(getProviders(), normalizedFile)
             );

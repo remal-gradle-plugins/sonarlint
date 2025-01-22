@@ -19,7 +19,6 @@ import javax.inject.Inject;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.SneakyThrows;
-import lombok.val;
 import name.remal.gradle_plugins.sonarlint.internal.NodeJsDetectorException;
 import name.remal.gradle_plugins.sonarlint.internal.NodeJsFound;
 import name.remal.gradle_plugins.sonarlint.internal.NodeJsNotFound;
@@ -75,10 +74,10 @@ abstract class NodeJsDetectorOfficial extends NodeJsDetector
             rootDir = getLayout().getProjectDirectory().getAsFile();
         }
 
-        val os = osDetector.getDetectedOs().os;
-        val arch = osDetector.getDetectedOs().arch;
-        val version = DEFAULT_NODEJS_VERSION.toString();
-        val targetFile = new File(rootDir, format(
+        var os = osDetector.getDetectedOs().os;
+        var arch = osDetector.getDetectedOs().arch;
+        var version = DEFAULT_NODEJS_VERSION.toString();
+        var targetFile = new File(rootDir, format(
             "build/node-%s-%s-%s%s",
             version,
             os,
@@ -87,18 +86,18 @@ abstract class NodeJsDetectorOfficial extends NodeJsDetector
         ));
 
         if (!targetFile.exists()) {
-            val osSuffix = OS_SUFFIXES.get(os);
+            var osSuffix = OS_SUFFIXES.get(os);
             if (osSuffix == null) {
                 logger.warn("There is Node.js on the official website for OS {}", os);
                 return null;
             }
-            val archSuffix = ARCH_SUFFIXES.get(arch);
+            var archSuffix = ARCH_SUFFIXES.get(arch);
             if (archSuffix == null) {
                 logger.warn("There is Node.js on the official website for OS {} and CPU architecture {}", os, arch);
                 return null;
             }
-            val archiveExtension = os == OS.windows ? "zip" : "tar.gz";
-            val dependency = getDependencies().create(format(
+            var archiveExtension = os == OS.windows ? "zip" : "tar.gz";
+            var dependency = getDependencies().create(format(
                 "%s:%s:%s:%s@%s",
                 NODEJS_GROUP,
                 NODEJS_ARTIFACT_ID,
@@ -106,8 +105,8 @@ abstract class NodeJsDetectorOfficial extends NodeJsDetector
                 osSuffix + "-" + archSuffix,
                 archiveExtension
             ));
-            val configuration = getConfigurations().detachedConfiguration(dependency);
-            val archiveFile = configuration.getFiles().iterator().next();
+            var configuration = getConfigurations().detachedConfiguration(dependency);
+            var archiveFile = configuration.getFiles().iterator().next();
 
             final FileTree archiveFileTree;
             if (archiveExtension.equals("zip")) {
@@ -126,10 +125,10 @@ abstract class NodeJsDetectorOfficial extends NodeJsDetector
                         return;
                     }
 
-                    val targetFilePath = targetFile.toPath();
+                    var targetFilePath = targetFile.toPath();
                     createParentDirectories(targetFilePath);
-                    try (val outputStream = newOutputStream(targetFilePath)) {
-                        try (val inputStream = detail.open()) {
+                    try (var outputStream = newOutputStream(targetFilePath)) {
+                        try (var inputStream = detail.open()) {
                             ByteStreams.copy(inputStream, outputStream);
                         }
                     } catch (IOException e) {
@@ -142,14 +141,14 @@ abstract class NodeJsDetectorOfficial extends NodeJsDetector
             }
         }
 
-        val info = nodeJsInfoRetriever.getNodeJsInfo(targetFile);
+        var info = nodeJsInfoRetriever.getNodeJsInfo(targetFile);
 
         if (info instanceof NodeJsNotFound) {
-            val error = ((NodeJsNotFound) info).getError();
+            var error = ((NodeJsNotFound) info).getError();
             if (isInTest()) {
                 throw error;
             } else {
-                val message = format(
+                var message = format(
                     "Downloaded Node.js from the official website of version %s can't be used: %s",
                     version,
                     error

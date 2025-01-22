@@ -7,7 +7,6 @@ import static name.remal.gradle_plugins.sonarlint.internal.NodeJsNotFound.nodeJs
 
 import com.google.auto.service.AutoService;
 import java.io.File;
-import lombok.val;
 import name.remal.gradle_plugins.sonarlint.internal.NodeJsFound;
 import name.remal.gradle_plugins.sonarlint.internal.NodeJsInfo;
 import org.gradle.api.provider.ProviderFactory;
@@ -16,20 +15,19 @@ import org.gradle.api.provider.ProviderFactory;
 class NodeJsExecutableMethodsDefault extends NodeJsExecutableMethods {
 
     @Override
-    @SuppressWarnings("UnstableApiUsage")
     public NodeJsInfo getNodeJsInfo(ProviderFactory providers, File file) {
         setExecutePermissionsIfNeeded(file);
 
-        val command = new String[]{file.getAbsolutePath(), "--version"};
-        val execResult = providers.exec(spec -> {
+        var command = new String[]{file.getAbsolutePath(), "--version"};
+        var execResult = providers.exec(spec -> {
             spec.setCommandLine((Object[]) command);
             spec.setIgnoreExitValue(true);
         });
 
-        val exitCode = execResult.getResult().get().getExitValue();
+        var exitCode = execResult.getResult().get().getExitValue();
         if (exitCode != 0) {
-            val errorBytes = execResult.getStandardError().getAsBytes().get();
-            val errorOutput = new String(errorBytes, UTF_8);
+            var errorBytes = execResult.getStandardError().getAsBytes().get();
+            var errorOutput = new String(errorBytes, UTF_8);
             return nodeJsNotFound(format(
                 "%s returned %d exit code with error output:%n%s",
                 join(" ", command),
@@ -38,9 +36,9 @@ class NodeJsExecutableMethodsDefault extends NodeJsExecutableMethods {
             ));
         }
 
-        val bytes = execResult.getStandardOutput().getAsBytes().get();
-        val output = new String(bytes, UTF_8);
-        val version = parseVersion(output);
+        var bytes = execResult.getStandardOutput().getAsBytes().get();
+        var output = new String(bytes, UTF_8);
+        var version = parseVersion(output);
         if (version == null) {
             return nodeJsNotFound(format(
                 "%s produced not a Node.js version output:%n%s",

@@ -183,7 +183,7 @@ dependencies {
     // Core:
     sonarCoreArtifacts 'org.sonarsource.sonarlint.core:sonarlint-core:10.13.0.79996'
 
-    
+
     // Plugins:
     // See full list of supported plugins here: https://github.com/SonarSource/sonarlint-intellij/blob/master/gradle/libs.versions.toml
     sonarPluginArtifacts 'org.sonarsource.java:sonar-java-symbolic-execution-plugin:8.9.0.37768'
@@ -222,7 +222,6 @@ generateSources.forMainSourceSet.java { Task task ->
         addImport("com.google.common.collect.ImmutableMap")
         addImport("java.util.Map")
         addImport("lombok.NoArgsConstructor")
-        addImport("lombok.val")
 
         line("@NoArgsConstructor(access = PRIVATE)")
         block("abstract class ${simpleName}") {
@@ -257,7 +256,7 @@ generateSources.forMainSourceSet.java { Task task ->
 
             line("")
             block("public static SonarDependency getSonarDependency(String id)") {
-                line("val dependency = getSonarDependencies().get(id);")
+                line("var dependency = getSonarDependencies().get(id);")
                 block("if (dependency == null)") {
                     line("throw new IllegalStateException(\"Sonar dependency is not registered: \" + id);")
                 }

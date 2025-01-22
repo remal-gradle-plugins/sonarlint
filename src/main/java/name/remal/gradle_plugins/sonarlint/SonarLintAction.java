@@ -10,7 +10,6 @@ import javax.inject.Inject;
 import lombok.CustomLog;
 import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;
-import lombok.val;
 import name.remal.gradle_plugins.sonarlint.internal.SonarLintExecutionParams;
 import name.remal.gradle_plugins.sonarlint.internal.impl.SonarLintAnalyzer;
 import name.remal.gradle_plugins.sonarlint.internal.impl.SonarLintPropertiesDocumentationCollector;
@@ -26,21 +25,21 @@ abstract class SonarLintAction implements WorkAction<SonarLintExecutionParams> {
 
     @Override
     @SneakyThrows
-    @SuppressWarnings({"java:S3776", "Slf4jFormatShouldBeConst"})
+    @SuppressWarnings({"java:S3776", "Slf4jFormatShouldBeConst", "java:S5411"})
     public void execute() {
-        val params = getParameters();
+        var params = getParameters();
 
-        val command = params.getCommand().get();
+        var command = params.getCommand().get();
         if (command == ANALYSE) {
-            val sonarLintAnalyzer = new SonarLintAnalyzer();
-            val issues = sonarLintAnalyzer.analyze(params);
+            var sonarLintAnalyzer = new SonarLintAnalyzer();
+            var issues = sonarLintAnalyzer.analyze(params);
 
-            val xmlReportLocation = params.getXmlReportLocation().getAsFile().getOrNull();
+            var xmlReportLocation = params.getXmlReportLocation().getAsFile().getOrNull();
             if (xmlReportLocation != null) {
                 new CheckstyleXmlIssuesRenderer().renderIssuesToFile(issues, xmlReportLocation);
             }
 
-            val htmlReportLocation = params.getHtmlReportLocation().getAsFile().getOrNull();
+            var htmlReportLocation = params.getHtmlReportLocation().getAsFile().getOrNull();
             if (htmlReportLocation != null) {
                 new CheckstyleHtmlIssuesRenderer("SonarLint").renderIssuesToFile(issues, htmlReportLocation);
             }
@@ -61,13 +60,13 @@ abstract class SonarLintAction implements WorkAction<SonarLintExecutionParams> {
             }
 
         } else if (command == HELP_RULES) {
-            val rulesDocumentationCollector = new SonarLintRulesDocumentationCollector();
-            val rulesDoc = rulesDocumentationCollector.collectRulesDocumentation(params);
+            var rulesDocumentationCollector = new SonarLintRulesDocumentationCollector();
+            var rulesDoc = rulesDocumentationCollector.collectRulesDocumentation(params);
             logger.quiet(rulesDoc.renderToText());
 
         } else if (command == HELP_PROPERTIES) {
-            val propertiesDocumentationCollector = new SonarLintPropertiesDocumentationCollector();
-            val propertiesDoc = propertiesDocumentationCollector.collectPropertiesDocumentation(params);
+            var propertiesDocumentationCollector = new SonarLintPropertiesDocumentationCollector();
+            var propertiesDoc = propertiesDocumentationCollector.collectPropertiesDocumentation(params);
             logger.quiet(propertiesDoc.renderToText());
 
         } else {

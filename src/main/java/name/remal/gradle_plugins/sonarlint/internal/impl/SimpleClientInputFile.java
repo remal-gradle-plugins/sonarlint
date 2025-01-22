@@ -10,7 +10,6 @@ import java.nio.charset.Charset;
 import java.nio.file.Paths;
 import javax.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
-import lombok.val;
 import name.remal.gradle_plugins.sonarlint.internal.SourceFile;
 import org.sonarsource.sonarlint.core.analysis.api.ClientInputFile;
 
@@ -49,8 +48,8 @@ class SimpleClientInputFile implements ClientInputFile {
 
     @Override
     public String contents() throws IOException {
-        try (val inputStream = inputStream()) {
-            val bytes = toByteArray(inputStream);
+        try (var inputStream = inputStream()) {
+            var bytes = toByteArray(inputStream);
             return new String(bytes, sourceFile.getCharsetName());
         }
     }

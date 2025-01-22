@@ -18,7 +18,6 @@ import javax.inject.Inject;
 import lombok.CustomLog;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
-import lombok.val;
 import name.remal.gradle_plugins.sonarlint.internal.NodeJsFound;
 import name.remal.gradle_plugins.toolkit.ObjectUtils;
 import org.gradle.api.model.ObjectFactory;
@@ -71,13 +70,13 @@ abstract class NodeJsDetectors {
 
     @SneakyThrows
     private List<Class<NodeJsDetector>> loadNodeJsDetectorClasses() {
-        val classNames = new LinkedHashSet<String>();
-        val classLoader = Optional.ofNullable(NodeJsDetectors.class.getClassLoader())
+        var classNames = new LinkedHashSet<String>();
+        var classLoader = Optional.ofNullable(NodeJsDetectors.class.getClassLoader())
             .orElseGet(ClassLoader::getSystemClassLoader);
-        val resourceUrls = classLoader.getResources("META-INF/services/" + NodeJsDetector.class.getName());
+        var resourceUrls = classLoader.getResources("META-INF/services/" + NodeJsDetector.class.getName());
         while (resourceUrls.hasMoreElements()) {
-            val resourceUrl = resourceUrls.nextElement();
-            val resourceContent = readStringFromUrl(resourceUrl);
+            var resourceUrl = resourceUrls.nextElement();
+            var resourceContent = readStringFromUrl(resourceUrl);
             Splitter.onPattern("[\\r\\n]+").splitToStream(resourceContent)
                 .map(toSubstringedBefore("#"))
                 .map(String::trim)
@@ -85,10 +84,10 @@ abstract class NodeJsDetectors {
                 .forEach(classNames::add);
         }
 
-        val classes = new ArrayList<Class<NodeJsDetector>>(classNames.size());
-        for (val className : classNames) {
+        var classes = new ArrayList<Class<NodeJsDetector>>(classNames.size());
+        for (var className : classNames) {
             @SuppressWarnings("unchecked")
-            val clazz = (Class<NodeJsDetector>) Class.forName(className, true, NodeJsDetectors.class.getClassLoader());
+            var clazz = (Class<NodeJsDetector>) Class.forName(className, true, NodeJsDetectors.class.getClassLoader());
             classes.add(clazz);
         }
         return classes;

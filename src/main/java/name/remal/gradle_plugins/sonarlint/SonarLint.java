@@ -8,7 +8,6 @@ import static org.gradle.language.base.plugins.LifecycleBasePlugin.VERIFICATION_
 import java.io.File;
 import java.util.concurrent.Callable;
 import lombok.Getter;
-import lombok.val;
 import name.remal.gradle_plugins.toolkit.tasks.BaseSourceVerificationReportingTask;
 import org.gradle.api.tasks.CacheableTask;
 import org.gradle.api.tasks.TaskAction;
@@ -23,7 +22,7 @@ public abstract class SonarLint
         BaseSonarLintActions.init(this);
 
         setTaskReportDestinationsAutomatically(this, (Callable<File>) () -> {
-            val sonarLintExtension = findExtension(getProject(), SonarLintExtension.class);
+            var sonarLintExtension = findExtension(getProject(), SonarLintExtension.class);
             return sonarLintExtension != null ? sonarLintExtension.getReportsDir() : null;
         });
     }

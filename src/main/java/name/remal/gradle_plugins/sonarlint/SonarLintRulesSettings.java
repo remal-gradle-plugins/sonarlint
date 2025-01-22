@@ -1,6 +1,5 @@
 package name.remal.gradle_plugins.sonarlint;
 
-import static java.util.Arrays.asList;
 import static name.remal.gradle_plugins.toolkit.ObjectUtils.isNotEmpty;
 
 import java.util.LinkedHashMap;
@@ -9,7 +8,6 @@ import java.util.Map;
 import javax.inject.Inject;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.val;
 import org.gradle.api.Action;
 import org.gradle.api.model.ObjectFactory;
 import org.gradle.api.provider.Property;
@@ -25,21 +23,21 @@ public abstract class SonarLintRulesSettings {
     public abstract SetProperty<String> getEnabled();
 
     public void enable(String... rules) {
-        getEnabled().addAll(asList(rules));
+        getEnabled().addAll(List.of(rules));
     }
 
 
     public abstract SetProperty<String> getDisabled();
 
     public void disable(String... rules) {
-        getDisabled().addAll(asList(rules));
+        getDisabled().addAll(List.of(rules));
     }
 
 
     private final Map<String, SonarLintRuleSettings> rulesSettings = new LinkedHashMap<>();
 
     public void rule(String rule, Action<SonarLintRuleSettings> action) {
-        val ruleSettings = rulesSettings.computeIfAbsent(
+        var ruleSettings = rulesSettings.computeIfAbsent(
             rule,
             __ -> getObjects().newInstance(SonarLintRuleSettings.class)
         );
@@ -50,7 +48,7 @@ public abstract class SonarLintRulesSettings {
     Map<String, Map<String, Object>> buildProperties() {
         Map<String, Map<String, Object>> result = new LinkedHashMap<>();
         rulesSettings.forEach((ruleId, settings) -> {
-            val properties = settings.getProperties().get();
+            var properties = settings.getProperties().get();
             if (isNotEmpty(properties)) {
                 result.put(ruleId, properties);
             }
@@ -61,7 +59,7 @@ public abstract class SonarLintRulesSettings {
     Map<String, List<String>> buildIgnoredPaths() {
         Map<String, List<String>> result = new LinkedHashMap<>();
         rulesSettings.forEach((ruleId, settings) -> {
-            val ignoredPaths = settings.getIgnoredPaths().get();
+            var ignoredPaths = settings.getIgnoredPaths().get();
             if (isNotEmpty(ignoredPaths)) {
                 result.put(ruleId, ignoredPaths);
             }

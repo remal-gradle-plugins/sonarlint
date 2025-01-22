@@ -10,7 +10,6 @@ import javax.annotation.Nullable;
 import javax.inject.Inject;
 import lombok.CustomLog;
 import lombok.RequiredArgsConstructor;
-import lombok.val;
 import org.gradle.api.file.ProjectLayout;
 import org.gradle.api.provider.ProviderFactory;
 
@@ -33,7 +32,7 @@ abstract class OsDetector {
     }
 
     private Detected detect() {
-        val detector = new Detector(
+        var detector = new Detector(
             new SystemPropertyOperationProviderImpl(),
             new FileOperationProviderImpl(),
             logger::debug
@@ -63,8 +62,8 @@ abstract class OsDetector {
     private class FileOperationProviderImpl implements FileOperationProvider {
         @Override
         public InputStream readFile(String filePath) {
-            val regularFile = getLayout().getProjectDirectory().file(filePath);
-            val bytes = getProviders().fileContents(regularFile).getAsBytes().get();
+            var regularFile = getLayout().getProjectDirectory().file(filePath);
+            var bytes = getProviders().fileContents(regularFile).getAsBytes().get();
             return new ByteArrayInputStream(bytes);
         }
     }

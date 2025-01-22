@@ -19,7 +19,7 @@ abstract class NodeJsDetector implements Comparable<NodeJsDetector> {
     protected final Logger logger = Logging.getLogger(unwrapGeneratedSubclass(getClass()));
 
     protected final NodeJsInfoRetriever nodeJsInfoRetriever = getObjects().newInstance(NodeJsInfoRetriever.class);
-    
+
     protected final OsDetector osDetector = getObjects().newInstance(OsDetector.class);
 
 

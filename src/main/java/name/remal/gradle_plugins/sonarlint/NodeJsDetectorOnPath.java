@@ -9,14 +9,13 @@ import static name.remal.gradle_plugins.toolkit.ObjectUtils.defaultValue;
 import static name.remal.gradle_plugins.toolkit.ProviderFactoryUtils.getEnvironmentVariable;
 
 import com.google.common.base.Splitter;
-import com.google.common.collect.ImmutableList;
 import com.tisonkun.os.core.OS;
 import java.io.File;
+import java.util.List;
 import java.util.Objects;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import lombok.RequiredArgsConstructor;
-import lombok.val;
 import name.remal.gradle_plugins.sonarlint.internal.NodeJsFound;
 import name.remal.gradle_plugins.toolkit.ObjectUtils;
 import name.remal.gradle_plugins.toolkit.Version;
@@ -32,16 +31,16 @@ abstract class NodeJsDetectorOnPath extends NodeJsDetector {
             return null;
         }
 
-        val pathEnvironmentVariableNames = ImmutableList.of(
+        var pathEnvironmentVariableNames = List.of(
             osDetector.getDetectedOs().os == OS.windows ? "Path" : "",
             "PATH"
         );
-        val fileNameToSearch = format(
+        var fileNameToSearch = format(
             "node%s",
             osDetector.getDetectedOs().os == OS.windows ? ".exe" : ""
         );
 
-        val path = pathEnvironmentVariableNames.stream()
+        var path = pathEnvironmentVariableNames.stream()
             .filter(ObjectUtils::isNotEmpty)
             .map(name -> getEnvironmentVariable(getProviders(), name))
             .filter(Objects::nonNull)
@@ -51,18 +50,18 @@ abstract class NodeJsDetectorOnPath extends NodeJsDetector {
             return null;
         }
 
-        val pathElements = Splitter.on(pathSeparatorChar).splitToStream(defaultValue(path))
+        var pathElements = Splitter.on(pathSeparatorChar).splitToStream(defaultValue(path))
             .map(String::trim)
             .filter(ObjectUtils::isNotEmpty)
             .collect(toList());
-        for (val pathElement : pathElements) {
-            val candidateFile = new File(pathElement, fileNameToSearch);
+        for (var pathElement : pathElements) {
+            var candidateFile = new File(pathElement, fileNameToSearch);
             if (candidateFile.isFile() && candidateFile.canExecute()) {
-                val info = nodeJsInfoRetriever.getNodeJsInfo(candidateFile);
+                var info = nodeJsInfoRetriever.getNodeJsInfo(candidateFile);
                 if (info instanceof NodeJsFound) {
-                    val foundInfo = (NodeJsFound) info;
+                    var foundInfo = (NodeJsFound) info;
 
-                    val version = Version.parse(foundInfo.getVersion());
+                    var version = Version.parse(foundInfo.getVersion());
                     if (version.compareTo(MIN_SUPPORTED_NODEJS_VERSION) < 0) {
                         logger.info(
                             "Node.js executable on PATH can't be used"

@@ -19,7 +19,6 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import lombok.CustomLog;
 import lombok.NoArgsConstructor;
-import lombok.val;
 import name.remal.gradle_plugins.toolkit.ObjectUtils;
 import org.sonarsource.sonarlint.core.commons.log.LogOutput;
 
@@ -83,7 +82,7 @@ class SimpleLogOutput implements LogOutput {
             return;
         }
 
-        for (val entry : MESSAGE_LEVELS.entrySet()) {
+        for (var entry : MESSAGE_LEVELS.entrySet()) {
             if (entry.getKey().matcher(formattedMessage).matches()) {
                 level = entry.getValue();
                 break;

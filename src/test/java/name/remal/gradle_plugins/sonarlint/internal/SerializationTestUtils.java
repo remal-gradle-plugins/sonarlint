@@ -32,7 +32,6 @@ import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;
-import lombok.val;
 import org.jetbrains.annotations.Contract;
 
 @NoArgsConstructor(access = PRIVATE)
@@ -53,7 +52,7 @@ abstract class SerializationTestUtils {
             objectClass = buildMethod.getReturnType();
         }
 
-        for (val method : builderClass.getMethods()) {
+        for (var method : builderClass.getMethods()) {
             if (method.isSynthetic()
                 || isStatic(method)
                 || method.getDeclaringClass() == Object.class
@@ -63,7 +62,7 @@ abstract class SerializationTestUtils {
             }
 
             if (method.getName().equals("from")) {
-                val paramType = method.getParameterTypes()[0];
+                var paramType = method.getParameterTypes()[0];
                 if (paramType.isAssignableFrom(builderClass)) {
                     continue;
                 }
@@ -83,22 +82,22 @@ abstract class SerializationTestUtils {
 
     @SneakyThrows
     private static void populateBuilderWithValue(Object builder, Method method) {
-        val type = TypeToken.of(builder.getClass()).method(method).getParameters().get(0).getType().getType();
-        val value = createValue(type);
+        var type = TypeToken.of(builder.getClass()).method(method).getParameters().get(0).getType().getType();
+        var value = createValue(type);
         method.invoke(builder, value);
     }
 
     @SneakyThrows
     private static Object createValue(Type type) {
         if (type instanceof TypeVariable) {
-            val boundType = ((TypeVariable<?>) type).getBounds()[0];
+            var boundType = ((TypeVariable<?>) type).getBounds()[0];
             return createValue(boundType);
         } else if (type instanceof WildcardType) {
-            val boundType = ((WildcardType) type).getUpperBounds()[0];
+            var boundType = ((WildcardType) type).getUpperBounds()[0];
             return createValue(boundType);
         }
 
-        val rawType = TypeToken.of(type).getRawType();
+        var rawType = TypeToken.of(type).getRawType();
 
         if (rawType == String.class) {
             return nextString();
@@ -122,11 +121,11 @@ abstract class SerializationTestUtils {
             return nextEnumConstants(rawType);
 
         } else if (rawType.isArray()) {
-            val elementType = requireNonNull(rawType.getComponentType());
-            val elementsCount = ThreadLocalRandom.current().nextInt(2, 10);
-            val values = Array.newInstance(elementType, elementsCount);
+            var elementType = requireNonNull(rawType.getComponentType());
+            var elementsCount = ThreadLocalRandom.current().nextInt(2, 10);
+            var values = Array.newInstance(elementType, elementsCount);
             for (int i = 0; i < elementsCount; ++i) {
-                val element = createValue(elementType);
+                var element = createValue(elementType);
                 Array.set(values, i, element);
             }
             return values;
@@ -138,51 +137,51 @@ abstract class SerializationTestUtils {
             || rawType == Collection.class
             || rawType == List.class
         ) {
-            val elementType = getActualTypeArgument(type, 0);
-            val elementsCount = ThreadLocalRandom.current().nextInt(2, 8);
-            val values = new ArrayList<>(elementsCount);
+            var elementType = getActualTypeArgument(type, 0);
+            var elementsCount = ThreadLocalRandom.current().nextInt(2, 8);
+            var values = new ArrayList<>(elementsCount);
             for (int i = 0; i < elementsCount; ++i) {
-                val element = createValue(elementType);
+                var element = createValue(elementType);
                 values.add(element);
             }
             return values;
 
         } else if (rawType == Set.class) {
-            val elementType = getActualTypeArgument(type, 0);
-            val elementsCount = ThreadLocalRandom.current().nextInt(2, 8);
-            val values = new LinkedHashSet<>(elementsCount);
+            var elementType = getActualTypeArgument(type, 0);
+            var elementsCount = ThreadLocalRandom.current().nextInt(2, 8);
+            var values = new LinkedHashSet<>(elementsCount);
             for (int i = 0; i < elementsCount; ++i) {
-                val element = createValue(elementType);
+                var element = createValue(elementType);
                 values.add(element);
             }
             return values;
 
         } else if (rawType == Map.class) {
-            val keyType = getActualTypeArgument(type, 0);
-            val valueType = getActualTypeArgument(type, 1);
-            val entriesCount = ThreadLocalRandom.current().nextInt(2, 8);
-            val values = new LinkedHashMap<>(entriesCount);
+            var keyType = getActualTypeArgument(type, 0);
+            var valueType = getActualTypeArgument(type, 1);
+            var entriesCount = ThreadLocalRandom.current().nextInt(2, 8);
+            var values = new LinkedHashMap<>(entriesCount);
             for (int i = 0; i < entriesCount; ++i) {
-                val key = createValue(keyType);
-                val value = createValue(valueType);
+                var key = createValue(keyType);
+                var value = createValue(valueType);
                 values.put(key, value);
             }
             return values;
 
         } else if (rawType == Entry.class) {
-            val keyType = getActualTypeArgument(type, 0);
-            val valueType = getActualTypeArgument(type, 1);
-            val key = createValue(keyType);
-            val value = createValue(valueType);
+            var keyType = getActualTypeArgument(type, 0);
+            var valueType = getActualTypeArgument(type, 1);
+            var key = createValue(keyType);
+            var value = createValue(valueType);
             return new SimpleEntry<>(key, value);
         }
 
         if (rawType.isInterface() || isAbstract(rawType.getModifiers())) {
-            val immutableClass = tryLoadClass(packageNameOf(rawType) + ".Immutable" + rawType.getSimpleName());
+            var immutableClass = tryLoadClass(packageNameOf(rawType) + ".Immutable" + rawType.getSimpleName());
             if (immutableClass != null) {
-                val builderMethod = findStaticMethod(immutableClass, Object.class, "builder");
+                var builderMethod = findStaticMethod(immutableClass, Object.class, "builder");
                 if (builderMethod != null) {
-                    val builder = builderMethod.invoke();
+                    var builder = builderMethod.invoke();
                     populateBuilderWithValues(builder);
                     return builder.getClass().getMethod("build").invoke(builder);
                 }
@@ -197,7 +196,7 @@ abstract class SerializationTestUtils {
     }
 
     private static BigInteger nextBigInteger() {
-        val bits = multiplyExact(8, ThreadLocalRandom.current().nextInt(4, 16));
+        var bits = multiplyExact(8, ThreadLocalRandom.current().nextInt(4, 16));
         return new BigInteger(bits, ThreadLocalRandom.current()).abs();
     }
 
@@ -206,8 +205,8 @@ abstract class SerializationTestUtils {
     }
 
     private static Object nextEnumConstants(Class<?> enumType) {
-        val enumConstants = requireNonNull(enumType.getEnumConstants());
-        val index = ThreadLocalRandom.current().nextInt(0, enumConstants.length);
+        var enumConstants = requireNonNull(enumType.getEnumConstants());
+        var index = ThreadLocalRandom.current().nextInt(0, enumConstants.length);
         return enumConstants[index];
     }
 

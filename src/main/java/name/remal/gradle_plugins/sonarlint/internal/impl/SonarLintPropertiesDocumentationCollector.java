@@ -1,19 +1,18 @@
 package name.remal.gradle_plugins.sonarlint.internal.impl;
 
 import java.util.Optional;
-import lombok.val;
 import name.remal.gradle_plugins.sonarlint.internal.PropertiesDocumentation;
 import name.remal.gradle_plugins.sonarlint.internal.SonarLintExecutionParams;
 
 public class SonarLintPropertiesDocumentationCollector {
 
     public PropertiesDocumentation collectPropertiesDocumentation(SonarLintExecutionParams params) {
-        val propertyDefinitionsExtractor = new SonarLintPropertyDefinitionsExtractorContainer(params);
+        var propertyDefinitionsExtractor = new SonarLintPropertyDefinitionsExtractorContainer(params);
         propertyDefinitionsExtractor.execute();
 
-        val currentProperties = params.getSonarProperties().get();
+        var currentProperties = params.getSonarProperties().get();
 
-        val propertiesDoc = new PropertiesDocumentation();
+        var propertiesDoc = new PropertiesDocumentation();
         propertyDefinitionsExtractor
             .getPropertyDefinitions()
             .forEach(propDef -> propertiesDoc.property(propDef.key(), propDoc -> {

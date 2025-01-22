@@ -47,7 +47,6 @@ import javax.inject.Inject;
 import lombok.Builder;
 import lombok.CustomLog;
 import lombok.Value;
-import lombok.val;
 import name.remal.gradle_plugins.toolkit.FileUtils;
 import name.remal.gradle_plugins.toolkit.ObjectUtils;
 import name.remal.gradle_plugins.toolkit.annotations.ReliesOnInternalGradleApi;
@@ -124,9 +123,9 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
         configureGlobalResolutionStrategy(project, resolutionStrategy -> {
             try {
                 resolutionStrategy.eachDependency(details -> {
-                    val target = details.getTarget();
-                    val targetNotation = target.getGroup() + ':' + target.getName() + ':' + target.getVersion();
-                    val fixedVersion = getVersionWithFixedPom(targetNotation);
+                    var target = details.getTarget();
+                    var targetNotation = target.getGroup() + ':' + target.getName() + ':' + target.getVersion();
+                    var fixedVersion = getVersionWithFixedPom(targetNotation);
                     if (fixedVersion != null) {
                         details.because("Fix dependency with broken POM")
                             .useVersion(fixedVersion);
@@ -164,7 +163,7 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
 
     @Override
     protected CodeQualityExtension createExtension() {
-        val extension = project.getExtensions().create("sonarLint", SonarLintExtension.class);
+        var extension = project.getExtensions().create("sonarLint", SonarLintExtension.class);
         this.extension = extension;
 
         Collection<SourceSet> testSourceSets = new ArrayList<>();
@@ -193,7 +192,7 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
             project.getConfigurations().getByName(getPluginsConfigurationName())
         );
 
-        val extension = (SonarLintExtension) this.extension;
+        var extension = (SonarLintExtension) this.extension;
         task.getNodeJs().set(extension.getNodeJs());
         task.getCheckstyleConfig().convention(project.getLayout().file(getProviders().provider(
             this::getCheckstyleConfigFile
@@ -220,7 +219,7 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
         task.dependsOn(sourceSet.getAllSource());
         task.setSource(sourceSet.getAllSource());
 
-        val sourceSetCompileTasks = project.getTasks().withType(AbstractCompile.class)
+        var sourceSetCompileTasks = project.getTasks().withType(AbstractCompile.class)
             .matching(compileTask -> isSourceSetTask(sourceSet, compileTask));
         task.dependsOn(sourceSetCompileTasks);
         task.source(getProviders().provider(() -> {
@@ -244,8 +243,8 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
         ));
 
         task.dependsOn(getProviders().provider(() -> {
-            val testSourceSets = getTestSourceSets();
-            val mainSourceSets = getExtension(project, SourceSetContainer.class).stream()
+            var testSourceSets = getTestSourceSets();
+            var mainSourceSets = getExtension(project, SourceSetContainer.class).stream()
                 .filter(not(testSourceSets::contains))
                 .collect(toList());
             if (mainSourceSets.contains(sourceSet)) {
@@ -261,10 +260,10 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
             }
         }));
 
-        val lazyOutputDirsAndLibraries = getObjects().property(OutputDirsAndLibraries.class)
+        var lazyOutputDirsAndLibraries = getObjects().property(OutputDirsAndLibraries.class)
             .value(getProviders().provider(() -> {
-                val testSourceSets = getTestSourceSets();
-                val mainSourceSets = getExtension(project, SourceSetContainer.class).stream()
+                var testSourceSets = getTestSourceSets();
+                var mainSourceSets = getExtension(project, SourceSetContainer.class).stream()
                     .filter(not(testSourceSets::contains))
                     .collect(toList());
                 final Collection<File> mainOutputDirs;
@@ -303,7 +302,7 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
         lazyOutputDirsAndLibraries.finalizeValueOnRead();
 
         task.onlyIf(__ -> {
-            val outputDirsAndLibraries = lazyOutputDirsAndLibraries.get();
+            var outputDirsAndLibraries = lazyOutputDirsAndLibraries.get();
             Stream.of(
                     outputDirsAndLibraries.getMainOutputDirs(),
                     outputDirsAndLibraries.getMainLibraries(),
@@ -330,7 +329,7 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
         task.getSonarProperties().putAll(getProviders().provider(() -> {
             Map<String, String> javaProps = new LinkedHashMap<>();
 
-            val javaCompileTask = project.getTasks()
+            var javaCompileTask = project.getTasks()
                 .withType(JavaCompile.class)
                 .stream()
                 .filter(it -> it.getName().equals(sourceSet.getCompileJavaTaskName()))
@@ -355,13 +354,13 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
                 .map(CompileOptions::getCompilerArgs)
                 .filter(ObjectUtils::isNotEmpty)
                 .ifPresent(args -> {
-                    val isPreviewEnabled = args.stream().anyMatch("--enable-preview"::equals);
+                    var isPreviewEnabled = args.stream().anyMatch("--enable-preview"::equals);
                     if (isPreviewEnabled) {
                         javaProps.put(SONAR_JAVA_ENABLE_PREVIEW_PROPERTY, "true");
                     }
                 });
 
-            val outputDirsAndLibraries = lazyOutputDirsAndLibraries.get();
+            var outputDirsAndLibraries = lazyOutputDirsAndLibraries.get();
             javaProps.put(SONAR_JAVA_BINARIES, outputDirsAndLibraries.getMainOutputDirs().stream()
                 .map(File::getPath)
                 .collect(joining(SONAR_LIST_PROPERTY_DELIMITER))
@@ -412,8 +411,8 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
     @Unmodifiable
     @SuppressWarnings("ConstantValue")
     private Collection<SourceSet> getTestSourceSets() {
-        val extension = (SonarLintExtension) this.extension;
-        val testSourceSets = extension.getTestSourceSets();
+        var extension = (SonarLintExtension) this.extension;
+        var testSourceSets = extension.getTestSourceSets();
         return testSourceSets != null
             ? unmodifiableCollection(new LinkedHashSet<>(testSourceSets))
             : emptyList();
@@ -496,9 +495,9 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
 
 
         configuration.getResolutionStrategy().eachDependency(details -> {
-            val target = details.getTarget();
-            val notation = target.getGroup() + ':' + target.getName() + ':' + target.getVersion();
-            val nonReproducibleDependency = getResolvedNonReproducibleSonarDependency(notation);
+            var target = details.getTarget();
+            var notation = target.getGroup() + ':' + target.getName() + ':' + target.getVersion();
+            var nonReproducibleDependency = getResolvedNonReproducibleSonarDependency(notation);
             if (nonReproducibleDependency != null) {
                 details.because("Replace non-reproducible version with predefined one")
                     .useVersion(nonReproducibleDependency.getVersion());

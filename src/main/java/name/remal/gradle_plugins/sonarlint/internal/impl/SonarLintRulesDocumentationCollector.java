@@ -18,7 +18,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import lombok.SneakyThrows;
-import lombok.val;
 import name.remal.gradle_plugins.sonarlint.internal.RulesDocumentation;
 import name.remal.gradle_plugins.sonarlint.internal.SonarLintExecutionParams;
 import org.sonar.api.rule.RuleKey;
@@ -30,27 +29,27 @@ public class SonarLintRulesDocumentationCollector {
 
     @SneakyThrows
     public RulesDocumentation collectRulesDocumentation(SonarLintExecutionParams params) {
-        val pluginJarLocations = getPluginJarLocations(params);
-        val enabledLanguages = getEnabledLanguages(params);
-        val nodeJsVersion = getNodeJsVersion(params);
+        var pluginJarLocations = getPluginJarLocations(params);
+        var enabledLanguages = getEnabledLanguages(params);
+        var nodeJsVersion = getNodeJsVersion(params);
 
         final Map<RuleKey, Rule> rules;
-        try (val loadedPlugins = loadPlugins(pluginJarLocations, enabledLanguages, nodeJsVersion)) {
+        try (var loadedPlugins = loadPlugins(pluginJarLocations, enabledLanguages, nodeJsVersion)) {
             rules = extractRules(loadedPlugins.getLoadedPlugins().getAllPluginInstancesByKeys(), enabledLanguages);
         }
 
-        val enabledRules = params.getEnabledRules().getOrElse(emptySet()).stream()
+        var enabledRules = params.getEnabledRules().getOrElse(emptySet()).stream()
             .map(RuleKey::parse)
             .collect(toList());
-        val disabledRules = params.getDisabledRules().getOrElse(emptySet()).stream()
+        var disabledRules = params.getDisabledRules().getOrElse(emptySet()).stream()
             .map(RuleKey::parse)
             .collect(toList());
-        val allRuleProperties = params.getRulesProperties().getOrElse(emptyMap()).entrySet().stream().collect(toMap(
+        var allRuleProperties = params.getRulesProperties().getOrElse(emptyMap()).entrySet().stream().collect(toMap(
             entry -> RuleKey.parse(entry.getKey()),
             Entry::getValue
         ));
 
-        val rulesDoc = new RulesDocumentation();
+        var rulesDoc = new RulesDocumentation();
         rules.forEach((key, rule) -> rulesDoc.rule(key.toString(), ruleDoc -> {
             ruleDoc.setName(rule.name());
 

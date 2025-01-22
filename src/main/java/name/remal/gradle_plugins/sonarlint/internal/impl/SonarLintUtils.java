@@ -18,7 +18,6 @@ import java.util.Set;
 import javax.annotation.Nullable;
 import lombok.CustomLog;
 import lombok.NoArgsConstructor;
-import lombok.val;
 import name.remal.gradle_plugins.sonarlint.internal.NodeJsFound;
 import name.remal.gradle_plugins.sonarlint.internal.SonarLintExecutionParams;
 import org.sonar.api.Plugin;
@@ -48,7 +47,7 @@ abstract class SonarLintUtils {
             .map(File::toPath)
             .filter(path -> {
                 try {
-                    val pluginInfo = PluginInfo.create(path);
+                    var pluginInfo = PluginInfo.create(path);
                     logger.debug("plugin={}: {}", pluginInfo, path);
                     return true;
                 } catch (Exception ignored) {
@@ -61,9 +60,9 @@ abstract class SonarLintUtils {
 
 
     public static PluginsLoadResult loadPlugins(SonarLintExecutionParams params) {
-        val pluginJarLocations = getPluginJarLocations(params);
-        val enabledLanguages = getEnabledLanguages(params);
-        val nodeJsVersion = getNodeJsVersion(params);
+        var pluginJarLocations = getPluginJarLocations(params);
+        var enabledLanguages = getEnabledLanguages(params);
+        var nodeJsVersion = getNodeJsVersion(params);
         return loadPlugins(pluginJarLocations, enabledLanguages, nodeJsVersion);
     }
 
@@ -72,7 +71,7 @@ abstract class SonarLintUtils {
         Set<SonarLanguage> enabledLanguages,
         @Nullable Version nodeJsVersion
     ) {
-        val config = new Configuration(
+        var config = new Configuration(
             pluginJarLocations,
             enabledLanguages,
             true,
@@ -83,8 +82,8 @@ abstract class SonarLintUtils {
 
 
     public static Set<SonarLanguage> getEnabledLanguages(SonarLintExecutionParams params) {
-        val includedLanguages = params.getIncludedLanguages().get();
-        val excludedLanguages = params.getExcludedLanguages().get();
+        var includedLanguages = params.getIncludedLanguages().get();
+        var excludedLanguages = params.getExcludedLanguages().get();
         return stream(SonarLanguage.values())
             .filter(language -> includedLanguages.isEmpty() || isLanguageInFilter(language, includedLanguages))
             .filter(language -> excludedLanguages.isEmpty() || !isLanguageInFilter(language, excludedLanguages))
@@ -121,22 +120,22 @@ abstract class SonarLintUtils {
         Map<String, Plugin> pluginInstancesByKeys,
         Set<SonarLanguage> enabledLanguages
     ) {
-        val container = new RulesDefinitionExtractorContainer(pluginInstancesByKeys);
+        var container = new RulesDefinitionExtractorContainer(pluginInstancesByKeys);
         container.execute();
 
-        val context = container.getRulesDefinitionContext();
-        val rules = context.repositories().stream()
+        var context = container.getRulesDefinitionContext();
+        var rules = context.repositories().stream()
             .filter(repo -> !repo.isExternal())
             .filter(repo -> {
-                val language = SonarLanguage.forKey(repo.language()).orElse(null);
+                var language = SonarLanguage.forKey(repo.language()).orElse(null);
                 return language != null && enabledLanguages.contains(language);
             })
             .flatMap(repo -> repo.rules().stream())
             .collect(toList());
 
-        val result = new LinkedHashMap<RuleKey, Rule>(rules.size());
-        for (val rule : rules) {
-            val key = RuleKey.of(rule.repository().key(), rule.key());
+        var result = new LinkedHashMap<RuleKey, Rule>(rules.size());
+        for (var rule : rules) {
+            var key = RuleKey.of(rule.repository().key(), rule.key());
             result.putIfAbsent(key, rule);
         }
         return result;
