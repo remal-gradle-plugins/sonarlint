@@ -11,7 +11,16 @@ on:
     - 'master'
   schedule:
   - cron: '15 0/4 * * *' # sync-with-template: adjust
-  workflow_dispatch: { }
+  workflow_dispatch:
+    inputs:
+      dryRun:
+        required: true
+        default: 'false'
+        description: Set to 'true' to enable dry run
+        type: choice
+        options:
+        - 'true'
+        - 'false'
 
 defaults:
   run:
@@ -55,5 +64,6 @@ jobs:
       if: ${{env.PUSH_BACK_TOKEN && fromJSON(steps.decision.outputs.enough) == true}}
       uses: remal-github-actions/sync-with-template@v3
       with:
+        dryRun: ${{inputs.dryRun}}
         githubToken: ${{env.PUSH_BACK_TOKEN}}
         templateRepository: ${{secrets.TEMPLATE_REPOSITORY || ''}}
