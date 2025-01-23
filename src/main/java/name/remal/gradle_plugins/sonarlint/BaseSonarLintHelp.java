@@ -31,7 +31,7 @@ abstract class BaseSonarLintHelp
 
     @TaskAction
     public void execute() {
-        BaseSonarLintActions.execute(this, getRunnerCommand());
+        BaseSonarLintActions.execute(this, getRunnerCommand(), null);
     }
 
 }
