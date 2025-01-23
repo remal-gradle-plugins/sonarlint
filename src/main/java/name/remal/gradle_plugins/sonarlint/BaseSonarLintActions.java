@@ -54,6 +54,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -82,6 +83,8 @@ import org.gradle.api.tasks.VerificationTask;
 import org.gradle.jvm.toolchain.JavaInstallationMetadata;
 import org.gradle.jvm.toolchain.JavaLanguageVersion;
 import org.gradle.jvm.toolchain.JavaLauncher;
+import org.gradle.work.ChangeType;
+import org.gradle.work.InputChanges;
 import org.gradle.workers.WorkQueue;
 import org.jetbrains.annotations.Contract;
 import org.w3c.dom.Document;
@@ -186,7 +189,12 @@ abstract class BaseSonarLintActions {
 
     @SneakyThrows
     @SuppressWarnings("java:S3776")
-    public static void execute(BaseSonarLint task, SonarLintCommand command) {
+    public static void execute(BaseSonarLint task, SonarLintCommand command, @Nullable InputChanges inputChanges) {
+        final var sourceFiles = collectSourceFiles(task, inputChanges);
+        if (sourceFiles.isEmpty() && command == SonarLintCommand.ANALYSE) {
+            return;
+        }
+
         var sonarProperties = new LinkedHashMap<>(task.getSonarProperties().get());
 
         task.getIgnoredPaths().get().forEach(ignoredPath ->
@@ -330,7 +338,7 @@ abstract class BaseSonarLintActions {
                 .filter(File::exists)
                 .collect(toCollection(LinkedHashSet::new))
             );
-            params.getSourceFiles().set(collectSourceFiles(task));
+            params.getSourceFiles().set(sourceFiles);
             params.getEnabledRules().set(task.getEnabledRules());
             params.getDisabledRules().set(task.getDisabledRules());
             params.getDisabledRules().addAll(getDisabledRulesFromCheckstyleConfig(task));
@@ -514,34 +522,34 @@ abstract class BaseSonarLintActions {
         return SONARLINT_DEFAULT_VERSION.toString();
     }
 
-    private static Collection<SourceFile> collectSourceFiles(BaseSonarLint task) {
-        if (task instanceof SourceTask) {
+    private static Collection<SourceFile> collectSourceFiles(BaseSonarLint task, @Nullable InputChanges inputChanges) {
+        if (task instanceof SonarLint) {
             return collectSourceFiles(
-                ((SourceTask) task).getSource(),
+                ((SonarLint) task).getCachedSource(),
                 task.get$internals().getRootDir().get().getAsFile().toPath(),
                 defaultFalse(task.getIsTest().getOrNull()),
-                task.get$internals().getBuildDir().get().getAsFile().toPath()
+                task.get$internals().getBuildDir().get().getAsFile().toPath(),
+                inputChanges,
+                ((SonarLint) task).getIgnoreFailures()
             );
         }
 
         return emptyList();
     }
 
+    @SuppressWarnings("java:S3776")
     private static Collection<SourceFile> collectSourceFiles(
         FileTree fileTree,
         Path repositoryRootPath,
         boolean isTest,
-        Path buildDirPath
+        Path buildDirPath,
+        @Nullable InputChanges inputChanges,
+        boolean ignoreFailures
     ) {
         var editorConfig = new EditorConfig(repositoryRootPath);
         Set<Path> processedPaths = new LinkedHashSet<>();
         List<SourceFile> sourceFiles = new ArrayList<>();
-        fileTree.visit(details -> {
-            if (details.isDirectory()) {
-                return;
-            }
-
-            var path = normalizePath(details.getFile().toPath());
+        BiConsumer<Path, String> pathConsumer = (path, relativePath) -> {
             if (!processedPaths.add(path)) {
                 return;
             }
@@ -572,13 +580,35 @@ abstract class BaseSonarLintActions {
 
             sourceFiles.add(newSourceFileBuilder()
                 .absolutePath(path.toString())
-                .relativePath(details.getPath())
+                .relativePath(relativePath)
                 .test(isTest)
                 .generated(isGenerated)
                 .charsetName(charsetName)
                 .build()
             );
-        });
+        };
+
+        if (inputChanges != null && inputChanges.isIncremental() && !ignoreFailures) {
+            inputChanges.getFileChanges(fileTree).forEach(change -> {
+                if (change.getChangeType() == ChangeType.REMOVED) {
+                    return;
+                }
+
+                var path = normalizePath(change.getFile().toPath());
+                var relativePath = change.getNormalizedPath();
+                pathConsumer.accept(path, relativePath);
+            });
+
+        } else {
+            fileTree.visit(details -> {
+                if (!details.isDirectory()) {
+                    var path = normalizePath(details.getFile().toPath());
+                    var relativePath = details.getPath();
+                    pathConsumer.accept(path, relativePath);
+                }
+            });
+        }
+
         return sourceFiles;
     }
 
