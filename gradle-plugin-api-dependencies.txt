@@ -13,7 +13,7 @@ org.sonarsource.slang:sonar-scala-plugin:1.18.0.266
 org.sonarsource.sonarlint.core:sonarlint-core:10.13.0.79996
 org.sonarsource.text:sonar-text-plugin:2.20.0.5038
 org.sonarsource.xml:sonar-xml-plugin:2.12.0.5749:@sonar-plugin
-zzzz-classes-relying-on-gradle-internal-api:name.remal.gradle_plugins.sonarlint.BaseSonarLintHelp:647e042ef8e327434d8a70c8e0c66e2a7367465b454ab3708bdeb88ead9debd0
+zzzz-classes-relying-on-gradle-internal-api:name.remal.gradle_plugins.sonarlint.BaseSonarLintHelp:756013e416cc9e66d1ff2f80d6048b97fde885246a111e7f55f654cc79713883
 zzzz-classes-relying-on-gradle-internal-api:name.remal.gradle_plugins.sonarlint.SonarLintPlugin$OutputDirsAndLibraries$OutputDirsAndLibrariesBuilder:efd575408ff06c682424ee01a44bd9878ce8d71d8e0da82672291b3f9c2d7c5d
 zzzz-classes-relying-on-gradle-internal-api:name.remal.gradle_plugins.sonarlint.SonarLintPlugin$OutputDirsAndLibraries:37c7abf8f75ea5881ff828ddd08b82f79893e7eae8e641cce095097ab2dfb395
 zzzz-classes-relying-on-gradle-internal-api:name.remal.gradle_plugins.sonarlint.SonarLintPlugin:61ef8b082ae95c2759ff104900c305d5f8841582df69c90a564b1356a319a20b
