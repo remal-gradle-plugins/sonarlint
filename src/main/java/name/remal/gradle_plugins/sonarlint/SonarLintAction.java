@@ -5,6 +5,7 @@ import static name.remal.gradle_plugins.sonarlint.internal.SonarLintCommand.ANAL
 import static name.remal.gradle_plugins.sonarlint.internal.SonarLintCommand.HELP_PROPERTIES;
 import static name.remal.gradle_plugins.sonarlint.internal.SonarLintCommand.HELP_RULES;
 import static name.remal.gradle_plugins.toolkit.ObjectUtils.isNotEmpty;
+import static name.remal.gradle_plugins.toolkit.VerificationExceptionUtils.newVerificationException;
 
 import javax.inject.Inject;
 import lombok.CustomLog;
@@ -52,7 +53,7 @@ abstract class SonarLintAction implements WorkAction<SonarLintExecutionParams> {
                 );
 
                 if (!params.getIsIgnoreFailures().get()) {
-                    throw new AssertionError(format(
+                    throw newVerificationException(format(
                         "SonarLint analysis failed with %d issues",
                         issues.size()
                     ));
