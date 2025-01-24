@@ -6,7 +6,6 @@ import static java.util.stream.Collectors.toList;
 import static name.remal.gradle_plugins.sonarlint.NodeJsVersions.MIN_SUPPORTED_NODEJS_VERSION;
 import static name.remal.gradle_plugins.toolkit.InTestFlags.isInTest;
 import static name.remal.gradle_plugins.toolkit.ObjectUtils.defaultValue;
-import static name.remal.gradle_plugins.toolkit.ProviderFactoryUtils.getEnvironmentVariable;
 
 import com.google.common.base.Splitter;
 import com.tisonkun.os.core.OS;
@@ -42,7 +41,7 @@ abstract class NodeJsDetectorOnPath extends NodeJsDetector {
 
         var path = pathEnvironmentVariableNames.stream()
             .filter(ObjectUtils::isNotEmpty)
-            .map(name -> getEnvironmentVariable(getProviders(), name))
+            .map(name -> getProviders().environmentVariable(name).getOrNull())
             .filter(Objects::nonNull)
             .findFirst()
             .orElse(null);

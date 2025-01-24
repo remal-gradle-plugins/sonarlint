@@ -38,7 +38,7 @@ class SonarLintPluginFunctionalTest {
         project.forBuildFile(build -> {
             build.applyPlugin("name.remal.sonarlint");
             build.applyPlugin("java");
-            build.addMavenCentralRepository();
+            build.line("repositories { mavenCentral() }");
             build.addBuildDirMavenRepositories();
             build.line("sonarLint.ignoreFailures = true");
 
