@@ -54,20 +54,6 @@ apply plugin: 'name.remal.toolkit.build-logic'
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-allprojects {
-    pluginManager.withPlugin('name.remal.sonarlint') {
-        sonarLint {
-            boolean hasCurrentSnapshotBuildscriptDependency = rootProject.buildscript.configurations.classpath.dependencies
-                .any { "${it.group}:${it.name}:${it.version}" == "$rootGroupId:$rootArtifactId:$rootSnapshotVersion" }
-            if (hasCurrentSnapshotBuildscriptDependency) {
-                fork.enabled = false
-            }
-        }
-    }
-}
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
 project.registerCrossCompileDependencyInfo(
     [
         name: 'sonarlint',
@@ -172,6 +158,7 @@ Closure<Configuration> createSonarArtifactsConfiguration = { String name, boolea
 
         if (addToIndirectApi) {
             project.configurations.indirectApi.extendsFrom(conf)
+            //project.configurations.compileOnly.extendsFrom(conf)
         }
     }
 }
@@ -312,53 +299,51 @@ generateSources.forMainSourceSet.java { Task task ->
 
 tasks.named('processReadme') {
     ListProperty pluginLanguageInfos = rootProject.pluginLanguageInfos
-    readmeFileProcessors.add(
-        { File readmeFile ->
-            String content = readmeFile.getText('UTF-8')
+    readmeFileProcessors.add({ File readmeFile ->
+        String content = readmeFile.getText('UTF-8')
 
-            content = content.replaceAll(
-                /<!--\s*(sonar-plugins-list)\s*-->[\s\S]*?<!--\s*\/\s*\1\s*-->/
-            ) {
-                String tag = it[1]
-                logger.lifecycle('  Handling {}', tag)
-                StringBuilder listContent = new StringBuilder()
+        content = content.replaceAll(
+            /<!--\s*(sonar-plugins-list)\s*-->[\s\S]*?<!--\s*\/\s*\1\s*-->/
+        ) {
+            String tag = it[1]
+            logger.lifecycle('  Handling {}', tag)
+            StringBuilder listContent = new StringBuilder()
 
-                Map<String, String> languageDocPaths = [
-                    'js': 'javascript',
-                    'ts': 'typescript',
-                ]
+            Map<String, String> languageDocPaths = [
+                'js': 'javascript',
+                'ts': 'typescript',
+            ]
 
-                pluginLanguageInfos.get()
-                    .toSorted { it.key }
-                    .forEach { info ->
-                        String languageDocPath = languageDocPaths[info.key] ?: info.key
-                        URL url = new URL("https://rules.sonarsource.com/${languageDocPath}/")
-                        HttpURLConnection connection = url.openConnection()
-                        connection.useCaches = false
-                        connection.connectTimeout = 5_000
-                        connection.readTimeout = 60_000
-                        connection.connect()
-                        try {
-                            int responseCode = connection.responseCode
-                            if (responseCode == 200) {
-                                listContent.append("\n* [${info.name}]($url)")
-                            } else if (responseCode == 404) {
-                                listContent.append("\n* ${info.name}")
-                            } else {
-                                throw new GradleException("$url returned unexpected status: $responseCode")
-                            }
-
-                        } finally {
-                            connection.disconnect()
+            pluginLanguageInfos.get()
+                .toSorted { it.key }
+                .forEach { info ->
+                    String languageDocPath = languageDocPaths[info.key] ?: info.key
+                    URL url = new URL("https://rules.sonarsource.com/${languageDocPath}/")
+                    HttpURLConnection connection = url.openConnection()
+                    connection.useCaches = false
+                    connection.connectTimeout = 5_000
+                    connection.readTimeout = 60_000
+                    connection.connect()
+                    try {
+                        int responseCode = connection.responseCode
+                        if (responseCode == 200) {
+                            listContent.append("\n* [${info.name}]($url)")
+                        } else if (responseCode == 404) {
+                            listContent.append("\n* ${info.name}")
+                        } else {
+                            throw new GradleException("$url returned unexpected status: $responseCode")
                         }
+
+                    } finally {
+                        connection.disconnect()
                     }
+                }
 
-                return "<!--$tag-->\n$listContent\n\n<!--/$tag-->"
-            }
-
-            readmeFile.setText(content, 'UTF-8')
+            return "<!--$tag-->\n$listContent\n\n<!--/$tag-->"
         }
-    )
+
+        readmeFile.setText(content, 'UTF-8')
+    })
 }
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */

@@ -13,7 +13,7 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
 import static java.util.Collections.unmodifiableCollection;
-import static java.util.Objects.requireNonNull;
+import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toCollection;
 import static java.util.stream.Collectors.toList;
@@ -24,9 +24,7 @@ import static name.remal.gradle_plugins.sonarlint.CanonizationUtils.canonizeLang
 import static name.remal.gradle_plugins.sonarlint.CanonizationUtils.canonizeProperties;
 import static name.remal.gradle_plugins.sonarlint.CanonizationUtils.canonizeRules;
 import static name.remal.gradle_plugins.sonarlint.CanonizationUtils.canonizeRulesProperties;
-import static name.remal.gradle_plugins.sonarlint.SonarDependencies.getSonarDependency;
 import static name.remal.gradle_plugins.sonarlint.SonarLintForkOptions.IS_FORK_ENABLED_DEFAULT;
-import static name.remal.gradle_plugins.sonarlint.SonarLintPluginBuildInfo.SONARLINT_PLUGIN_ID;
 import static name.remal.gradle_plugins.sonarlint.internal.SourceFile.newSourceFileBuilder;
 import static name.remal.gradle_plugins.toolkit.ExtensionContainerUtils.findExtension;
 import static name.remal.gradle_plugins.toolkit.FileUtils.normalizeFile;
@@ -36,7 +34,6 @@ import static name.remal.gradle_plugins.toolkit.ObjectUtils.defaultTrue;
 import static name.remal.gradle_plugins.toolkit.ObjectUtils.isEmpty;
 import static name.remal.gradle_plugins.toolkit.ObjectUtils.isNotEmpty;
 import static name.remal.gradle_plugins.toolkit.PathUtils.normalizePath;
-import static name.remal.gradle_plugins.toolkit.PredicateUtils.not;
 import static name.remal.gradle_plugins.toolkit.TaskUtils.doBeforeTaskExecution;
 import static name.remal.gradle_plugins.toolkit.xml.DomUtils.streamNodeList;
 import static name.remal.gradle_plugins.toolkit.xml.XmlUtils.parseXml;
@@ -56,7 +53,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
-import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import lombok.NoArgsConstructor;
@@ -70,7 +66,6 @@ import name.remal.gradle_plugins.toolkit.FileUtils;
 import name.remal.gradle_plugins.toolkit.ObjectUtils;
 import name.remal.gradle_plugins.toolkit.PathIsOutOfRootPathException;
 import name.remal.gradle_plugins.toolkit.ReportUtils;
-import name.remal.gradle_plugins.toolkit.Version;
 import org.gradle.api.JavaVersion;
 import org.gradle.api.file.Directory;
 import org.gradle.api.file.FileTree;
@@ -292,6 +287,9 @@ abstract class BaseSonarLintActions {
                         .getAsFile()
                         .getAbsolutePath()
                     );
+                    if (task.getJavaLauncher().get().getMetadata().getLanguageVersion().canCompileOrRun(9)) {
+                        spec.getForkOptions().jvmArgs("--add-opens", "java.base/java.lang=ALL-UNNAMED");
+                    }
                     spec.getForkOptions().setMaxHeapSize(forkParams
                         .map(SonarLintForkOptions::getMaxHeapSize)
                         .map(Provider::getOrNull)
@@ -308,32 +306,13 @@ abstract class BaseSonarLintActions {
         }
 
         workQueue.submit(SonarLintAction.class, params -> {
-            var sonarLintVersion = getSonarLintVersionFor(task);
-            if (Version.parse(sonarLintVersion).compareTo(SONARLINT_DEFAULT_VERSION) > 0) {
-                task.getLogger().log(
-                    defaultFalse(task.getLoggingOptions().flatMap(SonarLintLoggingOptions::getHideWarnings).getOrNull())
-                        ? LogLevel.INFO
-                        : LogLevel.QUIET,
-                    "SonarLint version is greater than with what `{}` plugin was built with."
-                        + " It can cause unpredicted issues.",
-                    SONARLINT_PLUGIN_ID
-                );
-            }
-
             var tempDir = normalizeFile(task.getTemporaryDir());
 
             params.getIsIgnoreFailures().set(isIgnoreFailures(task));
             params.getCommand().set(command);
-            params.getSonarLintVersion().set(sonarLintVersion);
             params.getProjectDir().set(task.get$internals().getProjectDir());
             params.getIsGeneratedCodeIgnored().set(defaultTrue(task.getIsGeneratedCodeIgnored().getOrNull()));
-            params.getBaseGeneratedDirs().add(task.get$internals().getBuildDir());
-            params.getHomeDir().set(new File(tempDir, "home"));
             params.getWorkDir().set(new File(tempDir, "work"));
-            params.getCoreClasspath().from(task.getCoreClasspath().getFiles().stream()
-                .filter(File::exists)
-                .collect(toCollection(LinkedHashSet::new))
-            );
             params.getPluginsClasspath().from(task.getPluginsClasspath().getFiles().stream()
                 .filter(File::exists)
                 .collect(toCollection(LinkedHashSet::new))
@@ -500,26 +479,6 @@ abstract class BaseSonarLintActions {
             return ((VerificationTask) task).getIgnoreFailures();
         }
         return false;
-    }
-
-    private static final Pattern SONARLINT_CORE_FILE_NAME = Pattern.compile(
-        "sonarlint-core-(\\d+(?:\\.\\d+){0,3}).*\\.jar"
-    );
-
-    private static final Version SONARLINT_DEFAULT_VERSION = Version.parse(
-        getSonarDependency("sonarlint-core").getVersion()
-    );
-
-    @SneakyThrows
-    private static String getSonarLintVersionFor(BaseSonarLint task) {
-        for (var classpathFile : task.getCoreClasspath().getFiles()) {
-            var matcher = SONARLINT_CORE_FILE_NAME.matcher(classpathFile.getName());
-            if (matcher.matches()) {
-                return requireNonNull(matcher.group(1));
-            }
-        }
-
-        return SONARLINT_DEFAULT_VERSION.toString();
     }
 
     private static Collection<SourceFile> collectSourceFiles(BaseSonarLint task, @Nullable InputChanges inputChanges) {

@@ -166,17 +166,18 @@ abstract class NodeJsDetectorOfficial extends NodeJsDetector
             return;
         }
 
-        getRepositories().ivy(repo -> {
+        var nodeJsRepo = getRepositories().ivy(repo -> {
             repo.setName(NODEJS_REPOSITORY_NAME);
             repo.setUrl("https://nodejs.org/dist");
             repo.patternLayout(layout -> {
                 layout.artifact("v[revision]/[artifact](-v[revision]-[classifier]).[ext]");
             });
             repo.metadataSources(MetadataSources::artifact);
-            repo.content(content -> {
-                content.includeModule(NODEJS_GROUP, NODEJS_ARTIFACT_ID);
-            });
         });
+        getRepositories().exclusiveContent(exclusive -> exclusive
+            .forRepositories(nodeJsRepo)
+            .filter(content -> content.includeModule(NODEJS_GROUP, NODEJS_ARTIFACT_ID))
+        );
     }
 
 

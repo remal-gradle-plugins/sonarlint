@@ -1,6 +1,8 @@
 import com.tisonkun.os.core.Arch
 import com.tisonkun.os.core.OS
 import java.lang.reflect.Field
+import org.gradle.api.internal.artifacts.ivyservice.ivyresolve.strategy.DefaultVersionComparator
+import org.gradle.api.internal.artifacts.ivyservice.ivyresolve.strategy.VersionParser
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
@@ -17,85 +19,168 @@ apply plugin: 'name.remal.generate-sources'
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-Provider<String> ltsNodeJsVersion = rootProject.ext.ltsNodeJsVersion = project.objects.property(String).value(
-    project.provider {
-        project.file('.nvmrc').getText('UTF-8').trim().replaceFirst(/^v/, '')
+Property<String> minSupportedNodeJsVersion = rootProject.ext.minSupportedNodeJsVersion = project.objects.property(String).value(provider {
+    VersionParser parser = new VersionParser()
+    Comparator comparator = new DefaultVersionComparator().asVersionComparator()
+    return (project.pluginLanguageInfos.get() as List).stream()
+        .map { it.minNodeJsVersion }
+        .filter { it != null }
+        .map { parser.transform(it) }
+        .sorted(comparator.reversed())
+        .findFirst()
+        .map { it.toString() }
+        .get()
+}).with { it.finalizeValueOnRead(); it }
+
+Property<String> minRecommendedNodeJsVersion = rootProject.ext.minRecommendedNodeJsVersion = project.objects.property(String).value(provider {
+    Configuration classpathConfiguration = project.configurations.detachedConfiguration()
+    classpathConfiguration.dependencies.withType(ModuleDependency).configureEach { dep ->
+        dep.attributes {
+            it.attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage.class, Usage.JAVA_RUNTIME))
+            it.attribute(Category.CATEGORY_ATTRIBUTE, objects.named(Category.class, Category.LIBRARY))
+        }
     }
-).with { it.finalizeValueOnRead(); it }
-project.nonJavaApiDependencies.add(project.provider { 'Node.js:lts:' + ltsNodeJsVersion.get() })
+
+    classpathConfiguration.dependencies.addAll(
+        project.configurations.sonarCoreArtifacts.dependencies.collect { Dependency coreDependency ->
+            project.dependencies.create([
+                coreDependency.group,
+                coreDependency.name,
+                coreDependency.version,
+            ].join(':'))
+        }
+    )
+
+    Dependency javascriptPluginArtifactDependency = project.configurations.sonarPluginArtifacts.dependencies
+        .find { "${it.group}:${it.name}" == 'org.sonarsource.javascript:sonar-javascript-plugin' }
+    if (javascriptPluginArtifactDependency == null) {
+        throw new GradleException("Sonar JavaScript plugin dependency can't be found")
+    }
+    classpathConfiguration.dependencies.add(
+        project.dependencies.create(
+            [
+                javascriptPluginArtifactDependency.group,
+                javascriptPluginArtifactDependency.name,
+                javascriptPluginArtifactDependency.version,
+                //'sonar-plugin',
+            ].join(':')
+        )
+    )
+
+    Collection<File> classpathFiles = classpathConfiguration.files
+    Collection<URL> classpathUrls = classpathFiles.collect { it.toURI().toURL() }
+    new URL("jar", "", "file:test.jar!/resource.txt").openConnection().setDefaultUseCaches(false)
+    new URLClassLoader(classpathUrls.toArray(new URL[0]), Logger.classLoader).withCloseable { classLoader ->
+        Class<?> nodeDeprecationWarningClass = Class.forName('org.sonar.plugins.javascript.bridge.NodeDeprecationWarning', true, classLoader)
+        Field minRecommendedNodeJsVersionField = nodeDeprecationWarningClass.getDeclaredField('RECOMMENDED_NODE_VERSIONS')
+        minRecommendedNodeJsVersionField.accessible = true
+        Collection<String> recommendedNodeJsVersions = minRecommendedNodeJsVersionField.get(null)
+
+        VersionParser parser = new VersionParser()
+        Comparator comparator = new DefaultVersionComparator().asVersionComparator()
+        return recommendedNodeJsVersions.stream()
+            .map { it.replace('^', '') }
+            .map { parser.transform(it) }
+            .sorted(comparator.reversed())
+            .findFirst()
+            .map { it.toString() }
+            .get()
+    }
+}).with { it.finalizeValueOnRead(); it }
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+Provider<String> defaultNodeJsVersion = rootProject.ext.ltsNodeJsVersion = project.objects.property(String).value(provider {
+    String versionString = project.file('.nvmrc').getText('UTF-8').trim().replaceFirst(/^v/, '')
+    String minVersionString = minRecommendedNodeJsVersion.get()
+    if (versionString.isEmpty()) {
+        versionString = minVersionString
+    } else {
+        VersionParser parser = new VersionParser()
+        Comparator comparator = new DefaultVersionComparator().asVersionComparator()
+        def versionObj = parser.transform(versionString)
+        def minVersionObj = parser.transform(minVersionString)
+        if (comparator.compare(versionObj, minVersionObj) < 0) {
+            versionString = minVersionString
+        }
+    }
+    return versionString
+}).with { it.finalizeValueOnRead(); it }
+project.nonJavaApiDependencies.add(provider { 'Node.js:' + defaultNodeJsVersion.get() })
 tasks.collectGradlePluginApiDependencies.inputs.file('.nvmrc')
+tasks.collectGradlePluginApiDependencies.inputs.property('minRecommendedNodeJsVersion', minRecommendedNodeJsVersion)
 
-Provider<String> minSupportedNodeJsVersion = rootProject.ext.minSupportedNodeJsVersion = project.objects.property(String).value(
-    project.provider {
-        Configuration classpathConfiguration = project.configurations.detachedConfiguration()
-        classpathConfiguration.dependencies.withType(ModuleDependency).configureEach { dep ->
-            dep.attributes {
-                it.attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage.class, Usage.JAVA_RUNTIME))
-                it.attribute(Category.CATEGORY_ATTRIBUTE, objects.named(Category.class, Category.LIBRARY))
+TaskProvider updateNvmrc = tasks.register('updateNvmrc') {
+    outputs.upToDateWhen { false }
+
+    RegularFileProperty nvmrcFileProperty = objects.fileProperty().value(layout.projectDirectory.file('.nvmrc'))
+
+    doLast {
+        File nvmrcFile = nvmrcFileProperty.get().asFile
+        String versionString = nvmrcFile.isFile() ? nvmrcFile.getText('UTF-8').trim() : ''
+        String minVersionString = minRecommendedNodeJsVersion.get()
+        if (versionString.isEmpty()) {
+            versionString = minVersionString
+        } else {
+            VersionParser parser = new VersionParser()
+            Comparator comparator = new DefaultVersionComparator().asVersionComparator()
+            def versionObj = parser.transform(versionString)
+            def minVersionObj = parser.transform(minVersionString)
+            if (comparator.compare(versionObj, minVersionObj) < 0) {
+                versionString = minVersionString
+                logger.lifecycle('Updating Node.js version in {} to {}', nvmrcFile.name, versionString)
             }
         }
-
-        classpathConfiguration.dependencies.addAll(
-            project.configurations.sonarCoreArtifacts.dependencies.collect { Dependency coreDependency ->
-                project.dependencies.create([
-                    coreDependency.group,
-                    coreDependency.name,
-                    coreDependency.version,
-                ].join(':'))
-            }
-        )
-
-        Dependency javascriptPluginArtifactDependency = project.configurations.sonarPluginArtifacts.dependencies
-            .find { "${it.group}:${it.name}" == 'org.sonarsource.javascript:sonar-javascript-plugin' }
-        if (javascriptPluginArtifactDependency == null) {
-            throw new GradleException("Sonar JavaScript plugin dependency can't be found")
-        }
-        classpathConfiguration.dependencies.add(
-            project.dependencies.create(
-                [
-                    javascriptPluginArtifactDependency.group,
-                    javascriptPluginArtifactDependency.name,
-                    javascriptPluginArtifactDependency.version,
-                    //'sonar-plugin',
-                ].join(':')
-            )
-        )
-
-        Collection<File> classpathFiles = classpathConfiguration.files
-        Collection<URL> classpathUrls = classpathFiles.collect { it.toURI().toURL() }
-        new URL("jar", "", "file:test.jar!/resource.txt").openConnection().setDefaultUseCaches(false)
-        new URLClassLoader(classpathUrls.toArray(new URL[0]), Logger.classLoader).withCloseable { classLoader ->
-            Class<?> nodeDeprecationWarningClass = Class.forName('org.sonar.plugins.javascript.bridge.NodeDeprecationWarning', true, classLoader)
-            Field minSupportedNodeVersionField = nodeDeprecationWarningClass.getDeclaredField('MIN_SUPPORTED_NODE_VERSION')
-            minSupportedNodeVersionField.accessible = true
-            String minSupportedNodeVersion = minSupportedNodeVersionField.get(null).toString()
-            while (minSupportedNodeVersion.count('.') < 2) {
-                minSupportedNodeVersion += '.0'
-            }
-            return minSupportedNodeVersion.toString()
-        }
+        nvmrcFile.setText("${versionString}\n", 'UTF-8')
     }
-).with { it.finalizeValueOnRead(); it }
+}
+
+try {
+    tasks.named('pushBackTasks') { dependsOn(updateNvmrc) }
+    logger.lifecycle('Remove this try catch when a new version of toolkit is released', new Exception())
+} catch (UnknownTaskException ignored) {
+    // do nothing
+}
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 generateSources.forMainSourceSet.java {
-    inputs.property('ltsNodeJsVersion', ltsNodeJsVersion)
+    inputs.property('ltsNodeJsVersion', defaultNodeJsVersion)
     inputs.property('minSupportedNodeJsVersion', minSupportedNodeJsVersion)
 
     classFile(project.calculateBaseJavaPackage(), 'NodeJsVersions') {
+        addStaticImport(String, "format")
         addStaticImport("lombok.AccessLevel", "PRIVATE")
+        addStaticImport("name.remal.gradle_plugins.toolkit.InTestFlags", "isInTest")
 
         addImport("lombok.NoArgsConstructor")
         addImport("name.remal.gradle_plugins.toolkit.Version")
 
         line("@NoArgsConstructor(access = PRIVATE)")
         block("abstract class ${simpleName}") {
-            line("public static final Version DEFAULT_NODEJS_VERSION = Version.parse(\"${escapeString(ltsNodeJsVersion.get())}\");")
+            line("public static final Version DEFAULT_NODEJS_VERSION = Version.parse(\"${escapeString(defaultNodeJsVersion.get())}\");")
             line("public static final Version MIN_SUPPORTED_NODEJS_VERSION = Version.parse(\"${escapeString(minSupportedNodeJsVersion.get())}\");")
+            line("public static final Version MIN_RECOMMENDED_NODEJS_VERSION = Version.parse(\"${escapeString(minRecommendedNodeJsVersion.get())}\");")
 
             line("")
             block("static") {
                 block("if (DEFAULT_NODEJS_VERSION.compareTo(MIN_SUPPORTED_NODEJS_VERSION) < 0)") {
-                    line("throw new AssertionError(DEFAULT_NODEJS_VERSION + \" is less than \" + MIN_SUPPORTED_NODEJS_VERSION);")
+                    line("throw new AssertionError(format(")
+                    indent {
+                        line("\"Default Node.js version %s is less than min supported version %s\",")
+                        line("DEFAULT_NODEJS_VERSION,")
+                        line("DEFAULT_NODEJS_VERSION")
+                    }
+                    line("));")
+                }
+                block("if (isInTest() && DEFAULT_NODEJS_VERSION.compareTo(MIN_RECOMMENDED_NODEJS_VERSION) < 0)") {
+                    line("throw new AssertionError(format(")
+                    indent {
+                        line("\"Default Node.js version %s is less than min recommended version %s\",")
+                        line("DEFAULT_NODEJS_VERSION,")
+                        line("MIN_RECOMMENDED_NODEJS_VERSION")
+                    }
+                    line("));")
                 }
             }
         }

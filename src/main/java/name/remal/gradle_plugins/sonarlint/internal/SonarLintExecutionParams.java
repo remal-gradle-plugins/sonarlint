@@ -2,7 +2,6 @@ package name.remal.gradle_plugins.sonarlint.internal;
 
 import java.util.Map;
 import org.gradle.api.file.ConfigurableFileCollection;
-import org.gradle.api.file.Directory;
 import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.file.RegularFileProperty;
 import org.gradle.api.provider.ListProperty;
@@ -17,19 +16,11 @@ public interface SonarLintExecutionParams extends WorkParameters {
 
     Property<SonarLintCommand> getCommand();
 
-    Property<String> getSonarLintVersion();
-
     DirectoryProperty getProjectDir();
 
     Property<Boolean> getIsGeneratedCodeIgnored();
 
-    ListProperty<Directory> getBaseGeneratedDirs();
-
-    DirectoryProperty getHomeDir();
-
     DirectoryProperty getWorkDir();
-
-    ConfigurableFileCollection getCoreClasspath();
 
     ConfigurableFileCollection getPluginsClasspath();
 

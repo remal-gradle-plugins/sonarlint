@@ -6,6 +6,7 @@ import static java.lang.String.format;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.unmodifiableCollection;
+import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 import static name.remal.gradle_plugins.sonarlint.BaseSonarLintActions.SONAR_JAVA_BINARIES;
@@ -23,7 +24,6 @@ import static name.remal.gradle_plugins.sonarlint.SonarDependencies.getSonarDepe
 import static name.remal.gradle_plugins.toolkit.AttributeContainerUtils.javaRuntimeLibrary;
 import static name.remal.gradle_plugins.toolkit.ExtensionContainerUtils.findExtension;
 import static name.remal.gradle_plugins.toolkit.ExtensionContainerUtils.getExtension;
-import static name.remal.gradle_plugins.toolkit.PredicateUtils.not;
 import static name.remal.gradle_plugins.toolkit.PropertiesConventionUtils.setPropertyConvention;
 import static name.remal.gradle_plugins.toolkit.ResolutionStrategyUtils.configureGlobalResolutionStrategy;
 import static name.remal.gradle_plugins.toolkit.SourceSetUtils.isSourceSetTask;

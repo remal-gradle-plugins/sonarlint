@@ -114,18 +114,16 @@ class SonarLintPluginFunctionalTest {
     }
 
     @Nested
-    class Html {
+    class NodeJsDetection {
 
         @Test
-        void htmlWithDefaultConfiguration() {
+        void jsWithDefaultConfiguration() {
             var sourceFileRelativePath = addRuleExample(
                 "src/main/resources",
-                "Web:S5254",
-                "test.html",
+                "javascript:S6331",
+                "test.js",
                 join("\n", new String[]{
-                    "<!DOCTYPE html>",
-                    "<html>",
-                    "</html>",
+                    "const methodCallRegex = /foo()/;",
                 })
             );
 
@@ -137,17 +135,15 @@ class SonarLintPluginFunctionalTest {
         }
 
         @Test
-        void htmlWithNodeJsDetection() {
+        void jsWithNodeJsDetection() {
             project.getBuildFile().line("sonarLint { nodeJs { detectNodeJs = true } }");
 
             var sourceFileRelativePath = addRuleExample(
                 "src/main/resources",
-                "Web:S5254",
-                "test.html",
+                "javascript:S6331",
+                "test.js",
                 join("\n", new String[]{
-                    "<!DOCTYPE html>",
-                    "<html>",
-                    "</html>",
+                    "const methodCallRegex = /foo()/;",
                 })
             );
 
@@ -156,22 +152,20 @@ class SonarLintPluginFunctionalTest {
             var issues = parseSonarLintIssuesOf("src/main/resources/" + sourceFileRelativePath);
             assertThat(issues)
                 .extracting(Issue::getRule)
-                .contains("Web:S5254");
+                .contains("javascript:S6331");
         }
 
         @Test
-        void htmlWithNodeJsDetectionAndCustomSuffix() {
+        void jsWithNodeJsDetectionAndCustomSuffix() {
             project.getBuildFile().line("sonarLint { nodeJs { detectNodeJs = true } }");
-            project.getBuildFile().line("sonarLint { sonarProperty('sonar.html.file.suffixes', '.custom-html') }");
+            project.getBuildFile().line("sonarLint { sonarProperty('sonar.javascript.file.suffixes', '.custom-js') }");
 
             var sourceFileRelativePath = addRuleExample(
                 "src/main/resources",
-                "Web:S5254",
-                "test.custom-html",
+                "javascript:S6331",
+                "test.custom-js",
                 join("\n", new String[]{
-                    "<!DOCTYPE html>",
-                    "<html>",
-                    "</html>",
+                    "const methodCallRegex = /foo()/;",
                 })
             );
 
@@ -180,21 +174,19 @@ class SonarLintPluginFunctionalTest {
             var issues = parseSonarLintIssuesOf("src/main/resources/" + sourceFileRelativePath);
             assertThat(issues)
                 .extracting(Issue::getRule)
-                .contains("Web:S5254");
+                .contains("javascript:S6331");
         }
 
         @Test
-        void htmlWithoutNodeJsDetection() {
+        void jsWithoutNodeJsDetection() {
             project.getBuildFile().line("sonarLint { nodeJs { detectNodeJs = false } }");
 
             var sourceFileRelativePath = addRuleExample(
                 "src/main/resources",
-                "Web:S5254",
-                "test.html",
+                "javascript:S6331",
+                "test.js",
                 join("\n", new String[]{
-                    "<!DOCTYPE html>",
-                    "<html>",
-                    "</html>",
+                    "const methodCallRegex = /foo()/;",
                 })
             );
 

@@ -2,10 +2,10 @@ package name.remal.gradle_plugins.sonarlint;
 
 import static com.google.common.collect.Maps.immutableEntry;
 import static java.util.Map.Entry.comparingByKey;
+import static java.util.function.Predicate.not;
 import static lombok.AccessLevel.PRIVATE;
 import static name.remal.gradle_plugins.toolkit.ObjectUtils.isNotEmpty;
 import static name.remal.gradle_plugins.toolkit.ObjectUtils.unwrapProviders;
-import static name.remal.gradle_plugins.toolkit.PredicateUtils.not;
 
 import java.util.Collection;
 import java.util.LinkedHashMap;
