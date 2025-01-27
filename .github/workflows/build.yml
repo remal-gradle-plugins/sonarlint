@@ -315,15 +315,9 @@ jobs:
     - name: Unarchive workspace
       run: |
         tar -xz -f "${{fromJSON(steps.download-workspace.outputs.outputs).download-path}}/workspace-${{github.run_id}}.tar.gz"
-    - name: Update README
+    - name: Execute push-back tasks
       run: |
-        ./gradlew-retry-connection-timeouts processReadme "-Pjava-runtime.max-version=${{fromJSON(needs.build.outputs.allMatrixIncludes)[0].java}}" "-Pgradle-api.max-version=${{fromJSON(needs.build.outputs.allMatrixIncludes)[0].gradle}}"
-    - name: Collect all Gradle plugin API dependencies
-      run: |
-        ./gradlew-retry-connection-timeouts collectAllGradlePluginApiDependencies
-    - name: Update IDEA settings
-      run: |
-        ./gradlew-retry-connection-timeouts processIdeaSettings
+        ./gradlew-retry-connection-timeouts pushBackTasks "-Pjava-runtime.max-version=${{fromJSON(needs.build.outputs.allMatrixIncludes)[0].java}}" "-Pgradle-api.max-version=${{fromJSON(needs.build.outputs.allMatrixIncludes)[0].gradle}}"
     - name: Push back
       env:
         PUSH_BACK_TOKEN: ${{secrets.PUSH_BACK_TOKEN}}
