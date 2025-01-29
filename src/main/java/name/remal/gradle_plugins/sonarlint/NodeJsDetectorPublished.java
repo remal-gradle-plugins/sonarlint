@@ -13,8 +13,6 @@ import javax.annotation.Nullable;
 import javax.inject.Inject;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
-import name.remal.gradle_plugins.sonarlint.internal.NodeJsFound;
-import name.remal.gradle_plugins.sonarlint.internal.NodeJsNotFound;
 import org.gradle.api.artifacts.ConfigurationContainer;
 import org.gradle.api.artifacts.dsl.DependencyHandler;
 

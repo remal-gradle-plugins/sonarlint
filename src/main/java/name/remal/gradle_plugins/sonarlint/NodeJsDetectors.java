@@ -18,7 +18,6 @@ import javax.inject.Inject;
 import lombok.CustomLog;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
-import name.remal.gradle_plugins.sonarlint.internal.NodeJsFound;
 import name.remal.gradle_plugins.toolkit.ObjectUtils;
 import org.gradle.api.model.ObjectFactory;
 

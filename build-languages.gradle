@@ -61,7 +61,12 @@ Map<String, String> defaultLanguageNames = [
 class PluginLanguageInfo {
     String key
     String name
+    List<String> defaultFileSuffixes
     String minNodeJsVersion
+
+    String dependencyGroupId
+    String dependencyArtifactId
+    String dependencyVersion
 }
 
 @groovy.transform.Immutable
@@ -71,133 +76,155 @@ class LanguageInfo {
     List<String> defaultFileSuffixes
     String fileSuffixesPropKey
     String minNodeJsVersion
+
+    String dependencyGroupId
+    String dependencyArtifactId
+    String dependencyVersion
 }
 
-
-Configuration sonarPluginLanguagesConf = configurations.create('sonarPluginLanguages') { Configuration conf ->
-    conf.canBeResolved = true
-    conf.canBeConsumed = false
-
-    conf.dependencies.withType(ModuleDependency).configureEach { dep ->
-        dep.attributes {
-            attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage.class, Usage.JAVA_RUNTIME))
-            attribute(Category.CATEGORY_ATTRIBUTE, objects.named(Category.class, Category.LIBRARY))
-        }
-    }
-
-    conf.dependencies.addAllLater(
-        provider {
-            project.configurations.sonarCoreArtifacts.dependencies
-                .collect { project.dependencies.create("${it.group}:${it.name}:${it.version}") }
-        }
-    )
-    conf.dependencies.addAllLater(
-        provider {
-            project.configurations.sonarPluginArtifacts.dependencies
-                .collect { project.dependencies.create("${it.group}:${it.name}:${it.version}") }
-                .collect { it.transitive = false; it }
-        }
-    )
-}
 
 ListProperty<List<PluginLanguageInfo>> pluginLanguageInfos = rootProject.ext.pluginLanguageInfos = project.objects.listProperty(PluginLanguageInfo).value(provider {
-    Collection<File> classpathFiles = sonarPluginLanguagesConf.files
-    Collection<URL> classpathUrls = classpathFiles.collect { it.toURI().toURL() }
-    new URL("jar", "", "file:test.jar!/resource.txt").openConnection().setDefaultUseCaches(false)
-    new URLClassLoader(classpathUrls.toArray(new URL[0]), Logger.classLoader).withCloseable { classLoader ->
-        List<String> languageClassNames = new ClassGraph()
-            .overrideClassLoaders(classLoader)
-            .filterClasspathElementsByURL { classpathUrls.contains(it) }
-            .enableClassInfo()
-            .scan()
-            .withCloseable { ScanResult scanResult ->
-                scanResult.getClassesImplementing('org.sonar.api.resources.Language')
-                    .findAll { !it.interface && !it.abstract }
-                    .findAll { it.subclasses.isEmpty() }
-                    .collect { it.name }
+    return project.configurations.sonarPluginArtifacts.dependencies
+        .collect { project.dependencies.create("${it.group}:${it.name}:${it.version}") { transitive = false } }
+        .collect { Dependency pluginDependency ->
+            Configuration pluginConfiguration = configurations.detachedConfiguration(pluginDependency)
+            project.configurations.sonarCoreArtifacts.dependencies
+                .collect { project.dependencies.create("${it.group}:${it.name}:${it.version}") }
+                .forEach { pluginConfiguration.dependencies.add(it) }
+
+            Collection<File> classpathFiles = pluginConfiguration.files
+            Collection<URL> classpathUrls = classpathFiles.collect { it.toURI().toURL() }
+            new URLClassLoader(classpathUrls.toArray(new URL[0]), Logger.classLoader).withCloseable { classLoader ->
+                Class<?> configurationClass = Class.forName('org.sonar.api.config.Configuration', true, classLoader)
+                Object emptyConfiguration = Class.forName('org.sonarsource.sonarlint.core.rule.extractor.EmptyConfiguration', true, classLoader)
+                    .getConstructor()
+                    .newInstance()
+
+                List<String> languageClassNames = new ClassGraph()
+                    .overrideClassLoaders(classLoader)
+                    .ignoreParentClassLoaders()
+                    .enableClassInfo()
+                    .scan()
+                    .withCloseable { ScanResult scanResult ->
+                        scanResult.getClassesImplementing('org.sonar.api.resources.Language')
+                            .findAll { !it.interface && !it.abstract }
+                            .findAll { it.subclasses.isEmpty() }
+                            .collect { it.name }
+                    }
+
+                languageClassNames.collect { String languageClassName ->
+                    Class<?> languageClass = Class.forName(languageClassName, true, classLoader)
+                    Object language = null
+                    try {
+                        language = languageClass.getConstructor().newInstance()
+                    } catch (NoSuchMethodException ignored) {
+                        // do nothing
+                    }
+                    try {
+                        language = languageClass.getConstructor(configurationClass).newInstance(emptyConfiguration)
+                    } catch (NoSuchMethodException ignored) {
+                        // do nothing
+                    }
+                    if (language == null) {
+                        throw new GradleException("Can't instantiate $languageClass")
+                    }
+
+                    URL languageJarUrl = language.class.protectionDomain?.codeSource?.location
+                    if (languageJarUrl == null) {
+                        throw new GradleException("No code source location found for ${language.class}")
+                    }
+                    File languageJarFile = Paths.get(languageJarUrl.toURI()).toFile()
+
+                    String pluginKey = null
+                    String minNodeJsVersion = null
+                    new JarFile(languageJarFile).withCloseable { jarFile ->
+                        def attrs = jarFile.manifest?.mainAttributes
+                        pluginKey = attrs?.getValue('Plugin-Key')?.toString()
+                        minNodeJsVersion = attrs?.getValue('NodeJs-Min-Version')?.toString()
+                    }
+
+                    List<String> defaultFileSuffixes = null
+                    defaultFileSuffixes = language.getFileSuffixes()?.collect()?.with { it.isEmpty() ? null : it }
+                    if (defaultFileSuffixes == null) {
+                        defaultFileSuffixes = language.filenamePatterns()?.collect {
+                            it.replaceFirst(/^.*\*([^*]+)$/, '$1')
+                        }?.with { it.isEmpty() ? null : it }
+                    }
+                    if (defaultFileSuffixes == null) {
+                        try {
+                            Collection<String> supportedSecretFiles = Class.forName('org.sonar.plugins.secrets.SecretsSpecificationFilesDefinition', true, classLoader)
+                                .existingSecretSpecifications()
+                            if (!supportedSecretFiles.isEmpty()) {
+                                defaultFileSuffixes = supportedSecretFiles.collect()
+                            }
+                        } catch (ClassNotFoundException ignored) {
+                            // do nothing
+                        }
+                    }
+                    if (defaultFileSuffixes == null && language.key == 'cloudformation') {
+                        defaultFileSuffixes = [
+                            '.json',
+                            '.json5',
+                            '.yaml',
+                            '.yml',
+                        ]
+                    }
+                    if (defaultFileSuffixes == null && language.key == 'kubernetes') {
+                        defaultFileSuffixes = [
+                            '.yaml',
+                            '.yml',
+                        ]
+                    }
+
+                    new PluginLanguageInfo(
+                        key: language.key,
+                        name: language.name,
+                        defaultFileSuffixes: defaultFileSuffixes,
+                        minNodeJsVersion: minNodeJsVersion?.length() ? minNodeJsVersion : null,
+
+                        dependencyGroupId: pluginDependency.group,
+                        dependencyArtifactId: pluginDependency.name,
+                        dependencyVersion: pluginDependency.version,
+                    )
+                }
             }
-
-        Class<?> configurationClass = Class.forName('org.sonar.api.config.Configuration', true, classLoader)
-
-        Object emptyConfiguration = Class.forName('org.sonarsource.sonarlint.core.rule.extractor.EmptyConfiguration', true, classLoader)
-            .getConstructor()
-            .newInstance()
-
-        languageClassNames
-            .collect { String languageClassName ->
-                Class<?> languageClass = Class.forName(languageClassName, true, classLoader)
-                Object language = null
-                try {
-                    language = languageClass.getConstructor().newInstance()
-                } catch (NoSuchMethodException ignored) {
-                    // do nothing
-                }
-                try {
-                    language = languageClass.getConstructor(configurationClass).newInstance(emptyConfiguration)
-                } catch (NoSuchMethodException ignored) {
-                    // do nothing
-                }
-                if (language == null) {
-                    throw new GradleException("Can't instantiate $languageClass")
-                }
-
-                URL languageJarUrl = language.class.protectionDomain?.codeSource?.location
-                if (languageJarUrl == null) {
-                    throw new GradleException("No code source location found for ${language.class}")
-                }
-                File languageJarFile = Paths.get(languageJarUrl.toURI()).toFile()
-                String minNodeJsVersion = new JarFile(languageJarFile).withCloseable { jarFile ->
-                    jarFile.manifest?.mainAttributes?.getValue('NodeJs-Min-Version')?.toString()
-                }
-
-                new PluginLanguageInfo(
-                    key: language.key,
-                    name: language.name,
-                    minNodeJsVersion: minNodeJsVersion?.length() ? minNodeJsVersion : null,
-                )
-            }
-            .toSorted { it.key }
-    }
+        }
+        .flatten()
+        .toSorted { it.key }
 }).with { it.finalizeValueOnRead(); it }
 
 
-Configuration sonarAllLanguagesConf = configurations.create('sonarAllLanguages') { Configuration conf ->
-    conf.canBeResolved = true
-    conf.canBeConsumed = false
-
-    conf.dependencies.withType(ModuleDependency).configureEach { dep ->
-        dep.attributes {
-            attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage.class, Usage.JAVA_RUNTIME))
-            attribute(Category.CATEGORY_ATTRIBUTE, objects.named(Category.class, Category.LIBRARY))
-        }
-    }
-
-    conf.dependencies.addAllLater(
-        provider {
-            project.configurations.sonarCoreArtifacts.dependencies
-                .collect { project.dependencies.create("${it.group}:${it.name}:${it.version}") }
-        }
-    )
-}
-
 ListProperty<List<LanguageInfo>> allLanguageInfos = rootProject.ext.allLanguageInfos = project.objects.listProperty(LanguageInfo).value(provider {
+    Configuration sonarAllLanguagesConf = configurations.detachedConfiguration()
+    project.configurations.sonarCoreArtifacts.dependencies
+        .collect { project.dependencies.create("${it.group}:${it.name}:${it.version}") }
+        .forEach { sonarAllLanguagesConf.dependencies.add(it) }
+
     Collection<File> classpathFiles = sonarAllLanguagesConf.files
     Collection<URL> classpathUrls = classpathFiles.collect { it.toURI().toURL() }
-    new URL("jar", "", "file:test.jar!/resource.txt").openConnection().setDefaultUseCaches(false)
     new URLClassLoader(classpathUrls.toArray(new URL[0]), Logger.classLoader).withCloseable { classLoader ->
         Class<?> languageClass = Class.forName('org.sonarsource.sonarlint.core.commons.api.SonarLanguage', true, classLoader)
-        List<LanguageInfo> infos = languageClass.enumConstants.collect()
-            .collect { language ->
-                return new LanguageInfo(
-                    key: language.name(),
-                    name: pluginLanguageInfos.get().find { it.key == language.sonarLanguageKey }?.name
-                        ?: defaultLanguageNames[language.sonarLanguageKey]
-                        ?: language.sonarLanguageKey,
-                    defaultFileSuffixes: language.defaultFileSuffixes.collect(),
-                    fileSuffixesPropKey: language.fileSuffixesPropKey,
-                    minNodeJsVersion: pluginLanguageInfos.get().find { it.key == language.sonarLanguageKey }?.minNodeJsVersion,
-                )
-            }
+        List<LanguageInfo> infos = languageClass.enumConstants.collect { language ->
+            PluginLanguageInfo pluginLanguageInfo = pluginLanguageInfos.get().find { it.key == language.sonarLanguageKey }
+            return new LanguageInfo(
+                key: language.name(),
+                name: pluginLanguageInfo?.name
+                    ?: defaultLanguageNames[language.sonarLanguageKey]
+                    ?: language.sonarLanguageKey,
+                defaultFileSuffixes: (pluginLanguageInfo?.defaultFileSuffixes ?: language.defaultFileSuffixes.collect()).with {
+                    if (it.isEmpty() && pluginLanguageInfo?.dependencyGroupId != null) {
+                        throw new GradleException("Empty defaultFileSuffixes for ${language.name()}")
+                    }
+                    it
+                },
+                fileSuffixesPropKey: language.fileSuffixesPropKey,
+                minNodeJsVersion: pluginLanguageInfo?.minNodeJsVersion,
+
+                dependencyGroupId: pluginLanguageInfo?.dependencyGroupId,
+                dependencyArtifactId: pluginLanguageInfo?.dependencyArtifactId,
+                dependencyVersion: pluginLanguageInfo?.dependencyVersion,
+            )
+        }
 
         return infos
     }
@@ -213,10 +240,18 @@ rootProject.ext.requiringNodeJsLanguagesString = project.objects.property(String
 
 
 generateSources.forMainSourceSet.java {
-    inputs.files(sonarPluginLanguagesConf).withPropertyName('sonarPluginLanguagesConf').optional()
-    inputs.files(sonarAllLanguagesConf).withPropertyName('sonarAllLanguagesConf').optional()
+    ; [
+        'sonarCoreArtifacts',
+        'sonarPluginArtifacts',
+    ].forEach { confName ->
+        inputs.property(
+            "${confName}Notations",
+            configurations.sonarCoreArtifacts.dependencies
+                .collect { "${it.group}:${it.name}:${it.version}".toString() }
+        ).optional(true)
+    }
 
-    classFile(project.calculateBaseJavaPackage() + '.internal', 'SonarLanguage') {
+    classFile(project.calculateBaseJavaPackage() + '.internal', 'SupportedSonarLanguage') {
         addStaticImport("lombok.AccessLevel", "PRIVATE")
 
         addImport("java.util.List")
@@ -230,6 +265,10 @@ generateSources.forMainSourceSet.java {
         line("@SuppressWarnings(\"all\")")
         block("public enum ${simpleName}") {
             allLanguageInfos.get().forEach { LanguageInfo info ->
+                if (info.dependencyGroupId == null) {
+                    return
+                }
+
                 line("${info.key}(")
                 line("    \"${escapeString(info.name)}\",")
                 line("    List.of(${info.defaultFileSuffixes.collect { suffix -> '"' + escapeString(suffix) + '"' }.join(', ')}),")
@@ -239,7 +278,22 @@ generateSources.forMainSourceSet.java {
                     line("    \"${escapeString(info.fileSuffixesPropKey)}\",")
                 }
                 if (info.minNodeJsVersion != null) {
-                    line("    \"%s\"", escapeString(info.minNodeJsVersion))
+                    line("    \"%s\",", escapeString(info.minNodeJsVersion))
+                } else {
+                    line("    null,")
+                }
+                if (info.dependencyGroupId != null) {
+                    line("    \"%s\",", escapeString(info.dependencyGroupId))
+                } else {
+                    line("    null,")
+                }
+                if (info.dependencyArtifactId != null) {
+                    line("    \"%s\",", escapeString(info.dependencyArtifactId))
+                } else {
+                    line("    null,")
+                }
+                if (info.dependencyVersion != null) {
+                    line("    \"%s\"", escapeString(info.dependencyVersion))
                 } else {
                     line("    null")
                 }
@@ -251,6 +305,9 @@ generateSources.forMainSourceSet.java {
             line("private final @Unmodifiable List<String> defaultFileSuffixes;")
             line("private final @Nullable String fileSuffixesPropKey;")
             line("private final @Nullable String minNodeJsVersion;")
+            line("private final @Nullable String pluginGroupId;")
+            line("private final @Nullable String pluginArtifactId;")
+            line("private final @Nullable String pluginVersion;")
 
             line()
             block("public boolean isRequireNodeJs()") {

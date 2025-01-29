@@ -15,7 +15,6 @@ import java.util.Objects;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import lombok.RequiredArgsConstructor;
-import name.remal.gradle_plugins.sonarlint.internal.NodeJsFound;
 import name.remal.gradle_plugins.toolkit.ObjectUtils;
 import name.remal.gradle_plugins.toolkit.Version;
 import org.gradle.api.provider.ProviderFactory;

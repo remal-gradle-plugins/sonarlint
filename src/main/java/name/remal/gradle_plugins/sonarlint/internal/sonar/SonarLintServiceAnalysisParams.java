@@ -1,0 +1,25 @@
+package name.remal.gradle_plugins.sonarlint.internal.sonar;
+
+import java.nio.file.Path;
+import javax.annotation.Nullable;
+import lombok.NonNull;
+import lombok.Value;
+import lombok.experimental.SuperBuilder;
+
+@Value
+@SuperBuilder
+public class SonarLintServiceAnalysisParams extends AbstractSonarLintServiceParams {
+
+    @NonNull
+    Path repositoryRoot;
+
+    @NonNull
+    Path sonarUserHome;
+
+    @NonNull
+    Path workDir;
+
+    @Nullable
+    Path nodeJsExecutable;
+
+}

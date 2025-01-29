@@ -4,7 +4,6 @@ import static name.remal.gradle_plugins.toolkit.reflection.ReflectionUtils.unwra
 
 import javax.annotation.Nullable;
 import javax.inject.Inject;
-import name.remal.gradle_plugins.sonarlint.internal.NodeJsFound;
 import org.gradle.api.logging.Logger;
 import org.gradle.api.logging.Logging;
 import org.gradle.api.model.ObjectFactory;

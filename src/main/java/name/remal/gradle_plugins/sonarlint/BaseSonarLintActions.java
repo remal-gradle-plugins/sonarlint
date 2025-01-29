@@ -57,10 +57,7 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;
-import name.remal.gradle_plugins.sonarlint.internal.NodeJsFound;
-import name.remal.gradle_plugins.sonarlint.internal.SonarLanguage;
-import name.remal.gradle_plugins.sonarlint.internal.SonarLintCommand;
-import name.remal.gradle_plugins.sonarlint.internal.SourceFile;
+import name.remal.gradle_plugins.sonarlint.internal.SupportedSonarLanguage;
 import name.remal.gradle_plugins.toolkit.EditorConfig;
 import name.remal.gradle_plugins.toolkit.FileUtils;
 import name.remal.gradle_plugins.toolkit.ObjectUtils;
@@ -104,9 +101,9 @@ abstract class BaseSonarLintActions {
     static final String SONAR_NODEJS_EXECUTABLE_TS = "sonar.typescript.node";
     static final String SONAR_NODEJS_VERSION = "sonar.nodejs.version";
 
-    static final List<String> LANGUAGES_REQUIRING_NODEJS = stream(SonarLanguage.values())
-        .filter(SonarLanguage::isRequireNodeJs)
-        .map(SonarLanguage::getName)
+    static final List<String> LANGUAGES_REQUIRING_NODEJS = stream(SupportedSonarLanguage.values())
+        .filter(SupportedSonarLanguage::isRequireNodeJs)
+        .map(SupportedSonarLanguage::getName)
         .collect(toUnmodifiableList());
 
     public static void init(BaseSonarLint task) {

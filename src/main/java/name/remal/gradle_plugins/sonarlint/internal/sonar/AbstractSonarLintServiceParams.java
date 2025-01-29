@@ -1,0 +1,22 @@
+package name.remal.gradle_plugins.sonarlint.internal.sonar;
+
+import static lombok.AccessLevel.PRIVATE;
+
+import java.nio.file.Path;
+import java.util.Set;
+import lombok.Data;
+import lombok.Singular;
+import lombok.experimental.FieldDefaults;
+import lombok.experimental.SuperBuilder;
+import org.jetbrains.annotations.Unmodifiable;
+
+@Data
+@FieldDefaults(makeFinal = true, level = PRIVATE)
+@SuperBuilder
+abstract class AbstractSonarLintServiceParams {
+
+    @Unmodifiable
+    @Singular("pluginsClasspathElement")
+    Set<Path> pluginsClasspath;
+
+}

@@ -158,7 +158,7 @@ Closure<Configuration> createSonarArtifactsConfiguration = { String name, boolea
 
         if (addToIndirectApi) {
             project.configurations.indirectApi.extendsFrom(conf)
-            //project.configurations.compileOnly.extendsFrom(conf)
+            project.configurations.compileOnly.extendsFrom(conf)
         }
     }
 }
