@@ -1,13 +1,9 @@
-package name.remal.gradle_plugins.sonarlint;
+package name.remal.gradle_plugins.sonarlint.settings;
 
-import lombok.Getter;
-import lombok.Setter;
 import org.gradle.api.provider.Property;
 import org.gradle.api.tasks.Console;
 
-@Getter
-@Setter
-public abstract class SonarLintLoggingOptions {
+public abstract class SonarLintLoggingSettings {
 
     @Console
     public abstract Property<Boolean> getWithDescription();

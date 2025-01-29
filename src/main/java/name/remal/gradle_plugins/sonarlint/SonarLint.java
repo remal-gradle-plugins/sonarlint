@@ -1,75 +1,63 @@
 package name.remal.gradle_plugins.sonarlint;
 
-import static name.remal.gradle_plugins.sonarlint.internal.SonarLintCommand.ANALYSE;
-import static name.remal.gradle_plugins.toolkit.ExtensionContainerUtils.findExtension;
-import static name.remal.gradle_plugins.toolkit.LazyValue.lazyValue;
-import static name.remal.gradle_plugins.toolkit.ReportContainerUtils.setTaskReportDestinationsAutomatically;
-import static org.gradle.api.tasks.PathSensitivity.RELATIVE;
+import static groovy.lang.Closure.DELEGATE_FIRST;
+import static name.remal.gradle_plugins.toolkit.ClosureUtils.configureWith;
+import static name.remal.gradle_plugins.toolkit.ReportContainerUtils.createReportContainerFor;
 import static org.gradle.language.base.plugins.LifecycleBasePlugin.VERIFICATION_GROUP;
 
-import java.io.File;
-import java.util.concurrent.Callable;
+import groovy.lang.Closure;
+import groovy.lang.DelegatesTo;
 import lombok.Getter;
-import name.remal.gradle_plugins.toolkit.LazyValue;
-import name.remal.gradle_plugins.toolkit.tasks.BaseSourceVerificationReportingTask;
-import org.gradle.api.file.FileTree;
+import lombok.Setter;
+import org.gradle.api.Action;
+import org.gradle.api.reporting.Reporting;
 import org.gradle.api.tasks.CacheableTask;
-import org.gradle.api.tasks.IgnoreEmptyDirectories;
 import org.gradle.api.tasks.Input;
-import org.gradle.api.tasks.InputFiles;
-import org.gradle.api.tasks.Internal;
-import org.gradle.api.tasks.PathSensitive;
-import org.gradle.api.tasks.TaskAction;
-import org.gradle.work.Incremental;
-import org.gradle.work.InputChanges;
+import org.gradle.api.tasks.Nested;
+import org.gradle.api.tasks.VerificationTask;
 
 @CacheableTask
 public abstract class SonarLint
-    extends BaseSourceVerificationReportingTask<SonarLintReports>
-    implements BaseSonarLint {
+    extends AbstractSonarLint<SonarLintWorkActionParams, SonarLintWorkAction>
+    implements VerificationTask, Reporting<SonarLintReports> {
 
     {
         setGroup(VERIFICATION_GROUP);
-        BaseSonarLintActions.init(this);
-
-        setTaskReportDestinationsAutomatically(this, (Callable<File>) () -> {
-            var sonarLintExtension = findExtension(getProject(), SonarLintExtension.class);
-            return sonarLintExtension != null ? sonarLintExtension.getReportsDir() : null;
-        });
     }
 
-    @Getter
-    @SuppressWarnings("checkstyle:MemberName")
-    private final BaseSonarLintInternals $internals = getProject().getObjects().newInstance(
-        BaseSonarLintInternals.class,
-        this
-    );
+
+    @Getter(onMethod_ = {@Nested})
+    private final SonarLintReports reports = createReportContainerFor(this);
+
+    @Override
+    public SonarLintReports reports(@DelegatesTo(strategy = DELEGATE_FIRST) Closure closure) {
+        configureWith(reports, closure);
+        return reports;
+    }
+
+    @Override
+    public SonarLintReports reports(Action<? super SonarLintReports> configureAction) {
+        configureAction.execute(reports);
+        return reports;
+    }
+
+
+    @Setter
+    private boolean ignoreFailures;
 
     @Override
     @Input
     public boolean getIgnoreFailures() {
-        return super.getIgnoreFailures();
+        return ignoreFailures;
     }
+
 
     @Override
-    @Internal
-    public FileTree getSource() {
-        return super.getSource();
-    }
+    @SuppressWarnings("ClassEscapesDefinedScope")
+    protected void configureWorkActionParams(SonarLintWorkActionParams workActionParams) {
+        super.configureWorkActionParams(workActionParams);
 
-    private final LazyValue<FileTree> cachedSource = lazyValue(this::getSource);
 
-    @Incremental
-    @InputFiles
-    @IgnoreEmptyDirectories
-    @PathSensitive(RELATIVE)
-    protected final FileTree getCachedSource() {
-        return cachedSource.get();
-    }
-
-    @TaskAction
-    public void execute(InputChanges inputChanges) {
-        BaseSonarLintActions.execute(this, ANALYSE, inputChanges);
     }
 
 }

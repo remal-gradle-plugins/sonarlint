@@ -24,8 +24,8 @@ import static name.remal.gradle_plugins.sonarlint.CanonizationUtils.canonizeLang
 import static name.remal.gradle_plugins.sonarlint.CanonizationUtils.canonizeProperties;
 import static name.remal.gradle_plugins.sonarlint.CanonizationUtils.canonizeRules;
 import static name.remal.gradle_plugins.sonarlint.CanonizationUtils.canonizeRulesProperties;
-import static name.remal.gradle_plugins.sonarlint.SonarLintForkOptions.IS_FORK_ENABLED_DEFAULT;
 import static name.remal.gradle_plugins.sonarlint.internal.SourceFile.newSourceFileBuilder;
+import static name.remal.gradle_plugins.sonarlint.settings.SonarLintForkSettings.IS_FORK_ENABLED_DEFAULT;
 import static name.remal.gradle_plugins.toolkit.ExtensionContainerUtils.findExtension;
 import static name.remal.gradle_plugins.toolkit.FileUtils.normalizeFile;
 import static name.remal.gradle_plugins.toolkit.JavaLauncherUtils.getJavaLauncherProviderFor;
@@ -57,7 +57,12 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;
+import name.remal.gradle_plugins.sonarlint.internal.SonarLintConstants;
 import name.remal.gradle_plugins.sonarlint.internal.SupportedSonarLanguage;
+import name.remal.gradle_plugins.sonarlint.settings.SonarLintForkSettings;
+import name.remal.gradle_plugins.sonarlint.settings.SonarLintLoggingSettings;
+import name.remal.gradle_plugins.sonarlint.settings.SonarLintNodeJsSettings;
+import name.remal.gradle_plugins.sonarlint.settings.SonarLintRulesSettings;
 import name.remal.gradle_plugins.toolkit.EditorConfig;
 import name.remal.gradle_plugins.toolkit.FileUtils;
 import name.remal.gradle_plugins.toolkit.ObjectUtils;
@@ -84,8 +89,6 @@ import org.w3c.dom.Element;
 
 @NoArgsConstructor(access = PRIVATE)
 abstract class BaseSonarLintActions {
-
-    static final JavaVersion MIN_SUPPORTED_SONAR_JAVA_VERSION = JavaVersion.VERSION_17;
 
     static final String SONAR_LIST_PROPERTY_DELIMITER = ",";
     static final String SONAR_SOURCE_ENCODING = "sonar.sourceEncoding";
@@ -158,7 +161,7 @@ abstract class BaseSonarLintActions {
 
         task.getJavaLauncher().convention(getJavaLauncherProviderFor(task.getProject(), spec -> {
             var minSupportedJavaLanguageVersion = JavaLanguageVersion.of(
-                MIN_SUPPORTED_SONAR_JAVA_VERSION.getMajorVersion()
+                SonarLintConstants.MIN_SUPPORTED_SONAR_RUNTIME_JAVA_VERSION.getMajorVersion()
             );
             var javaMajorVersion = spec.getLanguageVersion()
                 .orElse(JavaLanguageVersion.of(JavaVersion.current().getMajorVersion()))
@@ -265,14 +268,15 @@ abstract class BaseSonarLintActions {
             var workerExecutor = task.get$internals().getWorkerExecutor().get();
             var forkParams = Optional.ofNullable(task.getForkOptions().getOrNull());
             boolean isForkEnabled = forkParams
-                .map(SonarLintForkOptions::getEnabled)
+                .map(SonarLintForkSettings::getEnabled)
                 .map(Provider::getOrNull)
                 .orElse(IS_FORK_ENABLED_DEFAULT);
-            if (!isForkEnabled && JavaVersion.current().compareTo(MIN_SUPPORTED_SONAR_JAVA_VERSION) < 0) {
+            if (!isForkEnabled
+                && JavaVersion.current().compareTo(SonarLintConstants.MIN_SUPPORTED_SONAR_RUNTIME_JAVA_VERSION) < 0) {
                 task.getLogger().warn(
                     "The current Java version ({}) is less than {}, enabling forking for task {}",
                     JavaVersion.current().getMajorVersion(),
-                    MIN_SUPPORTED_SONAR_JAVA_VERSION.getMajorVersion(),
+                    SonarLintConstants.MIN_SUPPORTED_SONAR_RUNTIME_JAVA_VERSION.getMajorVersion(),
                     task.getPath()
                 );
                 isForkEnabled = true;
@@ -288,7 +292,7 @@ abstract class BaseSonarLintActions {
                         spec.getForkOptions().jvmArgs("--add-opens", "java.base/java.lang=ALL-UNNAMED");
                     }
                     spec.getForkOptions().setMaxHeapSize(forkParams
-                        .map(SonarLintForkOptions::getMaxHeapSize)
+                        .map(SonarLintForkSettings::getMaxHeapSize)
                         .map(Provider::getOrNull)
                         .orElse(null)
                     );
@@ -328,7 +332,7 @@ abstract class BaseSonarLintActions {
             params.getXmlReportLocation().set(getSonarLintReportFile(task, SonarLintReports::getXml));
             params.getHtmlReportLocation().set(getSonarLintReportFile(task, SonarLintReports::getHtml));
             params.getWithDescription().set(task.getLoggingOptions()
-                .flatMap(SonarLintLoggingOptions::getWithDescription)
+                .flatMap(SonarLintLoggingSettings::getWithDescription)
                 .orElse(true)
             );
         });
@@ -390,14 +394,14 @@ abstract class BaseSonarLintActions {
 
 
         var logNodeJsNotFound = defaultTrue(task.getNodeJs()
-            .flatMap(SonarLintNodeJs::getLogNodeJsNotFound)
+            .flatMap(SonarLintNodeJsSettings::getLogNodeJsNotFound)
             .getOrNull()
         );
         var configuredNodeJs = task.getNodeJs()
-            .flatMap(SonarLintNodeJs::getNodeJsExecutable)
+            .flatMap(SonarLintNodeJsSettings::getNodeJsExecutable)
             .getOrNull();
         var detectNodeJs = defaultFalse(task.getNodeJs()
-            .flatMap(SonarLintNodeJs::getDetectNodeJs)
+            .flatMap(SonarLintNodeJsSettings::getDetectNodeJs)
             .getOrNull()
         );
         var lines = new ArrayList<String>();

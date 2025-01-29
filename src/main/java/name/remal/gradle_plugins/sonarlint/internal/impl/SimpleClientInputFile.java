@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.Charset;
+import java.util.Optional;
 import javax.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
 import name.remal.gradle_plugins.sonarlint.internal.SourceFile;
@@ -22,7 +23,7 @@ class SimpleClientInputFile implements ClientInputFile {
 
     @Override
     public String getPath() {
-        return sourceFile.getFile().toString();
+        return sourceFile.getFile().getPath();
     }
 
     @Override
@@ -33,7 +34,9 @@ class SimpleClientInputFile implements ClientInputFile {
     @Nullable
     @Override
     public Charset getCharset() {
-        return sourceFile.getCharset();
+        return Optional.ofNullable(sourceFile.getEncoding())
+            .map(Charset::forName)
+            .orElse(null);
     }
 
     @Override
@@ -44,12 +47,12 @@ class SimpleClientInputFile implements ClientInputFile {
 
     @Override
     public InputStream inputStream() throws IOException {
-        return newInputStream(sourceFile.getFile());
+        return newInputStream(sourceFile.getFile().toPath());
     }
 
     @Override
     public String contents() throws IOException {
-        return readString(sourceFile.getFile(), requireNonNullElse(sourceFile.getCharset(), UTF_8));
+        return readString(sourceFile.getFile().toPath(), requireNonNullElse(getCharset(), UTF_8));
     }
 
     @Override
@@ -59,7 +62,7 @@ class SimpleClientInputFile implements ClientInputFile {
 
     @Override
     public URI uri() {
-        return sourceFile.getFile().toUri();
+        return sourceFile.getFile().toURI();
     }
 
 }

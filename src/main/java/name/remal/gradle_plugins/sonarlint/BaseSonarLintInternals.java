@@ -25,6 +25,7 @@ import javax.inject.Inject;
 import lombok.CustomLog;
 import lombok.Getter;
 import name.remal.gradle_plugins.sonarlint.internal.SupportedSonarLanguage;
+import name.remal.gradle_plugins.sonarlint.settings.SonarLintNodeJsSettings;
 import name.remal.gradle_plugins.toolkit.FileUtils;
 import name.remal.gradle_plugins.toolkit.ObjectUtils;
 import org.gradle.api.file.ConfigurableFileCollection;
@@ -154,7 +155,7 @@ abstract class BaseSonarLintInternals {
     @SuppressWarnings("Slf4jFormatShouldBeConst")
     private static NodeJsFound calculateConfiguredNodeJsInfo(BaseSonarLint task, ObjectFactory objects) {
         var configuredNodeJsExecutable = task.getNodeJs()
-            .flatMap(SonarLintNodeJs::getNodeJsExecutable)
+            .flatMap(SonarLintNodeJsSettings::getNodeJsExecutable)
             .map(RegularFile::getAsFile)
             .map(FileUtils::normalizeFile)
             .getOrNull();
@@ -194,7 +195,7 @@ abstract class BaseSonarLintInternals {
         }
 
         var detectNodeJs = defaultFalse(task.getNodeJs()
-            .flatMap(SonarLintNodeJs::getDetectNodeJs)
+            .flatMap(SonarLintNodeJsSettings::getDetectNodeJs)
             .getOrNull()
         );
         if (!detectNodeJs) {

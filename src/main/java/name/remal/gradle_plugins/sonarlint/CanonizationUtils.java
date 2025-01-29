@@ -15,9 +15,19 @@ import java.util.Objects;
 import javax.annotation.Nullable;
 import lombok.NoArgsConstructor;
 import name.remal.gradle_plugins.toolkit.ObjectUtils;
+import org.jetbrains.annotations.Unmodifiable;
 
 @NoArgsConstructor(access = PRIVATE)
 abstract class CanonizationUtils {
+
+    @Nullable
+    public static String canonizeRule(@Nullable String rule) {
+        if (rule == null || rule.isEmpty()) {
+            return null;
+        }
+
+        return rule.toLowerCase();
+    }
 
     public static Collection<String> canonizeRules(@Nullable Collection<?> rules) {
         Collection<String> result = new LinkedHashSet<>();
@@ -65,6 +75,7 @@ abstract class CanonizationUtils {
         return result;
     }
 
+    @Unmodifiable
     public static Map<String, Map<String, String>> canonizeRulesProperties(
         @Nullable Map<?, ? extends Map<?, ?>> properties
     ) {

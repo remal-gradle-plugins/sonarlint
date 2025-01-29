@@ -56,7 +56,7 @@ abstract class AbstractSonarLintService<Params extends AbstractSonarLintServiceP
 
 
     protected final LazyValue<PluginsLoadResult> loadedPlugins = lazyValue(() -> {
-        var pluginJarLocations = params.getPluginsClasspath().stream()
+        var pluginJarLocations = params.getPluginPaths().stream()
             .filter(Objects::nonNull)
             .distinct()
             .filter(path -> {

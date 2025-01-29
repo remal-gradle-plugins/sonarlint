@@ -13,10 +13,10 @@ import org.jetbrains.annotations.Unmodifiable;
 @Data
 @FieldDefaults(makeFinal = true, level = PRIVATE)
 @SuperBuilder
-abstract class AbstractSonarLintServiceParams {
+public abstract class AbstractSonarLintServiceParams {
 
     @Unmodifiable
-    @Singular("pluginsClasspathElement")
-    Set<Path> pluginsClasspath;
+    @Singular
+    Set<Path> pluginPaths;
 
 }

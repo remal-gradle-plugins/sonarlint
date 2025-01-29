@@ -4,6 +4,9 @@ import static org.gradle.api.tasks.PathSensitivity.RELATIVE;
 
 import java.util.List;
 import java.util.Map;
+import name.remal.gradle_plugins.sonarlint.settings.SonarLintForkSettings;
+import name.remal.gradle_plugins.sonarlint.settings.SonarLintLoggingSettings;
+import name.remal.gradle_plugins.sonarlint.settings.SonarLintNodeJsSettings;
 import org.gradle.api.Task;
 import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.file.RegularFileProperty;
@@ -31,7 +34,7 @@ interface BaseSonarLint extends Task {
 
     @Nested
     @org.gradle.api.tasks.Optional
-    Property<SonarLintNodeJs> getNodeJs();
+    Property<SonarLintNodeJsSettings> getNodeJs();
 
     @Input
     Property<Boolean> getIsTest();
@@ -83,12 +86,12 @@ interface BaseSonarLint extends Task {
 
     @Nested
     @org.gradle.api.tasks.Optional
-    Property<SonarLintLoggingOptions> getLoggingOptions();
+    Property<SonarLintLoggingSettings> getLoggingOptions();
 
 
     @Nested
     @org.gradle.api.tasks.Optional
-    Property<SonarLintForkOptions> getForkOptions();
+    Property<SonarLintForkSettings> getForkOptions();
 
     @Nested
     @org.gradle.api.tasks.Optional

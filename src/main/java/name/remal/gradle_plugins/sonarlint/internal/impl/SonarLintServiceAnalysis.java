@@ -15,7 +15,6 @@ import static name.remal.gradle_plugins.toolkit.issues.IssueSeverity.ERROR;
 import static name.remal.gradle_plugins.toolkit.issues.IssueSeverity.INFO;
 import static name.remal.gradle_plugins.toolkit.issues.IssueSeverity.WARNING;
 
-import java.nio.file.Path;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -124,7 +123,6 @@ public class SonarLintServiceAnalysis
                     .map(SourceFile.class::cast)
                     .filter(generatedCodeIgnored ? not(SourceFile::isGenerated) : alwaysTrue())
                     .map(SourceFile::getFile)
-                    .map(Path::toFile)
                     .orElse(null);
                 if (sourceFile == null) {
                     return;
