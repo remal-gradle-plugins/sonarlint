@@ -1,4 +1,4 @@
-package name.remal.gradle_plugins.sonarlint.internal.sonar;
+package name.remal.gradle_plugins.sonarlint.internal.impl;
 
 import java.nio.file.Path;
 import javax.annotation.Nullable;

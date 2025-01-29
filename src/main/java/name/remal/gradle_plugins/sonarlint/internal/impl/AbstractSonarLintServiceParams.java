@@ -1,4 +1,4 @@
-package name.remal.gradle_plugins.sonarlint.internal.sonar;
+package name.remal.gradle_plugins.sonarlint.internal.impl;
 
 import static lombok.AccessLevel.PRIVATE;
 

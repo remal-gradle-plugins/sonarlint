@@ -1,10 +1,10 @@
-package name.remal.gradle_plugins.sonarlint.internal.sonar;
+package name.remal.gradle_plugins.sonarlint.internal.impl;
 
 import static com.google.common.collect.ImmutableMap.toImmutableMap;
 import static com.google.common.collect.ImmutableSet.toImmutableSet;
 import static java.util.function.Function.identity;
 import static java.util.function.Predicate.not;
-import static name.remal.gradle_plugins.sonarlint.internal.sonar.SimpleLogOutput.SIMPLE_LOG_OUTPUT;
+import static name.remal.gradle_plugins.sonarlint.internal.impl.SimpleLogOutput.SIMPLE_LOG_OUTPUT;
 import static name.remal.gradle_plugins.toolkit.LazyProxy.asLazyListProxy;
 import static name.remal.gradle_plugins.toolkit.LazyProxy.asLazyMapProxy;
 import static name.remal.gradle_plugins.toolkit.LazyValue.lazyValue;

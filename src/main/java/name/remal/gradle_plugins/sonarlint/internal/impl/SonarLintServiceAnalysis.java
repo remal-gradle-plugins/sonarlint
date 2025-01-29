@@ -1,4 +1,4 @@
-package name.remal.gradle_plugins.sonarlint.internal.sonar;
+package name.remal.gradle_plugins.sonarlint.internal.impl;
 
 import static com.google.common.base.CaseFormat.UPPER_CAMEL;
 import static com.google.common.base.CaseFormat.UPPER_UNDERSCORE;
@@ -7,8 +7,8 @@ import static java.nio.file.Files.createDirectories;
 import static java.util.Collections.emptyMap;
 import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.toUnmodifiableList;
-import static name.remal.gradle_plugins.sonarlint.internal.sonar.SimpleLogOutput.SIMPLE_LOG_OUTPUT;
-import static name.remal.gradle_plugins.sonarlint.internal.sonar.SimpleProgressMonitor.SIMPLE_PROGRESS_MONITOR;
+import static name.remal.gradle_plugins.sonarlint.internal.impl.SimpleLogOutput.SIMPLE_LOG_OUTPUT;
+import static name.remal.gradle_plugins.sonarlint.internal.impl.SimpleProgressMonitor.SIMPLE_PROGRESS_MONITOR;
 import static name.remal.gradle_plugins.toolkit.LazyValue.lazyValue;
 import static name.remal.gradle_plugins.toolkit.issues.Issue.newIssue;
 import static name.remal.gradle_plugins.toolkit.issues.IssueSeverity.ERROR;
@@ -25,6 +25,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
+import name.remal.gradle_plugins.sonarlint.internal.SourceFile;
 import name.remal.gradle_plugins.toolkit.LazyValue;
 import name.remal.gradle_plugins.toolkit.ObjectUtils;
 import name.remal.gradle_plugins.toolkit.issues.HtmlMessage;
@@ -69,16 +70,21 @@ public class SonarLintServiceAnalysis
 
     @SuppressWarnings({"java:S3776", "EnumOrdinal"})
     public Collection<Issue> analyze(
-        Collection<SimpleClientInputFile> inputFiles,
+        Collection<SourceFile> sourceFiles,
         Map<String, String> sonarProperties,
         Set<String> enabledRulesConfig,
         Set<String> disabledRulesConfig,
         Map<String, Map<String, String>> rulesPropertiesConfig,
         boolean generatedCodeIgnored
     ) {
-        if (inputFiles.isEmpty()) {
+        if (sourceFiles.isEmpty()) {
             return List.of();
         }
+
+        var inputFiles = sourceFiles.stream()
+            .filter(Objects::nonNull)
+            .map(SimpleClientInputFile::new)
+            .collect(toUnmodifiableList());
 
         var enabledRules = getRulesKeys(enabledRulesConfig);
         var disabledRules = getRulesKeys(disabledRulesConfig);
@@ -114,10 +120,10 @@ public class SonarLintServiceAnalysis
             synchronized (issues) {
                 var sourceFile = Optional.ofNullable(sonarIssue.getInputFile())
                     .map(ClientInputFile::getClientObject)
-                    .filter(SimpleClientInputFile.class::isInstance)
-                    .map(SimpleClientInputFile.class::cast)
-                    .filter(generatedCodeIgnored ? not(SimpleClientInputFile::isGenerated) : alwaysTrue())
-                    .map(SimpleClientInputFile::getPath)
+                    .filter(SourceFile.class::isInstance)
+                    .map(SourceFile.class::cast)
+                    .filter(generatedCodeIgnored ? not(SourceFile::isGenerated) : alwaysTrue())
+                    .map(SourceFile::getFile)
                     .map(Path::toFile)
                     .orElse(null);
                 if (sourceFile == null) {

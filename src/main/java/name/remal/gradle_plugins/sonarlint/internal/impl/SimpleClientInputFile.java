@@ -1,0 +1,65 @@
+package name.remal.gradle_plugins.sonarlint.internal.impl;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.nio.file.Files.newInputStream;
+import static java.nio.file.Files.readString;
+import static java.util.Objects.requireNonNullElse;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+import java.nio.charset.Charset;
+import javax.annotation.Nullable;
+import lombok.RequiredArgsConstructor;
+import name.remal.gradle_plugins.sonarlint.internal.SourceFile;
+import org.sonarsource.sonarlint.core.analysis.api.ClientInputFile;
+
+@RequiredArgsConstructor
+@SuppressWarnings({"deprecation", "RedundantSuppression"})
+class SimpleClientInputFile implements ClientInputFile {
+
+    private final SourceFile sourceFile;
+
+    @Override
+    public String getPath() {
+        return sourceFile.getFile().toString();
+    }
+
+    @Override
+    public boolean isTest() {
+        return sourceFile.isTest();
+    }
+
+    @Nullable
+    @Override
+    public Charset getCharset() {
+        return sourceFile.getCharset();
+    }
+
+    @Override
+    @SuppressWarnings({"unchecked", "TypeParameterUnusedInFormals"})
+    public <G> G getClientObject() {
+        return (G) sourceFile;
+    }
+
+    @Override
+    public InputStream inputStream() throws IOException {
+        return newInputStream(sourceFile.getFile());
+    }
+
+    @Override
+    public String contents() throws IOException {
+        return readString(sourceFile.getFile(), requireNonNullElse(sourceFile.getCharset(), UTF_8));
+    }
+
+    @Override
+    public String relativePath() {
+        return sourceFile.getRelativePath();
+    }
+
+    @Override
+    public URI uri() {
+        return sourceFile.getFile().toUri();
+    }
+
+}

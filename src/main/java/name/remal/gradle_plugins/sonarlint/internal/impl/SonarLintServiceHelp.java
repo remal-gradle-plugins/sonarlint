@@ -1,4 +1,4 @@
-package name.remal.gradle_plugins.sonarlint.internal.sonar;
+package name.remal.gradle_plugins.sonarlint.internal.impl;
 
 import static name.remal.gradle_plugins.sonarlint.internal.RulesDocumentation.RuleStatus.DISABLED_BY_DEFAULT;
 import static name.remal.gradle_plugins.sonarlint.internal.RulesDocumentation.RuleStatus.ENABLED_BY_DEFAULT;
