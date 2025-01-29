@@ -2,8 +2,10 @@ package name.remal.gradle_plugins.sonarlint.internal;
 
 import static lombok.AccessLevel.PRIVATE;
 import static name.remal.gradle_plugins.toolkit.FunctionUtils.toIndentedString;
+import static name.remal.gradle_plugins.toolkit.ObjectUtils.doNotInline;
 import static name.remal.gradle_plugins.toolkit.ObjectUtils.isNotEmpty;
 
+import com.google.common.annotations.VisibleForTesting;
 import java.util.Optional;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -11,9 +13,15 @@ import java.util.function.Consumer;
 import javax.annotation.Nullable;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
+import name.remal.gradle_plugins.toolkit.HtmlToTextUtils;
 import name.remal.gradle_plugins.toolkit.ObjectUtils;
 
 public class PropertiesDocumentation implements Documentation {
+
+    @VisibleForTesting
+    public static final String NO_SONARLINT_PROPERTIES_FOUND_LOG_MESSAGE =
+        doNotInline("No SonarLint properties found");
+
 
     private final SortedMap<String, PropertyDocumentation> properties = new TreeMap<>();
 
@@ -28,7 +36,7 @@ public class PropertiesDocumentation implements Documentation {
     @SuppressWarnings("java:S3776")
     public String renderToText() {
         if (properties.isEmpty()) {
-            return "No properties SonarLint found";
+            return NO_SONARLINT_PROPERTIES_FOUND_LOG_MESSAGE;
         }
 
         var message = new StringBuilder();
@@ -44,6 +52,8 @@ public class PropertiesDocumentation implements Documentation {
 
             Optional.ofNullable(propDoc.getDescription())
                 .filter(ObjectUtils::isNotEmpty)
+                .map(HtmlToTextUtils::convertHtmlToText)
+                .map(text -> text.replace("\n\n", "\n"))
                 .map(toIndentedString(2))
                 .ifPresent(desc -> message.append("\n").append(desc));
 

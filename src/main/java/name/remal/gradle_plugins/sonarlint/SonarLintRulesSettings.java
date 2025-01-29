@@ -1,72 +1,95 @@
 package name.remal.gradle_plugins.sonarlint;
 
-import static name.remal.gradle_plugins.toolkit.ObjectUtils.isNotEmpty;
+import static java.util.stream.Collectors.toUnmodifiableList;
+import static name.remal.gradle_plugins.toolkit.ObjectUtils.unwrapProviders;
 
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Objects;
+import java.util.stream.StreamSupport;
 import javax.inject.Inject;
 import lombok.Getter;
-import lombok.Setter;
 import org.gradle.api.Action;
 import org.gradle.api.model.ObjectFactory;
-import org.gradle.api.provider.Property;
+import org.gradle.api.provider.MapProperty;
+import org.gradle.api.provider.Provider;
+import org.gradle.api.provider.ProviderFactory;
 import org.gradle.api.provider.SetProperty;
+import org.gradle.api.tasks.Input;
+import org.gradle.api.tasks.Nested;
 
 @Getter
-@Setter
 public abstract class SonarLintRulesSettings {
 
-    public abstract Property<Boolean> getDisableConflictingWithLombok();
-
-
+    @Input
+    @org.gradle.api.tasks.Optional
     public abstract SetProperty<String> getEnabled();
 
     public void enable(String... rules) {
-        getEnabled().addAll(List.of(rules));
+        getEnabled().addAll(rules);
+    }
+
+    public void enable(Provider<?> rules) {
+        getEnabled().addAll(getProviders().provider(() -> {
+            var value = unwrapProviders(rules);
+            if (value == null) {
+                return List.of();
+            }
+
+            if (value instanceof Iterable) {
+                return StreamSupport.stream(((Iterable<?>) value).spliterator(), false)
+                    .filter(Objects::nonNull)
+                    .map(Object::toString)
+                    .collect(toUnmodifiableList());
+            } else {
+                return List.of(value.toString());
+            }
+        }));
     }
 
 
+    @Input
+    @org.gradle.api.tasks.Optional
     public abstract SetProperty<String> getDisabled();
 
     public void disable(String... rules) {
-        getDisabled().addAll(List.of(rules));
+        getDisabled().addAll(rules);
     }
 
-
-    private final Map<String, SonarLintRuleSettings> rulesSettings = new LinkedHashMap<>();
-
-    public void rule(String rule, Action<SonarLintRuleSettings> action) {
-        var ruleSettings = rulesSettings.computeIfAbsent(
-            rule,
-            __ -> getObjects().newInstance(SonarLintRuleSettings.class)
-        );
-        action.execute(ruleSettings);
-    }
-
-
-    Map<String, Map<String, Object>> buildProperties() {
-        Map<String, Map<String, Object>> result = new LinkedHashMap<>();
-        rulesSettings.forEach((ruleId, settings) -> {
-            var properties = settings.getProperties().get();
-            if (isNotEmpty(properties)) {
-                result.put(ruleId, properties);
+    public void disable(Provider<?> rules) {
+        getDisabled().addAll(getProviders().provider(() -> {
+            var value = unwrapProviders(rules);
+            if (value == null) {
+                return List.of();
             }
-        });
-        return result;
-    }
 
-    Map<String, List<String>> buildIgnoredPaths() {
-        Map<String, List<String>> result = new LinkedHashMap<>();
-        rulesSettings.forEach((ruleId, settings) -> {
-            var ignoredPaths = settings.getIgnoredPaths().get();
-            if (isNotEmpty(ignoredPaths)) {
-                result.put(ruleId, ignoredPaths);
+            if (value instanceof Iterable) {
+                return StreamSupport.stream(((Iterable<?>) value).spliterator(), false)
+                    .filter(Objects::nonNull)
+                    .map(Object::toString)
+                    .collect(toUnmodifiableList());
+            } else {
+                return List.of(value.toString());
             }
-        });
-        return result;
+        }));
     }
 
+
+    @Nested
+    @org.gradle.api.tasks.Optional
+    public abstract MapProperty<String, SonarLintRuleSettings> getRulesSettings();
+
+    public void rule(String rule, Action<? super SonarLintRuleSettings> action) {
+        var settings = getRulesSettings().getting(rule).getOrNull();
+        if (settings == null) {
+            settings = getObjects().newInstance(SonarLintRuleSettings.class);
+            getRulesSettings().put(rule, settings);
+        }
+        action.execute(settings);
+    }
+
+
+    @Inject
+    protected abstract ProviderFactory getProviders();
 
     @Inject
     protected abstract ObjectFactory getObjects();

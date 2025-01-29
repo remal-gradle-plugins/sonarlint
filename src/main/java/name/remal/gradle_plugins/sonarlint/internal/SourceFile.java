@@ -1,53 +1,31 @@
 package name.remal.gradle_plugins.sonarlint.internal;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static name.remal.gradle_plugins.sonarlint.internal.ErrorLogging.logError;
-import static name.remal.gradle_plugins.toolkit.ObjectUtils.isNotEmpty;
+import static lombok.AccessLevel.PRIVATE;
 
+import java.io.File;
 import java.io.Serializable;
-import java.nio.charset.Charset;
-import java.nio.charset.UnsupportedCharsetException;
-import name.remal.gradle_plugins.sonarlint.internal.ImmutableSourceFile.SourceFileBuilder;
-import org.immutables.value.Value;
+import javax.annotation.Nullable;
+import lombok.Builder;
+import lombok.NoArgsConstructor;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import lombok.Value;
 
-@Value.Immutable
-public interface SourceFile extends Serializable {
+@Value
+@Builder
+@RequiredArgsConstructor(access = PRIVATE)
+@NoArgsConstructor(access = PRIVATE, force = true)
+public class SourceFile implements Serializable {
 
-    static SourceFileBuilder newSourceFileBuilder() {
-        return ImmutableSourceFile.builder();
-    }
+    @NonNull
+    File file;
 
+    @NonNull
+    String relativePath;
 
-    String getAbsolutePath();
+    boolean test;
 
-    String getRelativePath();
-
-    @Value.Default
-    default boolean isTest() {
-        return false;
-    }
-
-    @Value.Default
-    default boolean isGenerated() {
-        return false;
-    }
-
-    @Value.Default
-    default String getCharsetName() {
-        return UTF_8.name();
-    }
-
-    @Value.Lazy
-    default Charset getCharset() {
-        var name = getCharsetName();
-        if (isNotEmpty(name)) {
-            try {
-                return Charset.forName(name);
-            } catch (UnsupportedCharsetException e) {
-                logError(e.toString());
-            }
-        }
-        return UTF_8;
-    }
+    @Nullable
+    String encoding;
 
 }
