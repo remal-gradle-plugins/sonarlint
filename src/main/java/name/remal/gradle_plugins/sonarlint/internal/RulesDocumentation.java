@@ -18,6 +18,7 @@ import java.util.function.Consumer;
 import javax.annotation.Nullable;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
+import name.remal.gradle_plugins.toolkit.HtmlToTextUtils;
 import name.remal.gradle_plugins.toolkit.ObjectUtils;
 
 public class RulesDocumentation implements Documentation {
@@ -69,6 +70,8 @@ public class RulesDocumentation implements Documentation {
                     message.append("\n    ").append(paramKey);
                     Optional.ofNullable(paramDoc.getDescription())
                         .filter(ObjectUtils::isNotEmpty)
+                        .map(HtmlToTextUtils::convertHtmlToText)
+                        .map(text -> text.replace("\n\n", "\n"))
                         .ifPresent(desc -> message.append(" - ").append(desc));
 
                     Optional.ofNullable(paramDoc.getType())

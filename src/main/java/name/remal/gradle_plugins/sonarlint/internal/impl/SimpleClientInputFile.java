@@ -1,13 +1,15 @@
 package name.remal.gradle_plugins.sonarlint.internal.impl;
 
-import static com.google.common.io.ByteStreams.toByteArray;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.Files.newInputStream;
+import static java.nio.file.Files.readString;
+import static java.util.Objects.requireNonNullElse;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.Charset;
-import java.nio.file.Paths;
+import java.util.Optional;
 import javax.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
 import name.remal.gradle_plugins.sonarlint.internal.SourceFile;
@@ -21,7 +23,7 @@ class SimpleClientInputFile implements ClientInputFile {
 
     @Override
     public String getPath() {
-        return sourceFile.getAbsolutePath();
+        return sourceFile.getFile().getPath();
     }
 
     @Override
@@ -32,7 +34,9 @@ class SimpleClientInputFile implements ClientInputFile {
     @Nullable
     @Override
     public Charset getCharset() {
-        return sourceFile.getCharset();
+        return Optional.ofNullable(sourceFile.getEncoding())
+            .map(Charset::forName)
+            .orElse(null);
     }
 
     @Override
@@ -43,15 +47,12 @@ class SimpleClientInputFile implements ClientInputFile {
 
     @Override
     public InputStream inputStream() throws IOException {
-        return newInputStream(Paths.get(sourceFile.getAbsolutePath()));
+        return newInputStream(sourceFile.getFile().toPath());
     }
 
     @Override
     public String contents() throws IOException {
-        try (var inputStream = inputStream()) {
-            var bytes = toByteArray(inputStream);
-            return new String(bytes, sourceFile.getCharsetName());
-        }
+        return readString(sourceFile.getFile().toPath(), requireNonNullElse(getCharset(), UTF_8));
     }
 
     @Override
@@ -61,7 +62,7 @@ class SimpleClientInputFile implements ClientInputFile {
 
     @Override
     public URI uri() {
-        return Paths.get(sourceFile.getAbsolutePath()).toUri();
+        return sourceFile.getFile().toURI();
     }
 
 }

@@ -3,8 +3,3 @@ plugins {
 }
 
 rootProject.name = 'sonarlint'
-
-include(
-    ':cross-compile--common',
-    ':cross-compile--gradle-7.4-lte',
-)

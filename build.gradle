@@ -1,6 +1,7 @@
 import static java.nio.charset.StandardCharsets.UTF_8
 
 import java.nio.file.Files
+import java.util.jar.JarFile
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
@@ -165,7 +166,7 @@ Closure<Configuration> createSonarArtifactsConfiguration = { String name, boolea
 
         if (addToIndirectApi) {
             project.configurations.indirectApi.extendsFrom(conf)
-            //project.configurations.compileOnly.extendsFrom(conf)
+            project.configurations.compileOnly.extendsFrom(conf)
         }
     }
 }
@@ -198,6 +199,30 @@ dependencies {
     //sonarPluginArtifacts 'com.sonarsource.dotnet:sonar-csharp-enterprise-plugin:10.2.0.103721' // C# projects are unlikely built with Gradle
     sonarPluginArtifacts 'org.sonarsource.slang:sonar-scala-plugin:1.18.1.389'
 }
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+TaskProvider verifySonarPlugins = tasks.register('verifySonarPlugins') {
+    ConfigurableFileCollection pluginJars = objects.fileCollection().from(configurations.sonarPluginArtifacts)
+
+    inputs.files(pluginJars).withPropertyName('pluginJars').optional().withNormalizer(ClasspathNormalizer)
+    outputs.file(file("build/${name}.out")).optional()
+
+    group = 'verification'
+
+    doLast {
+        pluginJars.files.forEach { File file ->
+            new JarFile(file).withCloseable { jarFile ->
+                boolean supported = Boolean.parseBoolean(jarFile.manifest.mainAttributes.getValue('SonarLint-Supported'))
+                if (!supported) {
+                    throw new VerificationException("${file}: ${JarFile.MANIFEST_NAME} doesn't contain `SonarLint-Supported` equal to `true`")
+                }
+            }
+        }
+    }
+}
+
+tasks.named('check') { dependsOn(verifySonarPlugins) }
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 

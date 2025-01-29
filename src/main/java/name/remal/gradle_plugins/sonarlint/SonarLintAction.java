@@ -1,11 +1,9 @@
 package name.remal.gradle_plugins.sonarlint;
 
-import static java.lang.String.format;
 import static java.util.stream.Collectors.toList;
 import static name.remal.gradle_plugins.sonarlint.internal.SonarLintCommand.ANALYSE;
 import static name.remal.gradle_plugins.sonarlint.internal.SonarLintCommand.HELP_PROPERTIES;
 import static name.remal.gradle_plugins.sonarlint.internal.SonarLintCommand.HELP_RULES;
-import static name.remal.gradle_plugins.toolkit.ObjectUtils.isNotEmpty;
 import static name.remal.gradle_plugins.toolkit.VerificationExceptionUtils.newVerificationException;
 
 import java.io.File;
@@ -13,8 +11,6 @@ import javax.inject.Inject;
 import lombok.CustomLog;
 import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;
-import name.remal.gradle_plugins.sonarlint.internal.SonarLintExecutionParams;
-import name.remal.gradle_plugins.sonarlint.internal.impl.SonarLintService;
 import name.remal.gradle_plugins.toolkit.issues.CheckstyleHtmlIssuesRenderer;
 import name.remal.gradle_plugins.toolkit.issues.CheckstyleXmlIssuesRenderer;
 import name.remal.gradle_plugins.toolkit.issues.TextIssuesRenderer;
@@ -29,18 +25,17 @@ abstract class SonarLintAction implements WorkAction<SonarLintExecutionParams> {
     @SuppressWarnings({"java:S3776", "Slf4jFormatShouldBeConst", "java:S5411"})
     public void execute() {
         var params = getParameters();
-        try (
-            var sonarLintService = SonarLintService.builder()
-                .workDir(params.getWorkDir().get().getAsFile().toPath())
-                .pluginsClasspath(params.getPluginsClasspath().getFiles().stream()
-                    .map(File::toPath)
-                    .collect(toList())
-                )
-                .includedLanguages(params.getIncludedLanguages().get())
-                .excludedLanguages(params.getExcludedLanguages().get())
-                .nodeJsInfo(params.getNodeJsInfo().getOrNull())
-                .build()
-        ) {
+        var sonarLintServiceParams = SonarLintServiceParams.builder()
+            .workDir(params.getWorkDir().get().getAsFile().toPath())
+            .pluginsClasspath(params.getPluginsClasspath().getFiles().stream()
+                .map(File::toPath)
+                .collect(toList())
+            )
+            .includedLanguages(params.getIncludedLanguages().get())
+            .excludedLanguages(params.getExcludedLanguages().get())
+            .nodeJsInfo(params.getNodeJsInfo().getOrNull())
+            .build();
+        try (var sonarLintService = new SonarLintService(sonarLintServiceParams)) {
             var command = params.getCommand().get();
             if (command == ANALYSE) {
                 var issues = sonarLintService.analyze(

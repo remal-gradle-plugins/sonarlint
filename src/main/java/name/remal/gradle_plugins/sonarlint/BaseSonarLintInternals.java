@@ -24,9 +24,8 @@ import javax.annotation.Nullable;
 import javax.inject.Inject;
 import lombok.CustomLog;
 import lombok.Getter;
-import name.remal.gradle_plugins.sonarlint.internal.NodeJsFound;
-import name.remal.gradle_plugins.sonarlint.internal.NodeJsNotFound;
-import name.remal.gradle_plugins.sonarlint.internal.SonarLanguage;
+import name.remal.gradle_plugins.sonarlint.internal.SupportedSonarLanguage;
+import name.remal.gradle_plugins.sonarlint.settings.SonarLintNodeJsSettings;
 import name.remal.gradle_plugins.toolkit.FileUtils;
 import name.remal.gradle_plugins.toolkit.ObjectUtils;
 import org.gradle.api.file.ConfigurableFileCollection;
@@ -135,8 +134,8 @@ abstract class BaseSonarLintInternals {
 
     private static List<String> calculateRequiringNodeJsFileSuffixes(BaseSonarLint task) {
         var sonarProperties = task.getSonarProperties().get();
-        return stream(SonarLanguage.values())
-            .filter(SonarLanguage::isRequireNodeJs)
+        return stream(SupportedSonarLanguage.values())
+            .filter(SupportedSonarLanguage::isRequireNodeJs)
             .map(lang -> Optional.ofNullable(lang.getFileSuffixesPropKey())
                 .map(sonarProperties::get)
                 .filter(ObjectUtils::isNotEmpty)
@@ -156,7 +155,7 @@ abstract class BaseSonarLintInternals {
     @SuppressWarnings("Slf4jFormatShouldBeConst")
     private static NodeJsFound calculateConfiguredNodeJsInfo(BaseSonarLint task, ObjectFactory objects) {
         var configuredNodeJsExecutable = task.getNodeJs()
-            .flatMap(SonarLintNodeJs::getNodeJsExecutable)
+            .flatMap(SonarLintNodeJsSettings::getNodeJsExecutable)
             .map(RegularFile::getAsFile)
             .map(FileUtils::normalizeFile)
             .getOrNull();
@@ -196,7 +195,7 @@ abstract class BaseSonarLintInternals {
         }
 
         var detectNodeJs = defaultFalse(task.getNodeJs()
-            .flatMap(SonarLintNodeJs::getDetectNodeJs)
+            .flatMap(SonarLintNodeJsSettings::getDetectNodeJs)
             .getOrNull()
         );
         if (!detectNodeJs) {

@@ -11,6 +11,7 @@ import java.util.function.Consumer;
 import javax.annotation.Nullable;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
+import name.remal.gradle_plugins.toolkit.HtmlToTextUtils;
 import name.remal.gradle_plugins.toolkit.ObjectUtils;
 
 public class PropertiesDocumentation implements Documentation {
@@ -44,6 +45,8 @@ public class PropertiesDocumentation implements Documentation {
 
             Optional.ofNullable(propDoc.getDescription())
                 .filter(ObjectUtils::isNotEmpty)
+                .map(HtmlToTextUtils::convertHtmlToText)
+                .map(text -> text.replace("\n\n", "\n"))
                 .map(toIndentedString(2))
                 .ifPresent(desc -> message.append("\n").append(desc));
 

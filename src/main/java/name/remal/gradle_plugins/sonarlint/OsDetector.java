@@ -3,6 +3,7 @@ package name.remal.gradle_plugins.sonarlint;
 import com.tisonkun.os.core.Detected;
 import com.tisonkun.os.core.Detector;
 import com.tisonkun.os.core.FileOperationProvider;
+import com.tisonkun.os.core.OS;
 import com.tisonkun.os.core.SystemPropertyOperationProvider;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -19,6 +20,8 @@ abstract class OsDetector {
 
     private static volatile Detected detectedOs;
 
+    private static volatile Boolean isAlpine;
+
     public Detected getDetectedOs() {
         if (detectedOs == null) {
             synchronized (OsDetector.class) {
@@ -29,6 +32,24 @@ abstract class OsDetector {
         }
 
         return detectedOs;
+    }
+
+    public boolean isAlpine() {
+        if (isAlpine == null) {
+            synchronized (OsDetector.class) {
+                if (isAlpine == null) {
+                    if (getDetectedOs().os == OS.linux) {
+                        var alpineReleaseFilePath = "/etc/alpine-release";
+                        var alpineReleaseFile = getLayout().getProjectDirectory().file(alpineReleaseFilePath);
+                        isAlpine = getProviders().fileContents(alpineReleaseFile).getAsBytes().isPresent();
+                    } else {
+                        isAlpine = false;
+                    }
+                }
+            }
+        }
+
+        return isAlpine;
     }
 
     private Detected detect() {
