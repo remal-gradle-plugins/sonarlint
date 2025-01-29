@@ -135,12 +135,7 @@ TaskProvider updateNvmrc = tasks.register('updateNvmrc') {
     }
 }
 
-try {
-    tasks.named('pushBackTasks') { dependsOn(updateNvmrc) }
-    logger.lifecycle('Remove this try catch when a new version of toolkit is released', new Exception())
-} catch (UnknownTaskException ignored) {
-    // do nothing
-}
+tasks.named('pushBackTasks') { dependsOn(updateNvmrc) }
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
