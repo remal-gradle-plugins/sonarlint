@@ -4,14 +4,14 @@
 Node.js:22.13.1
 org.ow2.asm:asm-bom:9.7.1:@pom
 org.sonarsource.html:sonar-html-plugin:3.18.0.5605:@sonar-plugin
-org.sonarsource.iac:sonar-iac-plugin:1.41.0.14206
+org.sonarsource.iac:sonar-iac-plugin:1.42.0.14460
 org.sonarsource.java:sonar-java-plugin:8.9.0.37768:@sonar-plugin
 org.sonarsource.java:sonar-java-symbolic-execution-plugin:8.9.0.37768:@sonar-plugin
 org.sonarsource.javascript:sonar-javascript-plugin:10.20.0.29356:@sonar-plugin
-org.sonarsource.kotlin:sonar-kotlin-plugin:2.22.0.5972
+org.sonarsource.kotlin:sonar-kotlin-plugin:2.23.0.6359
 org.sonarsource.slang:sonar-scala-plugin:1.18.0.266
 org.sonarsource.sonarlint.core:sonarlint-core:10.13.0.79996
-org.sonarsource.text:sonar-text-plugin:2.20.0.5038
+org.sonarsource.text:sonar-text-plugin:2.21.0.5225
 org.sonarsource.xml:sonar-xml-plugin:2.12.0.5749:@sonar-plugin
 zzzz-classes-relying-on-gradle-internal-api:name.remal.gradle_plugins.sonarlint.BaseSonarLintHelp:756013e416cc9e66d1ff2f80d6048b97fde885246a111e7f55f654cc79713883
 zzzz-classes-relying-on-gradle-internal-api:name.remal.gradle_plugins.sonarlint.SonarLintPlugin$OutputDirsAndLibraries$OutputDirsAndLibrariesBuilder:855ed42e496d68cc663f0a1670ed9585d4f4583ea361430a150da4cd96e5c7b
