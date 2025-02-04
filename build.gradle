@@ -185,7 +185,7 @@ dependencies {
     //sonarPluginArtifacts 'org.sonarsource.sonarlint.omnisharp:sonarlint-omnisharp-plugin:1.25.0.100205' // OmniSharp projects are unlikely built with Gradle
     sonarPluginArtifacts 'org.sonarsource.text:sonar-text-plugin:2.20.0.5038'
     //sonarPluginArtifacts 'org.sonarsource.slang:sonar-go-plugin:1.17.1.145' // Go projects are unlikely built with Gradle
-    sonarPluginArtifacts 'org.sonarsource.iac:sonar-iac-plugin:1.41.0.14206'
+    sonarPluginArtifacts 'org.sonarsource.iac:sonar-iac-plugin:1.42.0.14460'
     //sonarPluginArtifacts 'com.sonarsource.cpp:sonar-cfamily-plugin:6.60.0.76379' // C++ projects are unlikely built with Gradle
     //sonarPluginArtifacts 'org.sonarsource.dotnet:sonar-csharp-plugin:10.2.0.103721' // C# projects are unlikely built with Gradle
     //sonarPluginArtifacts 'com.sonarsource.dotnet:sonar-csharp-enterprise-plugin:10.2.0.103721' // C# projects are unlikely built with Gradle
