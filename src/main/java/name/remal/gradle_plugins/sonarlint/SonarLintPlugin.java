@@ -79,6 +79,9 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
     @SuppressWarnings({"HidingField", "java:S2387"})
     protected Project project;
 
+    @SuppressWarnings({"HidingField", "java:S2387"})
+    protected SonarLintExtension extension;
+
     @Override
     protected void beforeApply() {
         this.project = super.project;
@@ -192,7 +195,6 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
             project.getConfigurations().getByName(getPluginsConfigurationName())
         );
 
-        var extension = (SonarLintExtension) this.extension;
         task.getNodeJs().set(extension.getNodeJs());
         task.getCheckstyleConfig().convention(project.getLayout().file(getProviders().provider(
             this::getCheckstyleConfigFile
@@ -411,7 +413,6 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
     @Unmodifiable
     @SuppressWarnings("ConstantValue")
     private Collection<SourceSet> getTestSourceSets() {
-        var extension = (SonarLintExtension) this.extension;
         var testSourceSets = extension.getTestSourceSets();
         return testSourceSets != null
             ? unmodifiableCollection(new LinkedHashSet<>(testSourceSets))
