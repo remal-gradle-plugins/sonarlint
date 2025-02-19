@@ -81,7 +81,7 @@ apply plugin: 'name.remal.generate-sources'
 dependencies {
     classesRelocation 'com.tisonkun.os:os-detector-core:0.6.0'
 
-    optional('org.sonarsource.sonarlint.core:sonarlint-core:10.13.0.79996') {
+    optional('org.sonarsource.sonarlint.core:sonarlint-core:10.15.0.80289') {
         exclude group: 'com.google.guava'
     }
 }
@@ -120,7 +120,14 @@ generateSources.forMainSourceSet.java {
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-project.redefineDependencyTargetJvmVersion('org.sonarsource.git.blame:git-files-blame', 8)
+project.javaRuntimeMinVersion.majorVersion.toInteger().with { javaRuntimeMinVersion ->
+    project.redefineDependencyTargetJvmVersion('org.springframework:spring-core', javaRuntimeMinVersion)
+    project.redefineDependencyTargetJvmVersion('org.springframework:spring-context', javaRuntimeMinVersion)
+    project.redefineDependencyTargetJvmVersion('org.springframework:spring-beans', javaRuntimeMinVersion)
+    project.redefineDependencyTargetJvmVersion('org.springframework:spring-aop', javaRuntimeMinVersion)
+    project.redefineDependencyTargetJvmVersion('org.springframework:spring-expression', javaRuntimeMinVersion)
+    project.redefineDependencyTargetJvmVersion('org.springframework:spring-jcl', javaRuntimeMinVersion)
+}
 
 Configuration allSonarArtifactsConf = project.configurations.create('allSonarArtifacts')
 
@@ -168,7 +175,7 @@ createSonarArtifactsConfiguration('sonarPluginArtifacts')
 
 dependencies {
     // Core:
-    sonarCoreArtifacts 'org.sonarsource.sonarlint.core:sonarlint-core:10.13.0.79996'
+    sonarCoreArtifacts 'org.sonarsource.sonarlint.core:sonarlint-core:10.15.0.80289'
 
 
     // Plugins:
