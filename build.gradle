@@ -120,7 +120,14 @@ generateSources.forMainSourceSet.java {
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-project.redefineDependencyTargetJvmVersion('org.sonarsource.git.blame:git-files-blame', 8)
+project.javaRuntimeMinVersion.majorVersion.toInteger().with { javaRuntimeMinVersion ->
+    project.redefineDependencyTargetJvmVersion('org.springframework:spring-core', javaRuntimeMinVersion)
+    project.redefineDependencyTargetJvmVersion('org.springframework:spring-context', javaRuntimeMinVersion)
+    project.redefineDependencyTargetJvmVersion('org.springframework:spring-beans', javaRuntimeMinVersion)
+    project.redefineDependencyTargetJvmVersion('org.springframework:spring-aop', javaRuntimeMinVersion)
+    project.redefineDependencyTargetJvmVersion('org.springframework:spring-expression', javaRuntimeMinVersion)
+    project.redefineDependencyTargetJvmVersion('org.springframework:spring-jcl', javaRuntimeMinVersion)
+}
 
 Configuration allSonarArtifactsConf = project.configurations.create('allSonarArtifacts')
 

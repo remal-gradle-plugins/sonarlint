@@ -325,7 +325,8 @@ public class SonarLintService extends SonarLintServiceParams implements AutoClos
             null,
             analysisConfiguration,
             issueListener,
-            SIMPLE_LOG_OUTPUT
+            SIMPLE_LOG_OUTPUT,
+            null
         );
         analyzeCommand.execute(
             container.get().startComponents().getModuleRegistry(),
