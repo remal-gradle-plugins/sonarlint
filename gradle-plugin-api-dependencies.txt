@@ -3,7 +3,7 @@
 
 Node.js:22.14.0
 org.ow2.asm:asm-bom:9.7.1:@pom
-org.sonarsource.html:sonar-html-plugin:3.18.0.5605:@sonar-plugin
+org.sonarsource.html:sonar-html-plugin:3.19.0.5695:@sonar-plugin
 org.sonarsource.iac:sonar-iac-plugin:1.43.0.14517
 org.sonarsource.java:sonar-java-plugin:8.10.0.38194:@sonar-plugin
 org.sonarsource.java:sonar-java-symbolic-execution-plugin:8.10.0.38194:@sonar-plugin
