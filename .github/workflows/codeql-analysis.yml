@@ -1,6 +1,12 @@
 name: CodeQL Analysis
 
 on:
+  push:
+    paths:
+    - '.github/workflows/codeql-analysis.yml'
+    branches:
+    - 'main'
+    - 'master'
   schedule:
   - cron: '20 18 * * *' # sync-with-template: adjust
   workflow_dispatch: { }
@@ -27,7 +33,11 @@ jobs:
         submodules: recursive
         fetch-depth: 2
     - name: Validate Gradle Wrapper
-      uses: gradle/wrapper-validation-action@v3
+      uses: Wandalen/wretry.action@v3.8.0
+      with:
+        action: gradle/actions/wrapper-validation@v4
+        attempt_limit: 3
+        attempt_delay: 5000
     - name: Cache Gradle
       id: cache-gradle
       uses: remal-github-actions/cache-gradle@main
