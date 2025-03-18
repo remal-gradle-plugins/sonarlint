@@ -79,7 +79,7 @@ import org.sonarsource.sonarlint.core.rule.extractor.RulesDefinitionExtractorCon
 public class SonarLintService extends SonarLintServiceParams implements AutoCloseable {
 
     static {
-        SonarLintLogger.setTarget(SIMPLE_LOG_OUTPUT);
+        SonarLintLogger.get().setTarget(SIMPLE_LOG_OUTPUT);
     }
 
 
