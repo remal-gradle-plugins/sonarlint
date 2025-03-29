@@ -21,7 +21,7 @@ buildscript {
         classpath 'com.tisonkun.os:os-detector-core:0.6.0'
         classpath 'io.github.classgraph:classgraph:4.8.179'
 
-        classpath platform("org.ow2.asm:asm-bom:9.7.1")
+        classpath platform("org.ow2.asm:asm-bom:9.8")
         classpath 'org.ow2.asm:asm-tree'
     }
     repositories {
