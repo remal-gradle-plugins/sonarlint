@@ -1,7 +1,7 @@
 apply plugin: 'java-library'
 
 dependencies {
-    optional('org.sonarsource.sonarlint.core:sonarlint-core:10.17.0.80607') {
+    optional('org.sonarsource.sonarlint.core:sonarlint-core:10.18.0.80725') {
         exclude group: 'com.google.guava'
     }
 }

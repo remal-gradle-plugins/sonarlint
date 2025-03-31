@@ -81,7 +81,7 @@ apply plugin: 'name.remal.generate-sources'
 dependencies {
     classesRelocation 'com.tisonkun.os:os-detector-core:0.6.0'
 
-    optional('org.sonarsource.sonarlint.core:sonarlint-core:10.17.0.80607') {
+    optional('org.sonarsource.sonarlint.core:sonarlint-core:10.18.0.80725') {
         exclude group: 'com.google.guava'
     }
 }
@@ -175,7 +175,7 @@ createSonarArtifactsConfiguration('sonarPluginArtifacts')
 
 dependencies {
     // Core:
-    sonarCoreArtifacts 'org.sonarsource.sonarlint.core:sonarlint-core:10.17.0.80607'
+    sonarCoreArtifacts 'org.sonarsource.sonarlint.core:sonarlint-core:10.18.0.80725'
 
 
     // Plugins:
