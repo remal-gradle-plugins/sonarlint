@@ -2,7 +2,6 @@
 
 # All Status Checks should be listed explicitly (see https://docs.mergify.io/conditions/#about-status-checks):
 #   `cross-versions-tests-success` - .github/workflows/build.yml
-#   `WIP` - https://github.com/marketplace/wip
 
 pull_request_rules:
 - name: Auto merge dependency updates
@@ -15,7 +14,6 @@ pull_request_rules:
   - -draft
   - '#changes-requested-reviews-by=0'
   - check-success=cross-versions-tests-success
-  - check-success=WIP
   - '#check-pending=0'
   - '#check-failure=0'
   - '#check-timed-out=0'
@@ -36,7 +34,6 @@ pull_request_rules:
   - -draft
   - '#changes-requested-reviews-by=0'
   - check-success=cross-versions-tests-success
-  - check-success=WIP
   - '#check-pending=0'
   - '#check-failure=0'
   - '#check-timed-out=0'
