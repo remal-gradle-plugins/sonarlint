@@ -5,8 +5,8 @@ Node.js:22.14.0
 org.ow2.asm:asm-bom:9.8:@pom
 org.sonarsource.html:sonar-html-plugin:3.19.0.5695:@sonar-plugin
 org.sonarsource.iac:sonar-iac-plugin:1.44.0.14670
-org.sonarsource.java:sonar-java-plugin:8.11.0.38440:@sonar-plugin
-org.sonarsource.java:sonar-java-symbolic-execution-plugin:8.11.0.38440:@sonar-plugin
+org.sonarsource.java:sonar-java-plugin:8.12.0.38599:@sonar-plugin
+org.sonarsource.java:sonar-java-symbolic-execution-plugin:8.12.0.38599:@sonar-plugin
 org.sonarsource.javascript:sonar-javascript-plugin:10.21.1.30825:@sonar-plugin
 org.sonarsource.kotlin:sonar-kotlin-plugin:3.1.0.7071
 org.sonarsource.slang:sonar-scala-plugin:1.18.1.389
