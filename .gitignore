@@ -36,6 +36,8 @@ node_modules/
 
 
 # IntelliJ:
+out/
+!**/src/**/out/
 /layout.json
 /__placeholder__.js
 /.idea/*
