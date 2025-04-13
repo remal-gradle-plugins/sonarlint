@@ -170,6 +170,7 @@ Two additional help tasks are created:
 
 ## Version 5.* to 6.*
 
+* Min Gradle version was raised to 7.5 (from 7.1)
 * `sonarLint` extension was renamed to `sonarlint`.
   The old name (`sonarLint`) still can be used for backward compatibility.
 * `sonarlint` extension no longer extends [`CodeQualityExtension`](https://docs.gradle.org/current/javadoc/org/gradle/api/plugins/quality/CodeQualityExtension.html)

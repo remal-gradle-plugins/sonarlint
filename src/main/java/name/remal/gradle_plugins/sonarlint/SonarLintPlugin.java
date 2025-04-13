@@ -308,7 +308,7 @@ public abstract class SonarLintPlugin implements Plugin<Project> {
                 var checkstyleTaskName = sourceSet.getTaskName("checkstyle", null);
                 task.getCheckstyleConfig().convention(project.getLayout().file(project.provider(() ->
                     project.getTasks().withType(Checkstyle.class)
-                        .named(checkstyleTaskName::equals)
+                        .matching(it -> it.getName().equals(checkstyleTaskName))
                         .stream().findFirst()
                         .map(Checkstyle::getConfigFile)
                         .orElse(null)
