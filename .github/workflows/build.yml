@@ -257,6 +257,18 @@ jobs:
         path: build/reports/jacoco/jacocoReportMerged/
         if-no-files-found: error
         retention-days: 30
+    - name: Archive test workspace
+      if: ${{failure()}}
+      run: |
+        tar -cz -f "/tmp/workspace-test-${{matrix.java}}-${{matrix.gradle}}-${{github.run_id}}.tar.gz" `git ls-files -m -o`
+    - name: Upload test workspace archive
+      if: ${{failure()}}
+      uses: actions/upload-artifact@v4
+      with:
+        name: workspace-test-${{matrix.java}}-${{matrix.gradle}}
+        path: '/tmp/workspace-test-${{matrix.java}}-${{matrix.gradle}}-${{github.run_id}}.tar.gz'
+        if-no-files-found: error
+        retention-days: 90
 
   cross-versions-tests-success:
     needs:
