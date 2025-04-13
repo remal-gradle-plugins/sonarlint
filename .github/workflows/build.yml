@@ -268,7 +268,7 @@ jobs:
         name: workspace-test-${{matrix.java}}-${{matrix.gradle}}
         path: '/tmp/workspace-test-${{matrix.java}}-${{matrix.gradle}}-${{github.run_id}}.tar.gz'
         if-no-files-found: error
-        retention-days: 90
+        retention-days: 7
 
   cross-versions-tests-success:
     needs:
