@@ -4,10 +4,6 @@ import java.net.http.HttpResponse
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-apply plugin: 'name.remal.generate-sources'
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
 MapProperty<String, String> javascriptPluginDependencyInfo = project.ext.javascriptPluginDependencyInfo = project.objects.mapProperty(String, String).value(provider {
     Dependency javascriptPluginArtifactDependency = project.configurations.sonarPluginArtifacts.dependencies
         .find { "${it.group}:${it.name}" == 'org.sonarsource.javascript:sonar-javascript-plugin' }

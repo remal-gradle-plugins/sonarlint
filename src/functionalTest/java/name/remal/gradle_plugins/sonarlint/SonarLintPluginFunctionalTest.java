@@ -3,6 +3,7 @@ package name.remal.gradle_plugins.sonarlint;
 import static java.lang.String.join;
 import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.joining;
+import static name.remal.gradle_plugins.sonarlint.FunctionalTestConstants.CURRENT_MINOR_GRADLE_VERSION;
 import static name.remal.gradle_plugins.sonarlint.internal.PropertiesDocumentation.NO_SONARLINT_PROPERTIES_FOUND_LOG_MESSAGE;
 import static name.remal.gradle_plugins.sonarlint.internal.RulesDocumentation.NO_SONARLINT_RULES_FOUND_LOG_MESSAGE;
 import static name.remal.gradle_plugins.toolkit.LazyValue.lazyValue;
@@ -34,6 +35,7 @@ import lombok.Value;
 import name.remal.gradle_plugins.toolkit.LazyValue;
 import name.remal.gradle_plugins.toolkit.issues.CheckstyleXmlIssuesParser;
 import name.remal.gradle_plugins.toolkit.issues.Issue;
+import name.remal.gradle_plugins.toolkit.testkit.MinSupportedGradleVersion;
 import name.remal.gradle_plugins.toolkit.testkit.functional.GradleProject;
 import org.gradle.testkit.runner.BuildResult;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,6 +45,7 @@ import org.junit.jupiter.api.Test;
 @RequiredArgsConstructor
 @SuppressWarnings({"java:S5976", "java:S1854", "UnusedReturnValue"})
 class SonarLintPluginFunctionalTest {
+
     private static final Map<String, String> RULE_EXAMPLES = ImmutableMap.<String, String>builder()
         .put("css:S4670", join("\n", new String[]{
             "field {}",
@@ -209,35 +212,9 @@ class SonarLintPluginFunctionalTest {
         }
 
         @Test
-        void css() {
-            new Assertions()
-                .rule("css:S4670")
-                .assertAllRulesAreRaised();
-        }
-
-        @Test
-        void cloudformation() {
-            new Assertions()
-                .rule("cloudformation:S6333")
-                .assertAllRulesAreRaised();
-        }
-
-        @Test
-        void docker() {
-            new Assertions()
-                .rule("docker:S6596")
-                .assertAllRulesAreRaised();
-        }
-
-        @Test
-        void html() {
-            new Assertions()
-                .rule("Web:S5725")
-                .assertAllRulesAreRaised();
-        }
-
-        @Test
         void java() {
+            project.getBuildFile().line("sonarlint.languages.include('java')");
+
             new Assertions()
                 .rule("java:S1133")
                 .assertAllRulesAreRaised();
@@ -245,51 +222,87 @@ class SonarLintPluginFunctionalTest {
 
         @Test
         void javascript() {
+            project.getBuildFile().line("sonarlint.languages.include('javascript')");
+
             new Assertions()
                 .rule("javascript:S930")
                 .assertAllRulesAreRaised();
         }
 
-        @Test
-        void kotlin() {
-            new Assertions()
-                .rule("kotlin:S899")
-                .assertAllRulesAreRaised();
-        }
+        @Nested
+        @MinSupportedGradleVersion(CURRENT_MINOR_GRADLE_VERSION)
+        class OtherLanguages {
 
-        @Test
-        void kubernetes() {
-            new Assertions()
-                .rule("kubernetes:S6868")
-                .assertAllRulesAreRaised();
-        }
+            @Test
+            void css() {
+                new Assertions()
+                    .rule("css:S4670")
+                    .assertAllRulesAreRaised();
+            }
 
-        @Test
-        void scala() {
-            new Assertions()
-                .rule("scala:S4663")
-                .assertAllRulesAreRaised();
-        }
+            @Test
+            void cloudformation() {
+                new Assertions()
+                    .rule("cloudformation:S6333")
+                    .assertAllRulesAreRaised();
+            }
 
-        @Test
-        void terraform() {
-            new Assertions()
-                .rule("terraform:S6414")
-                .assertAllRulesAreRaised();
-        }
+            @Test
+            void docker() {
+                new Assertions()
+                    .rule("docker:S6596")
+                    .assertAllRulesAreRaised();
+            }
 
-        @Test
-        void typescript() {
-            new Assertions()
-                .rule("typescript:S909")
-                .assertAllRulesAreRaised();
-        }
+            @Test
+            void html() {
+                new Assertions()
+                    .rule("Web:S5725")
+                    .assertAllRulesAreRaised();
+            }
 
-        @Test
-        void xml() {
-            new Assertions()
-                .rule("xml:S2321")
-                .assertAllRulesAreRaised();
+            @Test
+            void kotlin() {
+                new Assertions()
+                    .rule("kotlin:S899")
+                    .assertAllRulesAreRaised();
+            }
+
+            @Test
+            void kubernetes() {
+                new Assertions()
+                    .rule("kubernetes:S6868")
+                    .assertAllRulesAreRaised();
+            }
+
+            @Test
+            void scala() {
+                new Assertions()
+                    .rule("scala:S4663")
+                    .assertAllRulesAreRaised();
+            }
+
+            @Test
+            void terraform() {
+                new Assertions()
+                    .rule("terraform:S6414")
+                    .assertAllRulesAreRaised();
+            }
+
+            @Test
+            void typescript() {
+                new Assertions()
+                    .rule("typescript:S909")
+                    .assertAllRulesAreRaised();
+            }
+
+            @Test
+            void xml() {
+                new Assertions()
+                    .rule("xml:S2321")
+                    .assertAllRulesAreRaised();
+            }
+
         }
 
     }

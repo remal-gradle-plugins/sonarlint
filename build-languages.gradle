@@ -3,8 +3,6 @@ import io.github.classgraph.ScanResult
 import java.nio.file.Paths
 import java.util.jar.JarFile
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
 buildscript {
     dependencies {
         classpath "io.github.classgraph:classgraph:${rootBuildscriptClasspathVersionOf('io.github.classgraph:classgraph')}"
@@ -13,8 +11,6 @@ buildscript {
         mavenCentral()
     }
 }
-
-apply plugin: 'name.remal.generate-sources'
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 

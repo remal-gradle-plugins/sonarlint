@@ -5,6 +5,7 @@ import java.util.jar.JarFile
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
+import org.gradle.util.GradleVersion
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.tree.ClassNode
@@ -401,6 +402,23 @@ generateSources.forMainSourceSet.java { Task task ->
             block("public static boolean areResolvedNonReproducibleSonarDependenciesRegistered()") {
                 line("return !MAPPING.isEmpty();")
             }
+        }
+    }
+}
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+generateSources.forSourceSet(sourceSets.functionalTest).java {
+    Property<String> currentMinorGradleVersion = objects.property(String).value(provider {
+        return GradleVersion.current().baseVersion.version
+            .replaceFirst(/^(\d+\.\d+).*$/, '$1')
+    }).with { it.finalizeValueOnRead(); it }
+
+    inputs.property('currentMinorGradleVersion', currentMinorGradleVersion)
+
+    classFile(project.calculateBaseJavaPackage(), 'FunctionalTestConstants') {
+        block("interface ${simpleName}") {
+            line("String CURRENT_MINOR_GRADLE_VERSION = \"${escapeString(currentMinorGradleVersion.get())}\";")
         }
     }
 }
