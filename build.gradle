@@ -1,9 +1,11 @@
 import static java.nio.charset.StandardCharsets.UTF_8
 
 import java.nio.file.Files
+import java.util.jar.JarFile
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
+import org.gradle.util.GradleVersion
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.tree.ClassNode
@@ -16,7 +18,7 @@ buildscript {
     String rootSnapshotVersion = project.ext.rootSnapshotVersion = '5-SNAPSHOT'
     dependencies {
         //classpath("$rootGroupId:$rootArtifactId:$rootSnapshotVersion") { version { strictly(rootSnapshotVersion) } }
-        classpath 'name.remal.gradle-plugins.toolkit:build-logic:0.72.10'
+        classpath 'name.remal.gradle-plugins.toolkit:build-logic:0.72.12'
         classpath 'de.undercouch:gradle-download-task:5.6.0'
         classpath 'com.tisonkun.os:os-detector-core:0.6.0'
         classpath 'io.github.classgraph:classgraph:4.8.179'
@@ -54,36 +56,12 @@ apply plugin: 'name.remal.toolkit.build-logic'
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-project.registerCrossCompileDependencyInfo(
-    [
-        name: 'sonarlint',
-        maxVersionNumbers: 3,
-        dependencyNotations: [
-            'org.sonarsource.sonarlint.core:sonarlint-core',
-        ],
-    ]
-)
-
-allprojects {
-    pluginManager.withPlugin('java') {
-        dependencies {
-            optional 'name.remal.gradle-api:gradle-api'
-        }
-    }
-}
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
 apply plugin: 'java-gradle-plugin'
 apply plugin: 'name.remal.classes-relocation'
 apply plugin: 'name.remal.generate-sources'
 
 dependencies {
     classesRelocation 'com.tisonkun.os:os-detector-core:0.6.0'
-
-    optional('org.sonarsource.sonarlint.core:sonarlint-core:10.18.0.80725') {
-        exclude group: 'com.google.guava'
-    }
 }
 
 gradlePlugin {
@@ -131,23 +109,6 @@ project.javaRuntimeMinVersion.majorVersion.toInteger().with { javaRuntimeMinVers
 
 Configuration allSonarArtifactsConf = project.configurations.create('allSonarArtifacts')
 
-Map<String, String> nonReproducibleSonarDependencyVersions = new TreeMap<>().asSynchronized()
-allSonarArtifactsConf.resolutionStrategy.eachDependency { DependencyResolveDetails details ->
-    ModuleVersionSelector target = details.target
-
-    String version = target.version
-    if (version == null) {
-        return
-    }
-    boolean isNotReproducible = version.endsWith('-SNAPSHOT') || ['(', '[', ']', ')'].any { version.contains(it) }
-    if (!isNotReproducible) {
-        return
-    }
-
-    String id = "${target.group}:${target.name}".toString()
-    nonReproducibleSonarDependencyVersions.put(id, version)
-}
-
 Closure<Configuration> createSonarArtifactsConfiguration = { String name, boolean addToIndirectApi = true ->
     return project.configurations.create(name) { Configuration conf ->
         conf.transitive = false
@@ -165,23 +126,25 @@ Closure<Configuration> createSonarArtifactsConfiguration = { String name, boolea
 
         if (addToIndirectApi) {
             project.configurations.indirectApi.extendsFrom(conf)
-            //project.configurations.compileOnly.extendsFrom(conf)
+            project.configurations.compileOnly.extendsFrom(conf)
         }
     }
 }
 
-createSonarArtifactsConfiguration('sonarCoreArtifacts')
-createSonarArtifactsConfiguration('sonarPluginArtifacts')
+Configuration sonarCoreArtifactsConf = createSonarArtifactsConfiguration('sonarCoreArtifacts')
+Configuration sonarPluginArtifactsConf = createSonarArtifactsConfiguration('sonarPluginArtifacts')
 
 dependencies {
     // Core:
-    sonarCoreArtifacts 'org.sonarsource.sonarlint.core:sonarlint-core:10.18.0.80725'
+    //sonarCoreArtifacts 'org.sonarsource.sonarlint.core:sonarlint-core:10.18.0.80725'
+    sonarCoreArtifacts 'org.sonarsource.sonarlint.core:sonarlint-analysis-engine:10.18.0.80725'
+    sonarCoreArtifacts 'org.sonarsource.sonarlint.core:sonarlint-rule-extractor:10.18.0.80725'
 
 
     // Plugins:
     // See full list of supported plugins here: https://github.com/SonarSource/sonarlint-intellij/blob/master/gradle/libs.versions.toml
-    sonarPluginArtifacts 'org.sonarsource.java:sonar-java-symbolic-execution-plugin:8.12.0.38599'
     sonarPluginArtifacts 'org.sonarsource.java:sonar-java-plugin:8.12.0.38599'
+    sonarPluginArtifacts 'org.sonarsource.java:sonar-java-symbolic-execution-plugin:8.12.0.38599'
     sonarPluginArtifacts 'org.sonarsource.javascript:sonar-javascript-plugin:10.21.1.30825'
     //sonarPluginArtifacts 'org.sonarsource.php:sonar-php-plugin:3.39.0.12526' // PHP projects are unlikely built with Gradle
     //sonarPluginArtifacts 'org.sonarsource.python:sonar-python-plugin:4.23.0.17664' // Python projects are unlikely built with Gradle
@@ -201,6 +164,93 @@ dependencies {
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+List<Map<String, String>> sonarLintCoreExclusions = [
+    [group: 'org.slf4j'],
+    [group: 'org.apache.logging.log4j'],
+    [group: 'log4j'],
+    [group: 'ch.qos.logback'],
+    [group: 'org.springframework', module: 'spring-jcl'],
+
+    [group: 'org.apache.httpcomponents.client5'],
+    [group: 'org.apache.httpcomponents.core5'],
+    [group: 'org.sonarsource.sonarlint.core', module: 'sonarlint-server-connection'],
+    [group: 'org.sonarsource.sonarlint.core', module: 'sonarlint-rpc-protocol'],
+    [group: 'org.sonarsource.sonarlint.core', module: 'sonarlint-http'],
+
+    [group: 'org.eclipse.jgit'],
+    [group: 'org.sonarsource.git.blame'],
+]
+
+sonarCoreArtifactsConf.dependencies.withType(ModuleDependency).all { ModuleDependency dep ->
+    sonarLintCoreExclusions.forEach { exclude it }
+
+    configurations.optional.dependencies.add(project.dependencies.create("${dep.group}:${dep.name}:${dep.version}") {
+        sonarLintCoreExclusions.forEach { exclude it }
+    })
+}
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+Map<String, String> sonarDependencyVersionsToFix = [
+    'org.eclipse.platform:org.eclipse.core.contenttype:3.8.200': '3.8.100',
+    'org.eclipse.platform:org.eclipse.equinox.preferences:3.10.100': '3.10.200',
+]
+Map<String, String> fixedSonarDependencyVersions = new TreeMap<>().asSynchronized()
+Map<String, String> nonReproducibleSonarDependencyVersions = new TreeMap<>().asSynchronized()
+; [allSonarArtifactsConf, sonarCoreArtifactsConf, sonarPluginArtifactsConf].forEach { conf ->
+    conf.resolutionStrategy.eachDependency { DependencyResolveDetails details ->
+        ModuleVersionSelector target = details.target
+        String id = "${target.group}:${target.name}:${target.version}".toString()
+        String fixedVersion = sonarDependencyVersionsToFix[id]
+        if (fixedVersion != null) {
+            fixedSonarDependencyVersions[id] = fixedVersion
+            details.useVersion(fixedVersion)
+        }
+    }
+
+    conf.resolutionStrategy.eachDependency { DependencyResolveDetails details ->
+        ModuleVersionSelector target = details.target
+
+        String version = target.version
+        if (version == null) {
+            return
+        }
+        boolean isNotReproducible = version.endsWith('-SNAPSHOT') || ['(', '[', ']', ')'].any { version.contains(it) }
+        if (!isNotReproducible) {
+            return
+        }
+
+        String id = "${target.group}:${target.name}".toString()
+        nonReproducibleSonarDependencyVersions.put(id, version)
+    }
+}
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+TaskProvider verifySonarPlugins = tasks.register('verifySonarPlugins') {
+    ConfigurableFileCollection pluginJars = objects.fileCollection().from(configurations.sonarPluginArtifacts)
+
+    inputs.files(pluginJars).withPropertyName('pluginJars').optional().withNormalizer(ClasspathNormalizer)
+    outputs.file(file("build/${name}.out")).optional()
+
+    group = 'verification'
+
+    doLast {
+        pluginJars.files.forEach { File file ->
+            new JarFile(file).withCloseable { jarFile ->
+                boolean supported = Boolean.parseBoolean(jarFile.manifest.mainAttributes.getValue('SonarLint-Supported'))
+                if (!supported) {
+                    throw new VerificationException("${file}: ${JarFile.MANIFEST_NAME} doesn't contain `SonarLint-Supported` equal to `true`")
+                }
+            }
+        }
+    }
+}
+
+tasks.named('check') { dependsOn(verifySonarPlugins) }
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 project.ext.DownloadTask = Class.forName('de.undercouch.gradle.tasks.download.Download')
 apply from: 'build-nodejs.gradle'
 apply from: 'build-languages.gradle'
@@ -209,52 +259,107 @@ apply from: 'build-languages.gradle'
 
 generateSources.forMainSourceSet.java { Task task ->
     inputs.files(allSonarArtifactsConf).withPropertyName(allSonarArtifactsConf.name + 'Conf').optional()
+    inputs.files(sonarCoreArtifactsConf).withPropertyName(sonarCoreArtifactsConf.name + 'Conf').optional()
+    inputs.files(sonarPluginArtifactsConf).withPropertyName(sonarPluginArtifactsConf.name + 'Conf').optional()
+    inputs.property('sonarLintCoreExclusions', sonarLintCoreExclusions).optional(true)
 
     classFile(project.calculateBaseJavaPackage(), 'SonarDependencies') {
+        addImport("com.google.common.collect.ImmutableMap")
+        addImport("java.util.List")
+        addImport("java.util.Map")
+        addImport("org.jetbrains.annotations.Unmodifiable")
+
+        block("interface ${simpleName}") {
+            line()
+            line("@Unmodifiable")
+            line("List<SonarDependency> SONARLINT_CORE_DEPENDENCIES = List.of(")
+            indent {
+                List<Dependency> coreDependencies = sonarCoreArtifactsConf.dependencies.collect()
+                coreDependencies.eachWithIndex { dep, index ->
+                    line("SonarDependency.builder()")
+                    line("    .group(\"${escapeString(dep.group)}\")")
+                    line("    .name(\"${escapeString(dep.name)}\")")
+                    line("    .version(\"${escapeString(dep.version)}\")")
+                    line("    .build()${index < coreDependencies.size() - 1 ? ',' : ''}")
+                }
+            }
+            line(");")
+
+            line()
+            line("@Unmodifiable")
+            line("List<SonarDependency> SONARLINT_PLUGIN_DEPENDENCIES = List.of(")
+            indent {
+                List<Dependency> coreDependencies = sonarPluginArtifactsConf.dependencies.collect()
+                coreDependencies.eachWithIndex { dep, index ->
+                    line("SonarDependency.builder()")
+                    line("    .group(\"${escapeString(dep.group)}\")")
+                    line("    .name(\"${escapeString(dep.name)}\")")
+                    line("    .version(\"${escapeString(dep.version)}\")")
+                    line("    .build()${index < coreDependencies.size() - 1 ? ',' : ''}")
+                }
+            }
+            line(");")
+
+            line()
+            line("@Unmodifiable")
+            line("List<Map<String, String>> SONARLINT_CORE_EXCLUSIONS = List.of(")
+            indent {
+                sonarLintCoreExclusions.eachWithIndex { exclusion, exclusionIndex ->
+                    StringBuilder string = new StringBuilder()
+                    string.append('ImmutableMap.of(')
+                    exclusion.entrySet().eachWithIndex { entry, entryIndex ->
+                        if (entryIndex > 0) {
+                            string.append(', ')
+                        }
+
+                        string.append("\"${escapeString(entry.key.toString())}\", \"${escapeString(entry.value.toString())}\"")
+                    }
+                    string.append(')')
+
+                    if (exclusionIndex < sonarLintCoreExclusions.size() - 1) {
+                        string.append(',')
+                    }
+                    line(string)
+                }
+            }
+            line(");")
+        }
+    }
+
+    classFile(project.calculateBaseJavaPackage(), 'DependencyWithBrokenVersion') {
         addStaticImport("lombok.AccessLevel", "PRIVATE")
 
         addImport("com.google.common.collect.ImmutableMap")
         addImport("java.util.Map")
+        addImport("javax.annotation.Nullable")
         addImport("lombok.NoArgsConstructor")
 
         line("@NoArgsConstructor(access = PRIVATE)")
         block("abstract class ${simpleName}") {
-            line("")
-            line("private static final Map<String, SonarDependency> MAPPING = ImmutableMap.<String, SonarDependency>builder()")
+            line()
+            line("private static final Map<String, String> MAPPING = ImmutableMap.<String, String>builder()")
             indent {
-                configurations.sonarCoreArtifacts.dependencies.forEach { Dependency dep ->
-                    line(".put(\"${escapeString(dep.name)}\", SonarDependency.builder()")
-                    line("    .type(SonarDependencyType.CORE)")
-                    line("    .group(\"${escapeString(dep.group)}\")")
-                    line("    .name(\"${escapeString(dep.name)}\")")
-                    line("    .version(\"${escapeString(dep.version)}\")")
-                    line("    .build()")
-                    line(")")
-                }
-                configurations.sonarPluginArtifacts.dependencies.forEach { Dependency dep ->
-                    line(".put(\"${escapeString(dep.name)}\", SonarDependency.builder()")
-                    line("    .type(SonarDependencyType.PLUGIN)")
-                    line("    .group(\"${escapeString(dep.group)}\")")
-                    line("    .name(\"${escapeString(dep.name)}\")")
-                    line("    .version(\"${escapeString(dep.version)}\")")
-                    line("    .build()")
-                    line(")")
+                sonarCoreArtifactsConf.resolvedConfiguration.lenientConfiguration.allModuleDependencies.forEach { ResolvedDependency dep ->
+                    String depId = "${dep.moduleGroup}:${dep.moduleName}".toString()
+                    Map.Entry<String, String> fixedSonarDependencyVersionEntry = fixedSonarDependencyVersions.entrySet().find { it.key.startsWith("$depId:") }
+                    if (fixedSonarDependencyVersionEntry != null) {
+                        String notationToFix = fixedSonarDependencyVersionEntry.key
+                        String version = fixedSonarDependencyVersionEntry.value
+                        line(".put(\"${escapeString(notationToFix)}\", \"${escapeString(version)}\")")
+                    }
                 }
                 line(".build();")
             }
 
-            line("")
-            block("public static Map<String, SonarDependency> getSonarDependencies()") {
-                line("return MAPPING;")
+            line()
+            line("@Nullable")
+            block("public static String getFixedVersionForBrokenDependency(String notation)") {
+                line("return MAPPING.get(notation);")
             }
 
-            line("")
-            block("public static SonarDependency getSonarDependency(String id)") {
-                line("var dependency = getSonarDependencies().get(id);")
-                block("if (dependency == null)") {
-                    line("throw new IllegalStateException(\"Sonar dependency is not registered: \" + id);")
-                }
-                line("return dependency;")
+            line()
+            block("public static boolean areFixedVersionForBrokenDependenciesRegistered()") {
+                line("return !MAPPING.isEmpty();")
             }
         }
     }
@@ -269,15 +374,14 @@ generateSources.forMainSourceSet.java { Task task ->
 
         line("@NoArgsConstructor(access = PRIVATE)")
         block("abstract class ${simpleName}") {
-            line("")
+            line()
             line("private static final Map<String, SonarDependency> MAPPING = ImmutableMap.<String, SonarDependency>builder()")
             indent {
-                allSonarArtifactsConf.resolvedConfiguration.lenientConfiguration.allModuleDependencies.forEach { ResolvedDependency dep ->
+                sonarCoreArtifactsConf.resolvedConfiguration.lenientConfiguration.allModuleDependencies.forEach { ResolvedDependency dep ->
                     String depId = "${dep.moduleGroup}:${dep.moduleName}".toString()
                     String nonReproducibleVersion = nonReproducibleSonarDependencyVersions[depId]
                     if (nonReproducibleVersion != null) {
                         line(".put(\"${escapeString("${depId}:${nonReproducibleVersion}")}\", SonarDependency.builder()")
-                        line("    .type(SonarDependencyType.OTHER)")
                         line("    .group(\"${escapeString(dep.moduleGroup)}\")")
                         line("    .name(\"${escapeString(dep.moduleName)}\")")
                         line("    .version(\"${escapeString(dep.moduleVersion)}\")")
@@ -288,16 +392,33 @@ generateSources.forMainSourceSet.java { Task task ->
                 line(".build();")
             }
 
-            line("")
-            block("public static Map<String, SonarDependency> getResolvedNonReproducibleSonarDependencies()") {
-                line("return MAPPING;")
-            }
-
-            line("")
+            line()
             line("@Nullable")
             block("public static SonarDependency getResolvedNonReproducibleSonarDependency(String notation)") {
-                line("return getResolvedNonReproducibleSonarDependencies().get(notation);")
+                line("return MAPPING.get(notation);")
             }
+
+            line()
+            block("public static boolean areResolvedNonReproducibleSonarDependenciesRegistered()") {
+                line("return !MAPPING.isEmpty();")
+            }
+        }
+    }
+}
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+generateSources.forSourceSet(sourceSets.functionalTest).java {
+    Property<String> currentMinorGradleVersion = objects.property(String).value(provider {
+        return GradleVersion.current().baseVersion.version
+            .replaceFirst(/^(\d+\.\d+).*$/, '$1')
+    }).with { it.finalizeValueOnRead(); it }
+
+    inputs.property('currentMinorGradleVersion', currentMinorGradleVersion)
+
+    classFile(project.calculateBaseJavaPackage(), 'FunctionalTestConstants') {
+        block("interface ${simpleName}") {
+            line("String CURRENT_MINOR_GRADLE_VERSION = \"${escapeString(currentMinorGradleVersion.get())}\";")
         }
     }
 }

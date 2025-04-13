@@ -1,23 +1,28 @@
 package name.remal.gradle_plugins.sonarlint;
 
+import static lombok.AccessLevel.PUBLIC;
+
 import com.tisonkun.os.core.Detected;
 import com.tisonkun.os.core.Detector;
 import com.tisonkun.os.core.FileOperationProvider;
+import com.tisonkun.os.core.OS;
 import com.tisonkun.os.core.SystemPropertyOperationProvider;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import lombok.CustomLog;
-import lombok.RequiredArgsConstructor;
+import lombok.NoArgsConstructor;
 import org.gradle.api.file.ProjectLayout;
 import org.gradle.api.provider.ProviderFactory;
 
 @CustomLog
-@RequiredArgsConstructor(onConstructor_ = {@Inject})
+@NoArgsConstructor(access = PUBLIC, onConstructor_ = {@Inject})
 abstract class OsDetector {
 
     private static volatile Detected detectedOs;
+
+    private static volatile Boolean isAlpine;
 
     public Detected getDetectedOs() {
         if (detectedOs == null) {
@@ -29,6 +34,25 @@ abstract class OsDetector {
         }
 
         return detectedOs;
+    }
+
+    @SuppressWarnings("java:S1075")
+    public boolean isAlpine() {
+        if (isAlpine == null) {
+            synchronized (OsDetector.class) {
+                if (isAlpine == null) {
+                    if (getDetectedOs().os == OS.linux) {
+                        var alpineReleaseFilePath = "/etc/alpine-release";
+                        var alpineReleaseFile = getLayout().getProjectDirectory().file(alpineReleaseFilePath);
+                        isAlpine = getProviders().fileContents(alpineReleaseFile).getAsBytes().isPresent();
+                    } else {
+                        isAlpine = false;
+                    }
+                }
+            }
+        }
+
+        return isAlpine;
     }
 
     private Detected detect() {

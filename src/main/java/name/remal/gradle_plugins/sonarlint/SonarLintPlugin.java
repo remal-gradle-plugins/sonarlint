@@ -1,526 +1,364 @@
 package name.remal.gradle_plugins.sonarlint;
 
-import static com.google.common.util.concurrent.Callables.returning;
-import static java.lang.Boolean.TRUE;
 import static java.lang.String.format;
-import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
-import static java.util.Collections.unmodifiableCollection;
-import static java.util.function.Predicate.not;
-import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
-import static name.remal.gradle_plugins.sonarlint.BaseSonarLintActions.SONAR_JAVA_BINARIES;
-import static name.remal.gradle_plugins.sonarlint.BaseSonarLintActions.SONAR_JAVA_ENABLE_PREVIEW_PROPERTY;
-import static name.remal.gradle_plugins.sonarlint.BaseSonarLintActions.SONAR_JAVA_LIBRARIES;
-import static name.remal.gradle_plugins.sonarlint.BaseSonarLintActions.SONAR_JAVA_SOURCE_PROPERTY;
-import static name.remal.gradle_plugins.sonarlint.BaseSonarLintActions.SONAR_JAVA_TARGET_PROPERTY;
-import static name.remal.gradle_plugins.sonarlint.BaseSonarLintActions.SONAR_JAVA_TEST_BINARIES;
-import static name.remal.gradle_plugins.sonarlint.BaseSonarLintActions.SONAR_JAVA_TEST_LIBRARIES;
-import static name.remal.gradle_plugins.sonarlint.BaseSonarLintActions.SONAR_LIST_PROPERTY_DELIMITER;
-import static name.remal.gradle_plugins.sonarlint.BaseSonarLintActions.SONAR_SOURCE_ENCODING;
-import static name.remal.gradle_plugins.sonarlint.DependencyWithBrokenPomSubstitutions.getVersionWithFixedPom;
+import static name.remal.gradle_plugins.sonarlint.DependencyWithBrokenVersion.areFixedVersionForBrokenDependenciesRegistered;
+import static name.remal.gradle_plugins.sonarlint.DependencyWithBrokenVersion.getFixedVersionForBrokenDependency;
+import static name.remal.gradle_plugins.sonarlint.ResolvedNonReproducibleSonarDependencies.areResolvedNonReproducibleSonarDependenciesRegistered;
 import static name.remal.gradle_plugins.sonarlint.ResolvedNonReproducibleSonarDependencies.getResolvedNonReproducibleSonarDependency;
-import static name.remal.gradle_plugins.sonarlint.SonarDependencies.getSonarDependencies;
+import static name.remal.gradle_plugins.sonarlint.SonarDependencies.SONARLINT_CORE_DEPENDENCIES;
+import static name.remal.gradle_plugins.sonarlint.SonarDependencies.SONARLINT_CORE_EXCLUSIONS;
+import static name.remal.gradle_plugins.sonarlint.SonarJavascriptPluginInfo.SONAR_JAVASCRIPT_PLUGIN_DEPENDENCY;
 import static name.remal.gradle_plugins.toolkit.AttributeContainerUtils.javaRuntimeLibrary;
-import static name.remal.gradle_plugins.toolkit.ExtensionContainerUtils.findExtension;
-import static name.remal.gradle_plugins.toolkit.ExtensionContainerUtils.getExtension;
-import static name.remal.gradle_plugins.toolkit.PropertiesConventionUtils.setPropertyConvention;
-import static name.remal.gradle_plugins.toolkit.ResolutionStrategyUtils.configureGlobalResolutionStrategy;
+import static name.remal.gradle_plugins.toolkit.GradleManagedObjectsUtils.copyManagedProperties;
+import static name.remal.gradle_plugins.toolkit.LazyValue.lazyValue;
+import static name.remal.gradle_plugins.toolkit.ObjectUtils.doNotInline;
 import static name.remal.gradle_plugins.toolkit.SourceSetUtils.isSourceSetTask;
-import static name.remal.gradle_plugins.toolkit.SourceSetUtils.whenTestSourceSetRegistered;
-import static org.gradle.api.artifacts.ExcludeRule.GROUP_KEY;
-import static org.gradle.api.artifacts.ExcludeRule.MODULE_KEY;
+import static name.remal.gradle_plugins.toolkit.reflection.MembersFinder.findMethod;
 
-import com.google.common.collect.ImmutableMap;
-import java.io.File;
-import java.util.ArrayList;
+import com.tisonkun.os.core.Arch;
+import com.tisonkun.os.core.OS;
 import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Objects;
+import java.util.List;
 import java.util.Optional;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
+import java.util.function.BooleanSupplier;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
-import lombok.Builder;
 import lombok.CustomLog;
-import lombok.Value;
-import name.remal.gradle_plugins.toolkit.FileUtils;
-import name.remal.gradle_plugins.toolkit.ObjectUtils;
-import name.remal.gradle_plugins.toolkit.annotations.ReliesOnInternalGradleApi;
+import name.remal.gradle_plugins.sonarlint.SonarJavascriptPluginInfo.EmbeddedNodeJsPlatform;
+import name.remal.gradle_plugins.toolkit.LazyValue;
+import name.remal.gradle_plugins.toolkit.reflection.TypedVoidMethod1;
+import org.gradle.api.JavaVersion;
+import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.Configuration;
-import org.gradle.api.artifacts.Dependency;
 import org.gradle.api.artifacts.ModuleDependency;
 import org.gradle.api.artifacts.dsl.DependencyHandler;
-import org.gradle.api.file.DirectoryProperty;
+import org.gradle.api.file.ConfigurableFileCollection;
+import org.gradle.api.file.FileCollection;
 import org.gradle.api.internal.tasks.compile.HasCompileOptions;
 import org.gradle.api.model.ObjectFactory;
 import org.gradle.api.plugins.quality.Checkstyle;
-import org.gradle.api.plugins.quality.CheckstyleExtension;
-import org.gradle.api.plugins.quality.CodeQualityExtension;
-import org.gradle.api.plugins.quality.internal.AbstractCodeQualityPlugin;
 import org.gradle.api.provider.Provider;
-import org.gradle.api.provider.ProviderFactory;
 import org.gradle.api.tasks.SourceSet;
 import org.gradle.api.tasks.SourceSetContainer;
-import org.gradle.api.tasks.VerificationTask;
 import org.gradle.api.tasks.compile.AbstractCompile;
 import org.gradle.api.tasks.compile.CompileOptions;
 import org.gradle.api.tasks.compile.JavaCompile;
-import org.jetbrains.annotations.Unmodifiable;
+import org.gradle.jvm.toolchain.JavaCompiler;
+import org.gradle.jvm.toolchain.JavaInstallationMetadata;
+import org.gradle.jvm.toolchain.JavaLanguageVersion;
 
 @CustomLog
-@ReliesOnInternalGradleApi
-public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLint> {
+public abstract class SonarLintPlugin implements Plugin<Project> {
 
-    @SuppressWarnings({"HidingField", "java:S2387"})
-    protected Project project;
-
-    @SuppressWarnings({"HidingField", "java:S2387"})
-    protected SonarLintExtension extension;
+    public static final String SONARLINT_EXTENSION_NAME = doNotInline("sonarLint");
+    public static final String SONARLINT_CORE_CONFIGURATION_NAME = doNotInline("sonarlintCore");
+    public static final String SONARLINT_PLUGINS_CONFIGURATION_NAME = doNotInline("sonarlintPlugins");
 
     @Override
-    protected void beforeApply() {
-        this.project = super.project;
-    }
+    public void apply(Project project) {
+        var extension = project.getExtensions().create(SONARLINT_EXTENSION_NAME, SonarLintExtension.class);
 
-
-    @Override
-    protected String getToolName() {
-        return "SonarLint";
-    }
-
-    @Override
-    protected Class<SonarLint> getTaskType() {
-        return SonarLint.class;
-    }
-
-    @Override
-    protected String getConfigurationName() {
-        return super.getConfigurationName() + "Core";
-    }
-
-    protected String getPluginsConfigurationName() {
-        return getConfigurationName() + "Plugins";
-    }
-
-    @Override
-    protected void configureConfiguration(Configuration configuration) {
-        configureSonarLintConfiguration(configuration);
-
-        getSonarDependencies().values().stream()
-            .filter(sonarDependency -> sonarDependency.getType() == SonarDependencyType.CORE)
-            .forEach(sonarDependency -> {
-                configuration.getDependencies().add(
-                    createDependency(sonarDependency)
-                );
-            });
-    }
-
-    @Override
-    @SuppressWarnings("Slf4jFormatShouldBeConst")
-    protected void createConfigurations() {
-        configureGlobalResolutionStrategy(project, resolutionStrategy -> {
-            try {
-                resolutionStrategy.eachDependency(details -> {
-                    var target = details.getTarget();
-                    var targetNotation = target.getGroup() + ':' + target.getName() + ':' + target.getVersion();
-                    var fixedVersion = getVersionWithFixedPom(targetNotation);
-                    if (fixedVersion != null) {
-                        details.because("Fix dependency with broken POM")
-                            .useVersion(fixedVersion);
-                    }
-                });
-
-            } catch (Throwable e) {
-                logger.trace(e.toString(), e);
-            }
-        });
-
-        super.createConfigurations();
-
-        project.getConfigurations().register(getPluginsConfigurationName(), conf -> {
-            if (conf.isCanBeResolved()) {
-                conf.setCanBeResolved(true);
-            }
-
+        var coreConf = project.getConfigurations().register(SONARLINT_CORE_CONFIGURATION_NAME, conf -> {
             configureSonarLintConfiguration(conf);
-            conf.setDescription(getToolName() + " plugins to be used for this project.");
-
-            conf.getDependencies().withType(ModuleDependency.class).configureEach(dep -> {
-                dep.setTransitive(false);
+            conf.setDescription("SonarLint core");
+            conf.defaultDependencies(deps -> {
+                SONARLINT_CORE_DEPENDENCIES.stream()
+                    .map(this::processSonarDependency)
+                    .map(SonarDependency::getNotation)
+                    .map(getDependencies()::create)
+                    .forEach(deps::add);
             });
-
-            getSonarDependencies().values().stream()
-                .filter(sonarDependency -> sonarDependency.getType() == SonarDependencyType.PLUGIN)
-                .forEach(sonarDependency -> {
-                    conf.getDependencies().add(
-                        createDependency(sonarDependency)
-                    );
-                });
-        });
-    }
-
-    @Override
-    protected CodeQualityExtension createExtension() {
-        var extension = project.getExtensions().create("sonarLint", SonarLintExtension.class);
-        this.extension = extension;
-
-        Collection<SourceSet> testSourceSets = new ArrayList<>();
-        whenTestSourceSetRegistered(project, testSourceSets::add);
-        setPropertyConvention(extension, "testSourceSets", returning(testSourceSets));
-
-
-        project.getTasks().withType(BaseSonarLint.class)
-            .configureEach(this::configureTaskDefaults);
-
-        project.getTasks().register("sonarLintProperties", SonarLintPropertiesHelp.class);
-        project.getTasks().register("sonarLintRules", SonarLintRulesHelp.class);
-
-        return extension;
-    }
-
-    private void configureTaskDefaults(BaseSonarLint task) {
-        if (task instanceof VerificationTask) {
-            setPropertyConvention(task, "ignoreFailures", extension::isIgnoreFailures);
-        }
-
-        task.getCoreClasspath().setFrom(
-            project.getConfigurations().getByName(getConfigurationName())
-        );
-        task.getPluginsClasspath().setFrom(
-            project.getConfigurations().getByName(getPluginsConfigurationName())
-        );
-
-        task.getNodeJs().set(extension.getNodeJs());
-        task.getCheckstyleConfig().convention(project.getLayout().file(getProviders().provider(
-            this::getCheckstyleConfigFile
-        )));
-        task.getDisableRulesConflictingWithLombok().convention(getProviders().provider(() ->
-            TRUE.equals(extension.getRules().getDisableConflictingWithLombok().getOrNull())
-        ));
-        task.getLoggingOptions().set(extension.getLogging());
-        task.getForkOptions().set(extension.getFork());
-    }
-
-    @Override
-    protected void configureTaskDefaults(SonarLint task, String baseName) {
-        // do nothing
-    }
-
-    @Override
-    @ReliesOnInternalGradleApi
-    @SuppressWarnings("java:S3776")
-    protected void configureForSourceSet(SourceSet sourceSet, SonarLint task) {
-        task.setDescription("Run " + getToolName() + " analysis for " + sourceSet.getName() + " classes");
-        task.dependsOn(sourceSet.getClassesTaskName());
-
-        task.dependsOn(sourceSet.getAllSource());
-        task.setSource(sourceSet.getAllSource());
-
-        var sourceSetCompileTasks = project.getTasks().withType(AbstractCompile.class)
-            .matching(compileTask -> isSourceSetTask(sourceSet, compileTask));
-        task.dependsOn(sourceSetCompileTasks);
-        task.source(getProviders().provider(() -> {
-            //noinspection ConstantConditions
-            return sourceSetCompileTasks.stream()
-                .filter(HasCompileOptions.class::isInstance)
-                .map(HasCompileOptions.class::cast)
-                .map(compileTask -> Optional.ofNullable(compileTask.getOptions())
-                    .map(CompileOptions::getGeneratedSourceOutputDirectory)
-                    .map(DirectoryProperty::getAsFile)
-                    .map(Provider::getOrNull)
-                    .map(File::getAbsoluteFile)
-                    .orElse(null)
-                )
-                .filter(Objects::nonNull)
-                .collect(toList());
-        }));
-
-        task.getIsTest().convention(getProviders().provider(() ->
-            getTestSourceSets().contains(sourceSet)
-        ));
-
-        task.dependsOn(getProviders().provider(() -> {
-            var testSourceSets = getTestSourceSets();
-            var mainSourceSets = getExtension(project, SourceSetContainer.class).stream()
-                .filter(not(testSourceSets::contains))
-                .collect(toList());
-            if (mainSourceSets.contains(sourceSet)) {
-                return testSourceSets.stream()
-                    .map(SourceSet::getClassesTaskName)
-                    .collect(toList());
-            } else if (testSourceSets.contains(sourceSet)) {
-                return mainSourceSets.stream()
-                    .map(SourceSet::getClassesTaskName)
-                    .collect(toList());
-            } else {
-                return emptyList();
-            }
-        }));
-
-        var lazyOutputDirsAndLibraries = getObjects().property(OutputDirsAndLibraries.class)
-            .value(getProviders().provider(() -> {
-                var testSourceSets = getTestSourceSets();
-                var mainSourceSets = getExtension(project, SourceSetContainer.class).stream()
-                    .filter(not(testSourceSets::contains))
-                    .collect(toList());
-                final Collection<File> mainOutputDirs;
-                final Collection<File> mainLibraries;
-                final Collection<File> testOutputDirs;
-                final Collection<File> testLibraries;
-                if (mainSourceSets.contains(sourceSet)) {
-                    mainOutputDirs = getOutputDirs(singletonList(sourceSet));
-                    mainLibraries = getLibraries(singletonList(sourceSet));
-
-                    testOutputDirs = getOutputDirs(testSourceSets);
-                    testLibraries = getLibraries(testSourceSets);
-
-                } else if (testSourceSets.contains(sourceSet)) {
-                    mainOutputDirs = getOutputDirs(mainSourceSets);
-                    mainLibraries = getLibraries(mainSourceSets);
-
-                    testOutputDirs = getOutputDirs(singletonList(sourceSet));
-                    testLibraries = getLibraries(singletonList(sourceSet));
-
-                } else {
-                    mainOutputDirs = getOutputDirs(singletonList(sourceSet));
-                    mainLibraries = getLibraries(singletonList(sourceSet));
-
-                    testOutputDirs = mainOutputDirs;
-                    testLibraries = mainLibraries;
-                }
-
-                return OutputDirsAndLibraries.builder()
-                    .mainOutputDirs(mainOutputDirs)
-                    .mainLibraries(mainLibraries)
-                    .testOutputDirs(testOutputDirs)
-                    .testLibraries(testLibraries)
-                    .build();
-            }));
-        lazyOutputDirsAndLibraries.finalizeValueOnRead();
-
-        task.onlyIf(__ -> {
-            var outputDirsAndLibraries = lazyOutputDirsAndLibraries.get();
-            Stream.of(
-                    outputDirsAndLibraries.getMainOutputDirs(),
-                    outputDirsAndLibraries.getMainLibraries(),
-                    outputDirsAndLibraries.getTestOutputDirs(),
-                    outputDirsAndLibraries.getTestLibraries()
-                )
-                .flatMap(Collection::stream)
-                .distinct()
-                .forEach(file -> {
-                    if (file.isDirectory()) {
-                        task.getInputs().dir(file)
-                            .ignoreEmptyDirectories()
-                            .optional();
-                    } else {
-                        task.getInputs().file(file)
-                            .ignoreEmptyDirectories()
-                            .optional();
-                    }
-                });
-
-            return true;
         });
 
-        task.getSonarProperties().putAll(getProviders().provider(() -> {
-            Map<String, String> javaProps = new LinkedHashMap<>();
+        var pluginsConf = project.getConfigurations().register(SONARLINT_PLUGINS_CONFIGURATION_NAME, conf -> {
+            configureSonarLintConfiguration(conf);
+            conf.setDescription("SonarLint plugins");
+            conf.getDependencies().withType(ModuleDependency.class).configureEach(dep -> dep.setTransitive(false));
 
-            var javaCompileTask = project.getTasks()
-                .withType(JavaCompile.class)
-                .stream()
-                .filter(it -> it.getName().equals(sourceSet.getCompileJavaTaskName()))
-                .findFirst();
-            javaCompileTask.map(JavaCompile::getOptions)
-                .map(CompileOptions::getEncoding)
-                .filter(ObjectUtils::isNotEmpty)
-                .ifPresent(encoding ->
-                    javaProps.put(SONAR_SOURCE_ENCODING, encoding)
-                );
-            javaCompileTask.map(JavaCompile::getSourceCompatibility)
-                .filter(ObjectUtils::isNotEmpty)
-                .ifPresent(sourceCompatibility ->
-                    javaProps.put(SONAR_JAVA_SOURCE_PROPERTY, sourceCompatibility)
-                );
-            javaCompileTask.map(JavaCompile::getTargetCompatibility)
-                .filter(ObjectUtils::isNotEmpty)
-                .ifPresent(targetCompatibility ->
-                    javaProps.put(SONAR_JAVA_TARGET_PROPERTY, targetCompatibility)
-                );
-            javaCompileTask.map(JavaCompile::getOptions)
-                .map(CompileOptions::getCompilerArgs)
-                .filter(ObjectUtils::isNotEmpty)
-                .ifPresent(args -> {
-                    var isPreviewEnabled = args.stream().anyMatch("--enable-preview"::equals);
-                    if (isPreviewEnabled) {
-                        javaProps.put(SONAR_JAVA_ENABLE_PREVIEW_PROPERTY, "true");
-                    }
-                });
+            conf.defaultDependencies(deps -> {
+                extension.getLanguages().getLanguagesToProcess().stream()
+                    .map(SonarLintLanguage::getPluginDependencies)
+                    .flatMap(Collection::stream)
+                    .distinct()
+                    .map(this::processSonarDependency)
+                    .map(SonarDependency::getNotation)
+                    .map(getDependencies()::create)
+                    .forEach(deps::add);
+            });
+        });
 
-            var outputDirsAndLibraries = lazyOutputDirsAndLibraries.get();
-            javaProps.put(SONAR_JAVA_BINARIES, outputDirsAndLibraries.getMainOutputDirs().stream()
-                .map(File::getPath)
-                .collect(joining(SONAR_LIST_PROPERTY_DELIMITER))
-            );
-            javaProps.put(SONAR_JAVA_LIBRARIES, outputDirsAndLibraries.getMainLibraries().stream()
-                .map(File::getPath)
-                .collect(joining(SONAR_LIST_PROPERTY_DELIMITER))
-            );
-            javaProps.put(SONAR_JAVA_TEST_BINARIES, outputDirsAndLibraries.getTestOutputDirs().stream()
-                .map(File::getPath)
-                .collect(joining(SONAR_LIST_PROPERTY_DELIMITER))
-            );
-            javaProps.put(SONAR_JAVA_TEST_LIBRARIES, outputDirsAndLibraries.getTestLibraries().stream()
-                .map(File::getPath)
-                .collect(joining(SONAR_LIST_PROPERTY_DELIMITER))
-            );
+        configureAllSonarLintTasks(project, extension, coreConf, pluginsConf);
 
-            return javaProps;
-        }));
+        project.getPluginManager().withPlugin("java", __ -> configureJvmProject(project, extension));
 
-        task.getCheckstyleConfig().convention(project.getLayout().file(getProviders().provider(() ->
-            getCheckstyleConfigFile(sourceSet)
-        )));
-
-        task.getDisableRulesConflictingWithLombok().convention(getProviders().provider(() ->
-            project.getConfigurations()
-                .getByName(sourceSet.getCompileClasspathConfigurationName())
-                .getResolvedConfiguration()
-                .getLenientConfiguration()
-                .getAllModuleDependencies()
-                .stream()
-                .anyMatch(dep ->
-                    Objects.equals(dep.getModuleGroup(), "org.projectlombok")
-                        && Objects.equals(dep.getModuleName(), "lombok")
-                )
-        ));
-    }
-
-    @Value
-    @Builder
-    private static class OutputDirsAndLibraries {
-        Collection<File> mainOutputDirs;
-        Collection<File> mainLibraries;
-        Collection<File> testOutputDirs;
-        Collection<File> testLibraries;
-    }
-
-    @Unmodifiable
-    @SuppressWarnings("ConstantValue")
-    private Collection<SourceSet> getTestSourceSets() {
-        var testSourceSets = extension.getTestSourceSets();
-        return testSourceSets != null
-            ? unmodifiableCollection(new LinkedHashSet<>(testSourceSets))
-            : emptyList();
-    }
-
-    private static Collection<File> getOutputDirs(Iterable<? extends SourceSet> sourceSets) {
-        return StreamSupport.stream(sourceSets.spliterator(), false)
-            .map(SourceSet::getOutput)
-            .flatMap(output ->
-                Stream.of(
-                    output.getClassesDirs(),
-                    singletonList(output.getResourcesDir()),
-                    output.getDirs()
-                ).flatMap(files -> StreamSupport.stream(files.spliterator(), false))
-            )
-            .map(FileUtils::normalizeFile)
-            .distinct()
-            .collect(toList());
-    }
-
-    private static Collection<File> getLibraries(Iterable<? extends SourceSet> sourceSets) {
-        return StreamSupport.stream(sourceSets.spliterator(), false)
-            .map(SourceSet::getCompileClasspath)
-            .flatMap(files -> StreamSupport.stream(files.spliterator(), false))
-            .map(FileUtils::normalizeFile)
-            .distinct()
-            .collect(toList());
-    }
-
-    @Nullable
-    @SuppressWarnings("ConstantConditions")
-    private File getCheckstyleConfigFile(SourceSet sourceSet) {
-        return project.getTasks().stream()
-            .filter(Checkstyle.class::isInstance)
-            .map(Checkstyle.class::cast)
-            .filter(it -> it.getName().equals(sourceSet.getTaskName("checkstyle", null)))
-            .map(Checkstyle::getConfigFile)
-            .filter(Objects::nonNull)
-            .findFirst()
-            .orElseGet(this::getCheckstyleConfigFile);
-    }
-
-    @Nullable
-    private File getCheckstyleConfigFile() {
-        return Optional.ofNullable(findExtension(project, CheckstyleExtension.class))
-            .map(CheckstyleExtension::getConfigFile)
-            .orElse(null);
+        project.getTasks().register("sonarLintProperties", SonarLintHelpProperties.class);
+        project.getTasks().register("sonarLintRules", SonarLintHelpRules.class);
     }
 
 
     private void configureSonarLintConfiguration(Configuration configuration) {
+        configuration.setCanBeResolved(true);
         configuration.setVisible(false);
-
 
         if (configuration.isCanBeResolved() || configuration.isCanBeConsumed()) {
             configuration.attributes(javaRuntimeLibrary(getObjects()));
         }
 
+        SONARLINT_CORE_EXCLUSIONS.forEach(configuration::exclude);
 
-        configuration.exclude(ImmutableMap.of(
-            GROUP_KEY, "ch.qos.logback",
-            MODULE_KEY, "*"
-        ));
-        configuration.exclude(ImmutableMap.of(
-            GROUP_KEY, "org.springframework",
-            MODULE_KEY, "spring-jcl"
-        ));
-
-        if (!configuration.getName().equals(getConfigurationName())) {
-            project.getConfigurations()
-                .getByName(getConfigurationName())
-                .getExcludeRules()
-                .forEach(excludeRule -> {
-                    configuration.exclude(ImmutableMap.of(
-                        GROUP_KEY, excludeRule.getGroup(),
-                        MODULE_KEY, excludeRule.getModule()
-                    ));
-                });
+        if (areFixedVersionForBrokenDependenciesRegistered()) {
+            configuration.getResolutionStrategy().eachDependency(details -> {
+                var target = details.getTarget();
+                var targetNotation = target.getGroup() + ':' + target.getName() + ':' + target.getVersion();
+                var fixedVersion = getFixedVersionForBrokenDependency(targetNotation);
+                if (fixedVersion != null) {
+                    details.because("Fix dependency with broken version")
+                        .useVersion(fixedVersion);
+                }
+            });
         }
 
+        if (areResolvedNonReproducibleSonarDependenciesRegistered()) {
+            configuration.getResolutionStrategy().eachDependency(details -> {
+                var target = details.getTarget();
+                var notation = target.getGroup() + ':' + target.getName() + ':' + target.getVersion();
+                var nonReproducibleDependency = getResolvedNonReproducibleSonarDependency(notation);
+                if (nonReproducibleDependency != null) {
+                    details.because("Replace non-reproducible version with predefined one")
+                        .useVersion(nonReproducibleDependency.getVersion());
+                }
+            });
+        }
+    }
 
-        configuration.getResolutionStrategy().eachDependency(details -> {
-            var target = details.getTarget();
-            var notation = target.getGroup() + ':' + target.getName() + ':' + target.getVersion();
-            var nonReproducibleDependency = getResolvedNonReproducibleSonarDependency(notation);
-            if (nonReproducibleDependency != null) {
-                details.because("Replace non-reproducible version with predefined one")
-                    .useVersion(nonReproducibleDependency.getVersion());
+    private SonarDependency processSonarDependency(SonarDependency dependency) {
+        if (dependency.getId().equals(SONAR_JAVASCRIPT_PLUGIN_DEPENDENCY_ID)) {
+            var platform = getEmbeddedNodeJsPlatform();
+            if (platform != null) {
+                var newClassifier = platform.getJavascriptPluginClassifier();
+                return dependency.withClassifier(newClassifier);
             }
+        }
+
+        return dependency;
+    }
+
+    private static final String SONAR_JAVASCRIPT_PLUGIN_DEPENDENCY_ID = SONAR_JAVASCRIPT_PLUGIN_DEPENDENCY.getId();
+
+    @Nullable
+    private EmbeddedNodeJsPlatform getEmbeddedNodeJsPlatform() {
+        var osDetector = this.osDetector.get();
+        var detected = osDetector.getDetectedOs();
+        if (detected.os == OS.windows) {
+            if (detected.arch == Arch.x86_64) {
+                return EmbeddedNodeJsPlatform.WIN_X64;
+            }
+
+        } else if (detected.os == OS.linux) {
+            if (detected.arch == Arch.aarch_64) {
+                return EmbeddedNodeJsPlatform.LINUX_ARM64;
+            } else if (detected.arch == Arch.x86_64) {
+                return osDetector.isAlpine()
+                    ? EmbeddedNodeJsPlatform.LINUX_X64_MUSL
+                    : EmbeddedNodeJsPlatform.LINUX_X64;
+            }
+
+        } else if (detected.os == OS.osx) {
+            if (detected.arch == Arch.aarch_64) {
+                return EmbeddedNodeJsPlatform.DARWIN_ARM64;
+            } else if (detected.arch == Arch.x86_64) {
+                return EmbeddedNodeJsPlatform.DARWIN_X64;
+            }
+        }
+
+        return null;
+    }
+
+    private final LazyValue<OsDetector> osDetector = lazyValue(() -> getObjects().newInstance(OsDetector.class));
+
+
+    private void configureAllSonarLintTasks(
+        Project project,
+        SonarLintExtension extension,
+        Provider<Configuration> coreConf,
+        Provider<Configuration> pluginsConf
+    ) {
+        project.getTasks().withType(AbstractSonarLintTask.class).configureEach(task -> {
+            copyManagedProperties(SonarLintSettings.class, extension, task.getSettings());
+            copyManagedProperties(SonarLintLanguagesSettings.class, extension.getLanguages(), task.getLanguages());
+            task.getCoreClasspath().from(coreConf);
+            task.getPluginFiles().from(pluginsConf);
         });
     }
 
-    private Dependency createDependency(SonarDependency sonarDependency) {
-        return getDependencies().create(format(
-            "%s:%s:%s",
-            sonarDependency.getGroup(),
-            sonarDependency.getName(),
-            sonarDependency.getVersion()
-        ));
+
+    @SuppressWarnings("java:S3776")
+    private void configureJvmProject(Project project, SonarLintExtension extension) {
+        var sourceSets = project.getExtensions().getByType(SourceSetContainer.class);
+
+        var testSourceSets = sourceSets.matching(extension.getTestSourceSets().get()::contains);
+        var mainSourceSets = sourceSets.matching(it -> !testSourceSets.contains(it));
+
+        sourceSets.all(sourceSet -> {
+            var taskName = sourceSet.getTaskName("sonarlint", null);
+            project.getTasks().register(taskName, SonarLint.class, task -> {
+                task.setDescription(format("Run SonarLint analysis for %s classes", sourceSet.getName()));
+
+                task.dependsOn(sourceSet.getClassesTaskName());
+                task.dependsOn(sourceSet.getOutput());
+
+                task.dependsOn(sourceSet.getAllSource());
+                task.source(sourceSet.getAllSource());
+
+                var sourceSetCompileTasks = project.getTasks().withType(AbstractCompile.class)
+                    .matching(compileTask -> isSourceSetTask(sourceSet, compileTask));
+                task.dependsOn(sourceSetCompileTasks);
+                task.source(project.provider(() ->
+                    sourceSetCompileTasks.stream()
+                        .map(compileTask -> Optional.of(compileTask)
+                            .filter(HasCompileOptions.class::isInstance)
+                            .map(HasCompileOptions.class::cast)
+                            .map(HasCompileOptions::getOptions)
+                            .map(CompileOptions::getGeneratedSourceOutputDirectory)
+                        )
+                        .filter(Optional::isPresent)
+                        .map(Optional::get)
+                        .collect(toList())
+                ));
+
+                task.getIsTest().convention(project.provider(() -> testSourceSets.contains(sourceSet)));
+
+                task.java(java -> {
+                    var compileJavaTask = project.getTasks()
+                        .named(sourceSet.getCompileJavaTaskName(), JavaCompile.class);
+
+                    java.getJvm().convention(
+                        compileJavaTask
+                            .flatMap(JavaCompile::getJavaCompiler)
+                            .map(JavaCompiler::getMetadata)
+                    );
+
+                    java.getRelease().convention(
+                        compileJavaTask
+                            .map(JavaCompile::getOptions)
+                            .flatMap(CompileOptions::getRelease)
+                            .map(JavaLanguageVersion::of)
+                            .orElse(
+                                compileJavaTask
+                                    .map(JavaCompile::getSourceCompatibility)
+                                    .map(JavaVersion::toVersion)
+                                    .map(JavaVersion::getMajorVersion)
+                                    .map(JavaLanguageVersion::of)
+                            )
+                            .orElse(
+                                java.getJvm()
+                                    .map(JavaInstallationMetadata::getLanguageVersion)
+                            )
+                    );
+
+                    java.getEnablePreview().convention(
+                        compileJavaTask
+                            .map(JavaCompile::getOptions)
+                            .map(CompileOptions::getAllCompilerArgs)
+                            .map(args -> args.stream().anyMatch("--enable-preview"::equals))
+                    );
+
+                    BooleanSupplier isMain = () -> !task.getIsTest().get();
+
+                    setConventionOrFrom(java.getMainOutputDirectories(), project.provider(() ->
+                        isMain.getAsBoolean()
+                            ? getOutputDirs(sourceSet)
+                            : getOutputDirs(mainSourceSets)
+                    ));
+
+                    setConventionOrFrom(java.getMainClasspath(), project.provider(() ->
+                        isMain.getAsBoolean()
+                            ? getLibraries(sourceSet)
+                            : getLibraries(mainSourceSets)
+                    ));
+
+                    setConventionOrFrom(java.getTestOutputDirectories(), project.provider(() ->
+                        isMain.getAsBoolean()
+                            ? getOutputDirs(testSourceSets)
+                            : getOutputDirs(sourceSet)
+                    ));
+
+                    setConventionOrFrom(java.getTestClasspath(), project.provider(() ->
+                        isMain.getAsBoolean()
+                            ? getLibraries(testSourceSets)
+                            : getLibraries(sourceSet)
+                    ));
+
+                    java.getDisableRulesConflictingWithLombok().convention(project.provider(() ->
+                        project.getConfigurations()
+                            .getByName(sourceSet.getCompileClasspathConfigurationName())
+                            .getResolvedConfiguration()
+                            .getLenientConfiguration()
+                            .getAllModuleDependencies()
+                            .stream()
+                            .map(dep -> dep.getModuleGroup() + ':' + dep.getModuleName())
+                            .anyMatch("org.projectlombok:lombok"::equals)
+                    ));
+                });
+
+                var checkstyleTaskName = sourceSet.getTaskName("checkstyle", null);
+                task.getCheckstyleConfig().convention(project.getLayout().file(project.provider(() ->
+                    project.getTasks().withType(Checkstyle.class)
+                        .matching(it -> it.getName().equals(checkstyleTaskName))
+                        .stream().findFirst()
+                        .map(Checkstyle::getConfigFile)
+                        .orElse(null)
+                )));
+            });
+
+            project.getTasks().named("check", check -> check.dependsOn(taskName));
+        });
+    }
+
+    @Nullable
+    private static final TypedVoidMethod1<ConfigurableFileCollection, Object[]> CONFIGURABLE_FILE_COLLECTION_CONVENTION
+        = findMethod(ConfigurableFileCollection.class, "convention", Object[].class);
+
+    private static void setConventionOrFrom(ConfigurableFileCollection files, Object... paths) {
+        if (CONFIGURABLE_FILE_COLLECTION_CONVENTION != null) {
+            CONFIGURABLE_FILE_COLLECTION_CONVENTION.invoke(files, paths);
+        } else {
+            files.setFrom(paths);
+        }
+    }
+
+    private FileCollection getOutputDirs(Iterable<? extends SourceSet> sourceSets) {
+        var result = getObjects().fileCollection();
+        for (var sourceSet : sourceSets) {
+            var output = sourceSet.getOutput();
+            result.from(output);
+            Optional.ofNullable(output.getResourcesDir()).ifPresent(result::from);
+            result.from(output.getDirs());
+        }
+        return result;
+    }
+
+    private FileCollection getOutputDirs(SourceSet sourceSet) {
+        return getOutputDirs(List.of(sourceSet));
+    }
+
+    private FileCollection getLibraries(Iterable<? extends SourceSet> sourceSets) {
+        var result = getObjects().fileCollection();
+        for (var sourceSet : sourceSets) {
+            result.from(sourceSet.getCompileClasspath());
+        }
+        return result;
+    }
+
+    private FileCollection getLibraries(SourceSet sourceSet) {
+        return getLibraries(List.of(sourceSet));
     }
 
 
     @Inject
     protected abstract DependencyHandler getDependencies();
-
-    @Inject
-    protected abstract ProviderFactory getProviders();
 
     @Inject
     protected abstract ObjectFactory getObjects();

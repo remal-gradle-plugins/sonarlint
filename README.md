@@ -9,11 +9,13 @@
 Usage:
 
 <!--plugin-usage:name.remal.sonarlint-->
+
 ```groovy
 plugins {
-    id 'name.remal.sonarlint' version '5.1.10'
+  id 'name.remal.sonarlint' version '5.1.10'
 }
 ```
+
 <!--/plugin-usage-->
 
 &nbsp;
@@ -44,20 +46,60 @@ The plugin uses these Sonar plugins:
 
 <!--/sonar-plugins-list-->
 
-For every [`SourceSet`](https://docs.gradle.org/current/javadoc/org/gradle/api/tasks/SourceSet.html) a SonarLint task is created by default.
+For every [`SourceSet`](https://docs.gradle.org/current/javadoc/org/gradle/api/tasks/SourceSet.html), a SonarLint task is created by default.
+
+## Infra languages are excluded by default
+
+Infra languages are excluded by default:
+<!--iterable-property:infraLanguageNames-->
+
+* AzureResourceManager
+* CloudFormation
+* Docker
+* JSON
+* Kubernetes
+* Terraform
+* YAML
+
+<!--/iterable-property-->
+
+Infra code is often stored in the same repository as microservices, but typically outside the `src` directory.
+By default, this plugin generates `sonarlint*` tasks only for `src/*` directories.
+
+Even if infra languages were included, they wouldn't be checked unless infra code is placed inside a `src/*` directory.
+For this reason, infra languages are excluded by default.
+
+To include infra languages, use this configuration: `sonarLint.languages.includeInfra = true`
+
+Also, a single infra language can be included like this: `sonarLint.languages.include('CloudFormation')`
+
+## Frontend languages are excluded by default
+
+Frontend languages are excluded by default:
+<!--iterable-property:frontendLanguageNames-->
+
+* CSS
+* HTML
+* JSP
+* JavaScript
+* TypeScript
+
+<!--/iterable-property-->
+
+Frontend code is usually built with Node.js, not Gradle.
+Additionally, SonarLint checks for frontend languages are slow when run on single files, making incremental verification inefficient.
+
+For these reasons, frontend languages are excluded by default.
+
+To include frontend languages, use this configuration: `sonarLint.languages.includeFrontend = true`
+
+Also, a single frontend language can be included like this: `sonarLint.languages.include('JavaScript')`
 
 ## Configuration
 
 ```groovy
 sonarLint {
   isGeneratedCodeIgnored = false // `true` by default, set to `false` to validate generated code (code inside `./build/`)
-
-  // see detailed documentation about `nodeJs` later in the document
-  nodeJs {
-    nodeJsExecutable = project.layout.projectDirectory.file('/usr/bin/node') // set path to Node.js executable
-    detectNodeJs = true // `false` by default, set to `true` to enable automatic Node.js detection
-    logNodeJsNotFound = false // Hide warning message about not found Node.js
-  }
 
   rules {
     enable(
@@ -81,6 +123,9 @@ sonarLint {
   languages {
     include('java', 'kotlin') // Enable Java and Kotlin languages only, all other languages become disabled
     exclude('java', 'kotlin') // Disable Java and Kotlin languages, all other languages remain enabled
+
+    includeInfra = true // Include infra languages (like CloudFormation) that are excluded by default
+    includeFrontend = true // Include frontend languages (like JavaScript) that are excluded by default
   }
 
   sonarProperty('sonar.html.file.suffixes', '.custom-html') // Configure `sonar.html.file.suffixes` Sonar property
@@ -93,15 +138,14 @@ sonarLint {
     }
   }
 
-  testSourceSets = sourceSets.matching { true } // Which source-sets contain test sources. Source-sets created by plugins like `name.remal.test-source-sets` are automatically integrated. Most probably, you don't have to configure anything yourself.
+  // Which source sets contain test sources.
+  // Source sets created by plugins like `jvm-test-suite`, `java-test-fixtures`, or `name.remal.test-source-sets` are automatically handled.
+  // Most likely, you don't have to configure anything yourself.
+  testSourceSets = sourceSets.matching { true }
 
   logging {
     withDescription = false // Hide rule descriptions from console output
-    hideWarnings = true // To hide warnings produced by this plugin
   }
-
-  // `sonarLint` extension extends `CodeQualityExtension` (see https://docs.gradle.org/current/javadoc/org/gradle/api/plugins/quality/CodeQualityExtension.html).
-  // You can use all fields of `CodeQualityExtension` the same way as for `checkstyle`, for example.
 }
 ```
 
@@ -117,28 +161,30 @@ sonarLint {
 
 Two additional help tasks are created:
 
-1. `sonarLintProperties` - displays Sonar properties that can be configured via `sonarLint.sonarProperties`.
+1. `sonarLintProperties` - displays Sonar properties that can be configured via `sonarLint.sonarProperties`
+   Properties of plugins for disabled languages are not shown.
 2. `sonarLintRules` - displays all Sonar rules available, their description and their properties.
-
-## Node.js detection
-
-SonarLint requires Node.js of the version <!--property:minSupportedNodeJsVersion-->18.17.0<!--/property--> or greater
-to process <!--property:requiringNodeJsLanguagesString-->CSS, JavaScript, TypeScript<!--/property--> languages.
-
-If Node.js detection is enabled, the plugin tries to find a Node.js executable automatically. The detection algorithm is:
-
-1. Try to find a Node.js executable on $PATH
-2. Then try to download a Node.js executable from [the official website](https://nodejs.org/en/download)
-
-If Node.js is successfully detected, is will be used.
-
-If Node.js cannot be detected, <!--property:requiringNodeJsLanguagesString-->CSS, JavaScript, TypeScript<!--/property--> languages will be excluded.
-
-If OS or CPU architecture does not support official Node.js, the detection won't detect any executable.
-
-If there are no files requiring Node.js in the sources, Node.js detection will be skipped.
+   Rules of disabled languages are not shown.
 
 # Migration guide
+
+## Version 5.* to 6.*
+
+* Min Gradle version was raised to 7.5 (from 7.1)
+* `sonarLint` extension no longer extends [`CodeQualityExtension`](https://docs.gradle.org/current/javadoc/org/gradle/api/plugins/quality/CodeQualityExtension.html)
+* `sonarLint.nodeJs` was removed
+* `sonarLint.logging.hideWarnings` was removed
+* Infra languages (like CloudFormation) are disabled by default.
+  Infra languages can be enabled all at the time by using `sonarLint.languages.includeInfra = true`
+  or individually (e.g. `sonarLint.languages.include('CloudFormation')`)
+* Frontend languages (like JavaScript) are disabled by default.
+  Frontend languages can be enabled all at the time by using `sonarLint.languages.includeFrontend = true`
+  or individually (e.g. `sonarLint.languages.include('JavaScript')`)
+* Node.js detection was removed.
+  Instead, [JavaScript](https://rules.sonarsource.com/javascript/) plugin with embedded Node.js is loaded.
+* `SonarLint` task was reworked.
+  If you use this type directly in your Gradle file, you'll need to apply some changes.
+  Consider using `sonarLint` extension only.
 
 ## Version 4.* to 5.*
 

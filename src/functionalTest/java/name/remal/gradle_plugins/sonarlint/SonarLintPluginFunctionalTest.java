@@ -1,53 +1,167 @@
 package name.remal.gradle_plugins.sonarlint;
 
 import static java.lang.String.join;
+import static java.util.Arrays.stream;
+import static java.util.stream.Collectors.joining;
+import static name.remal.gradle_plugins.sonarlint.FunctionalTestConstants.CURRENT_MINOR_GRADLE_VERSION;
+import static name.remal.gradle_plugins.sonarlint.internal.PropertiesDocumentation.NO_SONARLINT_PROPERTIES_FOUND_LOG_MESSAGE;
+import static name.remal.gradle_plugins.sonarlint.internal.RulesDocumentation.NO_SONARLINT_RULES_FOUND_LOG_MESSAGE;
+import static name.remal.gradle_plugins.toolkit.LazyValue.lazyValue;
 import static name.remal.gradle_plugins.toolkit.SneakyThrowUtils.sneakyThrows;
 import static name.remal.gradle_plugins.toolkit.StringUtils.normalizeString;
+import static name.remal.gradle_plugins.toolkit.StringUtils.substringBefore;
+import static org.apache.commons.lang3.StringUtils.capitalize;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.google.common.collect.ImmutableMap;
 import java.io.File;
 import java.net.URL;
 import java.security.CodeSource;
 import java.security.ProtectionDomain;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
+import lombok.Builder;
+import lombok.Builder.Default;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
+import lombok.Value;
+import name.remal.gradle_plugins.toolkit.LazyValue;
 import name.remal.gradle_plugins.toolkit.issues.CheckstyleXmlIssuesParser;
 import name.remal.gradle_plugins.toolkit.issues.Issue;
+import name.remal.gradle_plugins.toolkit.testkit.MinSupportedGradleVersion;
 import name.remal.gradle_plugins.toolkit.testkit.functional.GradleProject;
+import org.gradle.testkit.runner.BuildResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 @RequiredArgsConstructor
+@SuppressWarnings({"java:S5976", "java:S1854", "UnusedReturnValue"})
 class SonarLintPluginFunctionalTest {
 
-    private static final List<String> DISABLED_RULES = List.of(
-        "java:S1118",
-        "java:S1123",
-        "java:S6355"
-    );
+    private static final Map<String, String> RULE_EXAMPLES = ImmutableMap.<String, String>builder()
+        .put("css:S4670", join("\n", new String[]{
+            "field {}",
+        }))
+        .put("cloudformation:S6333", join("\n", new String[]{
+            "AWSTemplateFormatVersion: 2010-09-09",
+            "Resources:",
+            "  ExampleMethod:",
+            "    Type: AWS::ApiGateway::Method",
+            "    Properties:",
+            "      AuthorizationType: NONE",
+            "      HttpMethod: GET",
+        }))
+        .put("docker:S6596", join("\n", new String[]{
+            "FROM node:latest",
+        }))
+        .put("Web:S5725", join("\n", new String[]{
+            "<script src=\"https://cdn.example.com/latest/script.js\"/>",
+        }))
+        .put("java:S1133", join("\n", new String[]{
+            "package pkg;",
+            "",
+            "public class JavaS1133 {",
+            "",
+            "    @Deprecated",
+            "    void method() {",
+            "        System.exit(1);",
+            "    }",
+            "",
+            "}",
+        }))
+        .put("java:S1171", join("\n", new String[]{
+            "package pkg;",
+            "",
+            "import java.util.LinkedHashMap;",
+            "",
+            "public class JavaS1171 extends LinkedHashMap<String, String> {",
+            "",
+            "    {",
+            "        put(\"a\", \"b\");",
+            "    }",
+            "",
+            "}",
+        }))
+        .put("javascript:S930", join("\n", new String[]{
+            "function sum(a, b) {",
+            "    return a + b;",
+            "}",
+            "",
+            "sum(1, 2, 3);",
+        }))
+        .put("kotlin:S899", join("\n", new String[]{
+            "package pkg",
+            "",
+            "import java.io.File",
+            "",
+            "fun doSomething(file: File, lock: Lock) {",
+            "    file.delete()",
+            "}",
+        }))
+        .put("kubernetes:S6868", join("\n", new String[]{
+            "apiVersion: rbac.authorization.k8s.io/v1",
+            "kind: Role",
+            "metadata:",
+            "  namespace: default",
+            "  name: example-role",
+            "rules:",
+            "- apiGroups: [\"\"]",
+            "  resources: [\"pods\"]",
+            "  verbs: [\"get\"]",
+            "- apiGroups: [\"\"]",
+            "  resources: [\"pods/exec\"]",
+            "  verbs: [\"create\"]",
+        }))
+        .put("scala:S4663", join("\n", new String[]{
+            "/*  */",
+        }))
+        .put("terraform:S6414", join("\n", new String[]{
+            "resource \"google_project_iam_audit_config\" \"example\" {",
+            "    project = data.google_project.project.id",
+            "    service = \"allServices\"",
+            "    audit_log_config {",
+            "        log_type = \"ADMIN_READ\"",
+            "        exempted_members = [",
+            "            \"user:rogue.administrator@gmail.com\",",
+            "        ]",
+            "    }",
+            "}",
+        }))
+        .put("typescript:S909", join("\n", new String[]{
+            "for (i = 0; i < 10; i++) {",
+            "    if (i == 5) {",
+            "        continue;",
+            "    }",
+            "    alert(\"i = \" + i);",
+            "}",
+        }))
+        .put("xml:S2321", join("\n", new String[]{
+            "<parent><child/></parent>",
+        }))
+        .build();
 
-    private final GradleProject project;
+
+    final GradleProject project;
 
     @BeforeEach
     void beforeEach() {
         project.forBuildFile(build -> {
             build.applyPlugin("name.remal.sonarlint");
             build.applyPlugin("java");
-            build.line("repositories { mavenCentral() }");
             build.addBuildDirMavenRepositories();
-            build.line("sonarLint.ignoreFailures = true");
-
-            DISABLED_RULES.forEach(ruleId ->
-                project.getBuildFile().line(
-                    "sonarLint.rules.disable('%s')",
-                    build.escapeString(ruleId)
-                )
-            );
+            build.line("repositories { mavenCentral() }");
+            build.block("sonarLint", sonarLint -> {
+                sonarLint.line("ignoreFailures = true");
+                sonarLint.line("rules.enable('no-rules:enabled-by-default')");
+            });
         });
 
         project.addForbiddenMessage("Provided Node.js executable file does not exist.");
@@ -55,44 +169,26 @@ class SonarLintPluginFunctionalTest {
         project.addForbiddenMessage("Failed to determine the version of Node.js");
         project.addForbiddenMessage("Unsupported Node.JS version detected");
         project.addForbiddenMessage("Embedded Node.js failed to deploy.");
-    }
 
-    private List<Issue> parseSonarLintIssues(@Nullable String reportRelativePath) {
-        if (reportRelativePath == null) {
-            reportRelativePath = "build/reports/sonarlint/sonarlintMain/sonarlintMain.xml";
-        }
-        var reportFile = project.resolveRelativePath(reportRelativePath);
-        return new CheckstyleXmlIssuesParser().parseIssuesFrom(reportFile);
-    }
-
-    private List<Issue> parseSonarLintIssuesOf(String sourceFileRelativePath) {
-        return parseSonarLintIssuesOf(null, sourceFileRelativePath);
-    }
-
-    @SneakyThrows
-    private List<Issue> parseSonarLintIssuesOf(@Nullable String reportRelativePath, String sourceFileRelativePath) {
-        var issues = parseSonarLintIssues(reportRelativePath);
-        var fileToMatch = new File(project.getProjectDir(), sourceFileRelativePath).getCanonicalFile();
-
-        List<Issue> fileIssues = new ArrayList<>();
-        for (var issue : issues) {
-            var sourceFile = issue.getSourceFile().getCanonicalFile();
-            if (sourceFile.equals(fileToMatch)) {
-                fileIssues.add(issue);
-            }
-        }
-        return fileIssues;
+        project.addForbiddenMessage("is excluded because language");
+        project.addForbiddenMessage("is excluded because none of languages");
     }
 
 
     @Test
     void sonarLintProperties() {
-        project.assertBuildSuccessfully("sonarLintProperties");
+        var buildResult = project.assertBuildSuccessfully("sonarLintProperties");
+
+        assertThat(buildResult.getOutput())
+            .doesNotContain(NO_SONARLINT_PROPERTIES_FOUND_LOG_MESSAGE);
     }
 
     @Test
     void sonarLintRules() {
-        project.assertBuildSuccessfully("sonarLintRules");
+        var buildResult = project.assertBuildSuccessfully("sonarLintRules");
+
+        assertThat(buildResult.getOutput())
+            .doesNotContain(NO_SONARLINT_RULES_FOUND_LOG_MESSAGE);
     }
 
 
@@ -101,158 +197,280 @@ class SonarLintPluginFunctionalTest {
         project.assertBuildSuccessfully("sonarlintMain");
     }
 
-    @Test
-    void java() {
-        var sourceFileRelativePath = addJavaS1171RuleExample("src/main/java");
-
-        project.assertBuildSuccessfully("sonarlintMain");
-
-        var issues = parseSonarLintIssuesOf("src/main/java/" + sourceFileRelativePath);
-        assertThat(issues)
-            .extracting(Issue::getRule)
-            .contains("java:S1171");
-    }
 
     @Nested
-    class NodeJsDetection {
+    class RulePerLanguage {
 
-        @Test
-        void jsWithDefaultConfiguration() {
-            var sourceFileRelativePath = addRuleExample(
-                "src/main/resources",
-                "javascript:S6331",
-                "test.js",
-                join("\n", new String[]{
-                    "const methodCallRegex = /foo()/;",
-                })
+        @BeforeEach
+        void beforeEach() {
+            project.getBuildFile().line(
+                "sonarLint.languages.include(%s)",
+                stream(SonarLintLanguage.values())
+                    .map(SonarLintLanguage::name)
+                    .collect(joining("', '", "'", "'"))
             );
-
-            project.assertBuildSuccessfully("sonarlintMain");
-
-            var issues = parseSonarLintIssuesOf("src/main/resources/" + sourceFileRelativePath);
-            assertThat(issues)
-                .isEmpty();
         }
 
         @Test
-        void jsWithNodeJsDetection() {
-            project.getBuildFile().line("sonarLint { nodeJs { detectNodeJs = true } }");
+        void java() {
+            project.getBuildFile().line("sonarLint.languages.include('java')");
 
-            var sourceFileRelativePath = addRuleExample(
-                "src/main/resources",
-                "javascript:S6331",
-                "test.js",
-                join("\n", new String[]{
-                    "const methodCallRegex = /foo()/;",
-                })
-            );
-
-            project.assertBuildSuccessfully("sonarlintMain");
-
-            var issues = parseSonarLintIssuesOf("src/main/resources/" + sourceFileRelativePath);
-            assertThat(issues)
-                .extracting(Issue::getRule)
-                .contains("javascript:S6331");
+            new Assertions()
+                .rule("java:S1133")
+                .assertAllRulesAreRaised();
         }
 
         @Test
-        void jsWithNodeJsDetectionAndCustomSuffix() {
-            project.getBuildFile().line("sonarLint { nodeJs { detectNodeJs = true } }");
-            project.getBuildFile().line("sonarLint { sonarProperty('sonar.javascript.file.suffixes', '.custom-js') }");
+        void javascript() {
+            project.getBuildFile().line("sonarLint.languages.include('javascript')");
 
-            var sourceFileRelativePath = addRuleExample(
-                "src/main/resources",
-                "javascript:S6331",
-                "test.custom-js",
-                join("\n", new String[]{
-                    "const methodCallRegex = /foo()/;",
-                })
-            );
+            new Assertions()
+                .rule("javascript:S930")
+                .assertAllRulesAreRaised();
+        }
 
-            project.assertBuildSuccessfully("sonarlintMain");
+        @Nested
+        @MinSupportedGradleVersion(CURRENT_MINOR_GRADLE_VERSION)
+        class OtherLanguages {
 
-            var issues = parseSonarLintIssuesOf("src/main/resources/" + sourceFileRelativePath);
-            assertThat(issues)
-                .extracting(Issue::getRule)
-                .contains("javascript:S6331");
+            @Test
+            void css() {
+                new Assertions()
+                    .rule("css:S4670")
+                    .assertAllRulesAreRaised();
+            }
+
+            @Test
+            void cloudformation() {
+                new Assertions()
+                    .rule("cloudformation:S6333")
+                    .assertAllRulesAreRaised();
+            }
+
+            @Test
+            void docker() {
+                new Assertions()
+                    .rule("docker:S6596")
+                    .assertAllRulesAreRaised();
+            }
+
+            @Test
+            void html() {
+                new Assertions()
+                    .rule("Web:S5725")
+                    .assertAllRulesAreRaised();
+            }
+
+            @Test
+            void kotlin() {
+                new Assertions()
+                    .rule("kotlin:S899")
+                    .assertAllRulesAreRaised();
+            }
+
+            @Test
+            void kubernetes() {
+                new Assertions()
+                    .rule("kubernetes:S6868")
+                    .assertAllRulesAreRaised();
+            }
+
+            @Test
+            void scala() {
+                new Assertions()
+                    .rule("scala:S4663")
+                    .assertAllRulesAreRaised();
+            }
+
+            @Test
+            void terraform() {
+                new Assertions()
+                    .rule("terraform:S6414")
+                    .assertAllRulesAreRaised();
+            }
+
+            @Test
+            void typescript() {
+                new Assertions()
+                    .rule("typescript:S909")
+                    .assertAllRulesAreRaised();
+            }
+
+            @Test
+            void xml() {
+                new Assertions()
+                    .rule("xml:S2321")
+                    .assertAllRulesAreRaised();
+            }
+
+        }
+
+    }
+
+
+    @Nested
+    class Settings {
+
+        @Test
+        void generatedFilesAreExcluded() {
+            new Assertions()
+                .rule("java:S1171", params -> params
+                    .srcDir("build/generated-java")
+                )
+                .rule("java:S1133")
+                .assertRulesAreNotRaised("java:S1171")
+                .assertRulesAreRaised("java:S1133");
         }
 
         @Test
-        void jsWithoutNodeJsDetection() {
-            project.getBuildFile().line("sonarLint { nodeJs { detectNodeJs = false } }");
-
-            var sourceFileRelativePath = addRuleExample(
-                "src/main/resources",
-                "javascript:S6331",
-                "test.js",
-                join("\n", new String[]{
-                    "const methodCallRegex = /foo()/;",
-                })
+        void ignoredPathsAreSupported() {
+            project.getBuildFile().line(
+                "sonarLint.ignoredPaths.add('%s')",
+                "**/*S1171*"
             );
 
-            project.assertBuildSuccessfully("sonarlintMain");
+            new Assertions()
+                .rule("java:S1171")
+                .rule("java:S1133")
+                .assertRulesAreNotRaised("java:S1171")
+                .assertRulesAreRaised("java:S1133");
+        }
 
-            var issues = parseSonarLintIssuesOf("src/main/resources/" + sourceFileRelativePath);
-            assertThat(issues)
-                .isEmpty();
+        @Test
+        void ruleIgnoredPathsAreSupported() {
+            project.forBuildFile(build -> build.line(
+                "sonarLint.rules.rule('java:S1171', { ignoredPaths.add('%s') })",
+                "**/*S1171*"
+            ));
+
+            new Assertions()
+                .rule("java:S1171")
+                .rule("java:S1133")
+                .assertRulesAreNotRaised("java:S1171")
+                .assertRulesAreRaised("java:S1133");
+        }
+
+
+        @Nested
+        class Logging {
+
+            @Test
+            void issueDescriptionIsDisplayedByDefault() {
+                new Assertions()
+                    .rule("java:S1171")
+                    .assertAllRulesAreRaised()
+                    .assertBuildOutput(output ->
+                        assertThat(output)
+                            .contains("\n  Why is this an issue?\n")
+                    );
+            }
+
+            @Test
+            void issueDescriptionIsHidden() {
+                project.getBuildFile().line("sonarLint { logging { withDescription = false } }");
+
+                new Assertions()
+                    .rule("java:S1171")
+                    .assertAllRulesAreRaised()
+                    .assertBuildOutput(output ->
+                        assertThat(output)
+                            .doesNotContain("\n  Why is this an issue?\n")
+                    );
+            }
+
+        }
+
+
+        @Nested
+        class LanguagesInclusion {
+
+            @Test
+            void includedLanguage() {
+                project.getBuildFile().line("sonarLint.languages.include('java')");
+
+                new Assertions()
+                    .rule("java:S1171")
+                    .assertAllRulesAreRaised();
+            }
+
+            @Test
+            void includedOtherLanguage() {
+                project.getBuildFile().line("sonarLint.languages.include('kotlin')");
+
+                new Assertions()
+                    .rule("java:S1171")
+                    .assertNoRulesAreRaised();
+            }
+
+            @Test
+            @SuppressWarnings("java:S5841")
+            void excludedLanguage() {
+                project.getBuildFile().line("sonarLint.languages.exclude('java')");
+
+                new Assertions()
+                    .rule("java:S1171")
+                    .assertNoRulesAreRaised()
+                    .assertBuildOutput(output ->
+                        assertThat(output)
+                            .doesNotContainPattern("^Plugin .+ is excluded because language")
+                            .doesNotContainPattern("^Plugin .+ is excluded because none of languages")
+                    );
+            }
+
+            @Test
+            void excludedOtherLanguage() {
+                project.getBuildFile().line("sonarLint.languages.exclude('kotlin')");
+
+                new Assertions()
+                    .rule("java:S1171")
+                    .assertAllRulesAreRaised()
+                    .assertBuildOutput(output ->
+                        assertThat(output)
+                            .doesNotContainPattern("^Plugin .+ is excluded because language")
+                            .doesNotContainPattern("^Plugin .+ is excluded because none of languages")
+                    );
+            }
+
+
+            @Test
+            void infraLanguagesAreExcludedByDefault() {
+                new Assertions()
+                    .rule("cloudformation:S6333")
+                    .assertNoRulesAreRaised();
+            }
+
+            @Test
+            void infraLanguagesCanBeIncluded() {
+                project.getBuildFile().line("sonarLint.languages.includeInfra = true");
+
+                new Assertions()
+                    .rule("cloudformation:S6333")
+                    .assertAllRulesAreRaised();
+            }
+
+
+            @Test
+            void frontendLanguagesAreExcludedByDefault() {
+                new Assertions()
+                    .rule("css:S4670")
+                    .assertNoRulesAreRaised();
+            }
+
+            @Test
+            void frontendLanguagesCanBeIncluded() {
+                project.getBuildFile().line("sonarLint.languages.includeFrontend = true");
+
+                new Assertions()
+                    .rule("css:S4670")
+                    .assertAllRulesAreRaised();
+            }
+
         }
 
     }
 
     @Test
-    void generatedFiles() {
-        var javaS1171SourceRelativePath = addJavaS1171RuleExample("build/generated-java");
-        var javaS1133SourceRelativePath = addJavaS1133RuleExample("src/main/java");
-
-        project.assertBuildSuccessfully("sonarlintMain");
-
-        assertThat(parseSonarLintIssuesOf("build/generated-java/" + javaS1171SourceRelativePath))
-            .isEmpty();
-        assertThat(parseSonarLintIssuesOf("src/main/java/" + javaS1133SourceRelativePath))
-            .extracting(Issue::getRule)
-            .contains("java:S1133");
-    }
-
-    @Test
-    void ignoredPaths() {
-        var javaS1171SourceRelativePath = addJavaS1171RuleExample("src/main/java");
-        var javaS1133SourceRelativePath = addJavaS1133RuleExample("src/main/java");
-
-        project.getBuildFile().line(
-            "sonarLint.ignoredPaths.add('%s')",
-            "**/*S1171*"
-        );
-
-        project.assertBuildSuccessfully("sonarlintMain");
-
-        assertThat(parseSonarLintIssuesOf("src/main/java/" + javaS1171SourceRelativePath))
-            .isEmpty();
-        assertThat(parseSonarLintIssuesOf("src/main/java/" + javaS1133SourceRelativePath))
-            .extracting(Issue::getRule)
-            .contains("java:S1133");
-    }
-
-    @Test
-    void ruleIgnoredPaths() {
-        var javaS1171SourceRelativePath = addJavaS1171RuleExample("src/main/java");
-        var javaS1133SourceRelativePath = addJavaS1133RuleExample("src/main/java");
-
-        project.forBuildFile(build -> build.line(
-            "sonarLint.rules.rule('java:S1171', { ignoredPaths.add('%s') })",
-            build.escapeString(javaS1171SourceRelativePath)
-        ));
-
-        project.assertBuildSuccessfully("sonarlintMain");
-
-        assertThat(parseSonarLintIssuesOf("src/main/java/" + javaS1171SourceRelativePath))
-            .isEmpty();
-        assertThat(parseSonarLintIssuesOf("src/main/java/" + javaS1133SourceRelativePath))
-            .extracting(Issue::getRule)
-            .contains("java:S1133");
-    }
-
-    @Test
-    void javaLibrariesCorrectedDefinedForTestSourceSet() {
+    void javaLibrariesCorrectlyDefinedForTestSourceSet() {
         Stream.of(
                 org.junit.jupiter.api.Assertions.class,
                 org.junit.jupiter.api.Test.class
@@ -312,86 +530,11 @@ class SonarLintPluginFunctionalTest {
         project.assertBuildSuccessfully("sonarlintTest");
 
         assertThat(parseSonarLintIssuesOf(
-            "build/reports/sonarlint/sonarlintTest/sonarlintTest.xml",
+            "build/reports/sonarLint/sonarlintTest/sonarlintTest.xml",
             "src/test/java/pkg/JavaDependencyTest.java"
         ))
             .extracting(Issue::getRule)
             .contains("java:S5785");
-    }
-
-    @Nested
-    class LanguagesInclusion {
-
-        private String sourceFileRelativePath;
-
-        @BeforeEach
-        void beforeEach() {
-            sourceFileRelativePath = addJavaS1171RuleExample("src/main/java");
-        }
-
-
-        @Test
-        void includedLanguage() {
-            project.getBuildFile().line("sonarLint.languages.include('java')");
-
-            var buildLog = project.assertBuildSuccessfully("sonarlintMain").getOutput();
-            assertThat(buildLog)
-                .doesNotContainPattern("^Plugin .+ is excluded because language")
-                .doesNotContainPattern("^Plugin .+ is excluded because none of languages");
-
-            var issues = parseSonarLintIssuesOf("src/main/java/" + sourceFileRelativePath);
-            assertThat(issues)
-                .extracting(Issue::getRule)
-                .contains("java:S1171");
-        }
-
-        @Test
-        @SuppressWarnings("java:S5841")
-        void includedOtherLanguage() {
-            project.getBuildFile().line("sonarLint.languages.include('kotlin')");
-
-            var buildLog = project.assertBuildSuccessfully("sonarlintMain").getOutput();
-            assertThat(buildLog)
-                .doesNotContainPattern("^Plugin .+ is excluded because language")
-                .doesNotContainPattern("^Plugin .+ is excluded because none of languages");
-
-            var issues = parseSonarLintIssuesOf("src/main/java/" + sourceFileRelativePath);
-            assertThat(issues)
-                .extracting(Issue::getRule)
-                .doesNotContain("java:S1171");
-        }
-
-        @Test
-        @SuppressWarnings("java:S5841")
-        void excludedLanguage() {
-            project.getBuildFile().line("sonarLint.languages.exclude('java')");
-
-            var buildLog = project.assertBuildSuccessfully("sonarlintMain").getOutput();
-            assertThat(buildLog)
-                .doesNotContainPattern("^Plugin .+ is excluded because language")
-                .doesNotContainPattern("^Plugin .+ is excluded because none of languages");
-
-            var issues = parseSonarLintIssuesOf("src/main/java/" + sourceFileRelativePath);
-            assertThat(issues)
-                .extracting(Issue::getRule)
-                .doesNotContain("java:S1171");
-        }
-
-        @Test
-        void excludedOtherLanguage() {
-            project.getBuildFile().line("sonarLint.languages.exclude('kotlin')");
-
-            var buildLog = project.assertBuildSuccessfully("sonarlintMain").getOutput();
-            assertThat(buildLog)
-                .doesNotContainPattern("^Plugin .+ is excluded because language")
-                .doesNotContainPattern("^Plugin .+ is excluded because none of languages");
-
-            var issues = parseSonarLintIssuesOf("src/main/java/" + sourceFileRelativePath);
-            assertThat(issues)
-                .extracting(Issue::getRule)
-                .contains("java:S1171");
-        }
-
     }
 
     @Test
@@ -404,43 +547,152 @@ class SonarLintPluginFunctionalTest {
             "}"
         }));
 
-        addJavaS1171RuleExample("src/main/java");
+        writeRuleExample("java:S1171");
 
         project.assertBuildSuccessfully("sonarlintMain");
     }
 
-    @Nested
-    class Logging {
 
-        @Test
-        void issueDescriptionIsDisplayedByDefault() {
-            addJavaS1171RuleExample("src/main/java");
+    @SuppressWarnings("UnusedReturnValue")
+    class Assertions {
 
-            var buildResult = project.assertBuildSuccessfully("sonarlintMain");
-            var output = normalizeString(buildResult.getOutput());
+        private final LazyValue<BuildResult> buildResult = lazyValue(() ->
+            project.assertBuildSuccessfully("sonarlintMain")
+        );
 
-            assertThat(output).contains("\n  Why is this an issue?\n");
+        private final Set<String> writtenRuleExamples = new LinkedHashSet<>();
+
+        public Assertions rule(String rule) {
+            return rule(rule, __ -> { });
         }
 
-        @Test
-        void issueDescriptionIsHidden() {
-            addJavaS1171RuleExample("src/main/java");
+        public Assertions rule(String rule, Consumer<RuleExampleParams.RuleExampleParamsBuilder> configurer) {
+            if (buildResult.isInitialized()) {
+                throw new IllegalStateException("Project has been built");
+            }
 
-            project.getBuildFile().line("sonarLint { logging { withDescription = false } }");
+            writeRuleExample(rule, configurer);
+            writtenRuleExamples.add(rule);
+            return this;
+        }
 
-            var buildResult = project.assertBuildSuccessfully("sonarlintMain");
-            var output = normalizeString(buildResult.getOutput());
 
-            assertThat(output).doesNotContain("\n  Why is this an issue?\n");
+        public Assertions assertBuildOutput(Consumer<String> outputVerifier) {
+            var output = normalizeString(buildResult.get().getOutput());
+            outputVerifier.accept(output);
+            return this;
+        }
+
+        public Assertions assertAllRulesAreRaised() {
+            return assertRaisedIssues(issues ->
+                assertThat(issues)
+                    .extracting(Issue::getRule)
+                    .containsAll(writtenRuleExamples)
+            );
+        }
+
+        public Assertions assertRulesAreRaised(String... rules) {
+            return assertRaisedIssues(issues ->
+                assertThat(issues)
+                    .extracting(Issue::getRule)
+                    .contains(rules)
+            );
+        }
+
+        public Assertions assertNoRulesAreRaised() {
+            return assertRaisedIssues(issues ->
+                assertThat(issues)
+                    .isEmpty()
+            );
+        }
+
+        @SuppressWarnings("java:S5841")
+        public Assertions assertRulesAreNotRaised(String... rules) {
+            return assertRaisedIssues(issues ->
+                assertThat(issues)
+                    .extracting(Issue::getRule)
+                    .doesNotContain(rules)
+            );
+        }
+
+        public Assertions assertRaisedIssues(Consumer<Collection<Issue>> issuesVerifier) {
+            buildResult.get();
+            var issues = parseSonarLintIssues();
+            issuesVerifier.accept(issues);
+            return this;
         }
 
     }
 
 
-    private String addRuleExample(String srcDir, String rule, String sourceFileRelativePath, String content) {
+    List<Issue> parseSonarLintIssues() {
+        return parseSonarLintIssues(null);
+    }
+
+    List<Issue> parseSonarLintIssues(@Nullable String reportRelativePath) {
+        if (reportRelativePath == null) {
+            reportRelativePath = "build/reports/sonarLint/sonarlintMain/sonarlintMain.xml";
+        }
+        var reportFile = project.resolveRelativePath(reportRelativePath);
+        return new CheckstyleXmlIssuesParser().parseIssuesFrom(reportFile);
+    }
+
+    List<Issue> parseSonarLintIssuesOf(String sourceFileRelativePath) {
+        return parseSonarLintIssuesOf(null, sourceFileRelativePath);
+    }
+
+    @SneakyThrows
+    List<Issue> parseSonarLintIssuesOf(@Nullable String reportRelativePath, String sourceFileRelativePath) {
+        var issues = parseSonarLintIssues(reportRelativePath);
+        var fileToMatch = new File(project.getProjectDir(), sourceFileRelativePath).getCanonicalFile();
+
+        List<Issue> fileIssues = new ArrayList<>();
+        for (var issue : issues) {
+            var sourceFile = issue.getSourceFile().getCanonicalFile();
+            if (sourceFile.equals(fileToMatch)) {
+                fileIssues.add(issue);
+            }
+        }
+        return fileIssues;
+    }
+
+
+    String writeRuleExample(String rule) {
+        return writeRuleExample(rule, __ -> { });
+    }
+
+    String writeRuleExample(String rule, Consumer<RuleExampleParams.RuleExampleParamsBuilder> configurer) {
+        var paramsBuilder = RuleExampleParams.builder();
+        configurer.accept(paramsBuilder);
+        var params = paramsBuilder.build();
+
+        var lang = getRuleLanguage(rule);
+
+        String relativeFilePath;
+        if (params.getRelativeFilePath() != null) {
+            relativeFilePath = params.getRelativeFilePath();
+        } else {
+            relativeFilePath = capitalize(rule.replace(":", ""));
+            if (params.getFileExtension() != null) {
+                relativeFilePath += "." + params.getFileExtension();
+            } else if (lang.equals("docker")) {
+                relativeFilePath += "/Dockerfile";
+            } else {
+                relativeFilePath += "." + getRuleDefaultFileExtension(rule);
+            }
+        }
+        relativeFilePath = params.getSrcDir() + "/pkg/" + relativeFilePath;
+
+        var ruleExampleSource = RULE_EXAMPLES.get(rule);
+        if (ruleExampleSource == null) {
+            throw new AssertionError("No rule example for `" + rule + "`");
+        }
+
+        project.writeTextFile(relativeFilePath, ruleExampleSource);
+
         project.forBuildFile(build -> build.line(
             "tasks.sonarlintMain.source('%s')",
-            build.escapeString(srcDir)
+            build.escapeString(params.getSrcDir())
         ));
 
         project.forBuildFile(build -> build.line(
@@ -448,40 +700,53 @@ class SonarLintPluginFunctionalTest {
             build.escapeString(rule)
         ));
 
-        project.writeTextFile(srcDir + '/' + sourceFileRelativePath, content);
-
-        return sourceFileRelativePath;
+        return relativeFilePath;
     }
 
-    private String addJavaS1171RuleExample(String srcDir) {
-        return addRuleExample(srcDir, "java:S1171", "pkg/JavaS1171RuleExample.java", join("\n", new String[]{
-            "package pkg;",
-            "",
-            "import java.util.LinkedHashMap;",
-            "",
-            "public class JavaS1171RuleExample extends LinkedHashMap<String, String> {",
-            "",
-            "    {",
-            "        put(\"a\", \"b\");",
-            "    }",
-            "",
-            "}",
-        }));
+    @Value
+    @Builder
+    private static class RuleExampleParams {
+
+        @Default
+        String srcDir = "src/main/resources";
+
+        @Nullable
+        String fileExtension;
+
+        @Nullable
+        String relativeFilePath;
+
     }
 
-    private String addJavaS1133RuleExample(String srcDir) {
-        return addRuleExample(srcDir, "java:S1133", "pkg/JavaS1133RuleExample.java", join("\n", new String[]{
-            "package pkg;",
-            "",
-            "public class JavaS1133RuleExample {",
-            "",
-            "    @Deprecated",
-            "    void method() {",
-            "        System.exit(1);",
-            "    }",
-            "",
-            "}",
-        }));
+
+    private static final Map<String, String> RULE_LANGUAGE_DEFAULT_EXTENSION = ImmutableMap.<String, String>builder()
+        .put("Web", "html")
+        .put("azureresourcemanager", "bicep")
+        .put("cloudformation", "yml")
+        .put("css", "css")
+        //.put("docker", "dockerfile")
+        .put("java", "java")
+        .put("javascript", "js")
+        .put("kotlin", "kt")
+        .put("kubernetes", "yml")
+        .put("scala", "scala")
+        //.put("secrets", "???")
+        .put("terraform", "tf")
+        .put("typescript", "ts")
+        .put("xml", "xml")
+        .build();
+
+    private static String getRuleDefaultFileExtension(String rule) {
+        var lang = getRuleLanguage(rule);
+        var extension = RULE_LANGUAGE_DEFAULT_EXTENSION.get(lang);
+        if (extension == null) {
+            throw new AssertionError("No file extension is configured for the rule `" + rule + "`");
+        }
+        return extension;
+    }
+
+    private static String getRuleLanguage(String rule) {
+        return substringBefore(rule, ":");
     }
 
 }

@@ -1,38 +1,24 @@
-import com.tisonkun.os.core.Arch
-import com.tisonkun.os.core.OS
-import java.lang.reflect.Field
-import org.gradle.api.internal.artifacts.ivyservice.ivyresolve.strategy.DefaultVersionComparator
-import org.gradle.api.internal.artifacts.ivyservice.ivyresolve.strategy.VersionParser
+import java.net.http.HttpClient
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-buildscript {
-    dependencies {
-        classpath "com.tisonkun.os:os-detector-core:${rootBuildscriptClasspathVersionOf('com.tisonkun.os:os-detector-core')}"
+MapProperty<String, String> javascriptPluginDependencyInfo = project.ext.javascriptPluginDependencyInfo = project.objects.mapProperty(String, String).value(provider {
+    Dependency javascriptPluginArtifactDependency = project.configurations.sonarPluginArtifacts.dependencies
+        .find { "${it.group}:${it.name}" == 'org.sonarsource.javascript:sonar-javascript-plugin' }
+    if (javascriptPluginArtifactDependency == null) {
+        throw new GradleException("Sonar JavaScript plugin dependency can't be found")
     }
-    repositories {
-        mavenCentral()
-    }
-}
 
-apply plugin: 'name.remal.generate-sources'
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-Property<String> minSupportedNodeJsVersion = rootProject.ext.minSupportedNodeJsVersion = project.objects.property(String).value(provider {
-    VersionParser parser = new VersionParser()
-    Comparator comparator = new DefaultVersionComparator().asVersionComparator()
-    return (project.pluginLanguageInfos.get() as List).stream()
-        .map { it.minNodeJsVersion }
-        .filter { it != null }
-        .map { parser.transform(it) }
-        .sorted(comparator.reversed())
-        .findFirst()
-        .map { it.toString() }
-        .get()
+    return [
+        group: javascriptPluginArtifactDependency.group,
+        name: javascriptPluginArtifactDependency.name,
+        version: javascriptPluginArtifactDependency.version,
+    ]
 }).with { it.finalizeValueOnRead(); it }
 
-Property<String> minRecommendedNodeJsVersion = rootProject.ext.minRecommendedNodeJsVersion = project.objects.property(String).value(provider {
+MapProperty<String, String> embeddedNodeJsPlatforms = rootProject.ext.embeddedNodeJsPlatforms = project.objects.mapProperty(String, String).value(provider {
     Configuration classpathConfiguration = project.configurations.detachedConfiguration()
     classpathConfiguration.dependencies.withType(ModuleDependency).configureEach { dep ->
         dep.attributes {
@@ -51,17 +37,12 @@ Property<String> minRecommendedNodeJsVersion = rootProject.ext.minRecommendedNod
         }
     )
 
-    Dependency javascriptPluginArtifactDependency = project.configurations.sonarPluginArtifacts.dependencies
-        .find { "${it.group}:${it.name}" == 'org.sonarsource.javascript:sonar-javascript-plugin' }
-    if (javascriptPluginArtifactDependency == null) {
-        throw new GradleException("Sonar JavaScript plugin dependency can't be found")
-    }
     classpathConfiguration.dependencies.add(
         project.dependencies.create(
             [
-                javascriptPluginArtifactDependency.group,
-                javascriptPluginArtifactDependency.name,
-                javascriptPluginArtifactDependency.version,
+                javascriptPluginDependencyInfo.get().group,
+                javascriptPluginDependencyInfo.get().name,
+                javascriptPluginDependencyInfo.get().version,
                 //'sonar-plugin',
             ].join(':')
         )
@@ -69,218 +50,90 @@ Property<String> minRecommendedNodeJsVersion = rootProject.ext.minRecommendedNod
 
     Collection<File> classpathFiles = classpathConfiguration.files
     Collection<URL> classpathUrls = classpathFiles.collect { it.toURI().toURL() }
-    new URL("jar", "", "file:test.jar!/resource.txt").openConnection().setDefaultUseCaches(false)
     new URLClassLoader(classpathUrls.toArray(new URL[0]), Logger.classLoader).withCloseable { classLoader ->
-        Class<?> nodeDeprecationWarningClass = Class.forName('org.sonar.plugins.javascript.bridge.NodeDeprecationWarning', true, classLoader)
-        Field minRecommendedNodeJsVersionField = nodeDeprecationWarningClass.getDeclaredField('RECOMMENDED_NODE_VERSIONS')
-        minRecommendedNodeJsVersionField.accessible = true
-        Collection<String> recommendedNodeJsVersions = minRecommendedNodeJsVersionField.get(null)
+        Class<?> platformClass = Class.forName('org.sonar.plugins.javascript.bridge.EmbeddedNode$Platform', true, classLoader)
+        Enum[] platforms = platformClass.values()
+        List<String> platformNames = platforms.collect { it.name() }
+        platformNames.removeIf { it.equalsIgnoreCase('UNSUPPORTED') }
 
-        VersionParser parser = new VersionParser()
-        Comparator comparator = new DefaultVersionComparator().asVersionComparator()
-        return recommendedNodeJsVersions.stream()
-            .map { it.replace('^', '') }
-            .map { parser.transform(it) }
-            .sorted(comparator.reversed())
-            .findFirst()
-            .map { it.toString() }
-            .get()
-    }
-}).with { it.finalizeValueOnRead(); it }
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-Provider<String> defaultNodeJsVersion = rootProject.ext.ltsNodeJsVersion = project.objects.property(String).value(provider {
-    String versionString = project.file('.nvmrc').getText('UTF-8').trim().replaceFirst(/^v/, '')
-    String minVersionString = minRecommendedNodeJsVersion.get()
-    if (versionString.isEmpty()) {
-        versionString = minVersionString
-    } else {
-        VersionParser parser = new VersionParser()
-        Comparator comparator = new DefaultVersionComparator().asVersionComparator()
-        def versionObj = parser.transform(versionString)
-        def minVersionObj = parser.transform(minVersionString)
-        if (comparator.compare(versionObj, minVersionObj) < 0) {
-            versionString = minVersionString
+        List<String> unexpectedPlatformNames = platformNames.collect()
+        ; [
+            'WIN_X64',
+            'LINUX_ARM64',
+            'LINUX_X64',
+            'LINUX_X64_MUSL',
+            'DARWIN_ARM64',
+            'DARWIN_X64',
+        ].forEach { unexpectedPlatformNames.remove(it.toString()) }
+        if (!unexpectedPlatformNames.isEmpty()) {
+            throw new GradleException("Unexpected platform names detected: $unexpectedPlatformNames")
         }
-    }
-    return versionString
-}).with { it.finalizeValueOnRead(); it }
-project.nonJavaApiDependencies.add(provider { 'Node.js:' + defaultNodeJsVersion.get() })
-tasks.collectGradlePluginApiDependencies.inputs.file('.nvmrc')
-tasks.collectGradlePluginApiDependencies.inputs.property('minRecommendedNodeJsVersion', minRecommendedNodeJsVersion)
 
-TaskProvider updateNvmrc = tasks.register('updateNvmrc') {
-    outputs.upToDateWhen { false }
+        Map<String, String> platformNamesToClassifier = platformNames.collectEntries { [it, it.toLowerCase().replace('_', '-')] }
 
-    RegularFileProperty nvmrcFileProperty = objects.fileProperty().value(layout.projectDirectory.file('.nvmrc'))
-
-    doLast {
-        File nvmrcFile = nvmrcFileProperty.get().asFile
-        String versionString = nvmrcFile.isFile() ? nvmrcFile.getText('UTF-8').trim() : ''
-        String minVersionString = minRecommendedNodeJsVersion.get()
-        if (versionString.isEmpty()) {
-            versionString = minVersionString
-        } else {
-            VersionParser parser = new VersionParser()
-            Comparator comparator = new DefaultVersionComparator().asVersionComparator()
-            def versionObj = parser.transform(versionString)
-            def minVersionObj = parser.transform(minVersionString)
-            if (comparator.compare(versionObj, minVersionObj) < 0) {
-                versionString = minVersionString
-                logger.lifecycle('Updating Node.js version in {} to {}', nvmrcFile.name, versionString)
+        platformNamesToClassifier.forEach { platformName, classifier ->
+            File cacheFile = project.layout.buildDirectory.file("checked-embedded-nodejs-platforms/${javascriptPluginDependencyInfo.get().version}/$classifier").get().asFile
+            if (cacheFile.exists()) {
+                return
             }
+
+            String urlToTest = String.format(
+                'https://repo1.maven.org/maven2/%1$s/%2$s/%3$s/%2$s-%3$s-%4$s.jar',
+                javascriptPluginDependencyInfo.get().group.replace('.', '/'),
+                javascriptPluginDependencyInfo.get().name,
+                javascriptPluginDependencyInfo.get().version,
+                classifier
+            )
+            HttpClient client = HttpClient.newHttpClient()
+            HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(urlToTest))
+                .method("HEAD", HttpRequest.BodyPublishers.noBody())
+                .build()
+            HttpResponse<Void> response = client.send(request, HttpResponse.BodyHandlers.discarding());
+            int statusCode = response.statusCode()
+            if (statusCode != 200) {
+                throw new GradleException("Can't find $platformName JAR file on MavenCentral: HEAD $urlToTest returned $statusCode status code")
+            }
+
+            cacheFile.parentFile.mkdirs()
+            cacheFile.setText("$statusCode", 'UTF-8')
         }
-        nvmrcFile.setText("${versionString}\n", 'UTF-8')
+
+        return platformNamesToClassifier
     }
-}
-
-tasks.named('pushBackTasks') { dependsOn(updateNvmrc) }
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+}).with { it.finalizeValueOnRead(); it }
 
 generateSources.forMainSourceSet.java {
-    inputs.property('ltsNodeJsVersion', defaultNodeJsVersion)
-    inputs.property('minSupportedNodeJsVersion', minSupportedNodeJsVersion)
+    inputs.property('embeddedNodeJsPlatforms', embeddedNodeJsPlatforms)
 
-    classFile(project.calculateBaseJavaPackage(), 'NodeJsVersions') {
-        addStaticImport(String, "format")
+    classFile(project.calculateBaseJavaPackage(), 'SonarJavascriptPluginInfo') {
         addStaticImport("lombok.AccessLevel", "PRIVATE")
-        addStaticImport("name.remal.gradle_plugins.toolkit.InTestFlags", "isInTest")
 
-        addImport("lombok.NoArgsConstructor")
-        addImport("name.remal.gradle_plugins.toolkit.Version")
-
-        line("@NoArgsConstructor(access = PRIVATE)")
-        block("abstract class ${simpleName}") {
-            line("public static final Version DEFAULT_NODEJS_VERSION = Version.parse(\"${escapeString(defaultNodeJsVersion.get())}\");")
-            line("public static final Version MIN_SUPPORTED_NODEJS_VERSION = Version.parse(\"${escapeString(minSupportedNodeJsVersion.get())}\");")
-            line("public static final Version MIN_RECOMMENDED_NODEJS_VERSION = Version.parse(\"${escapeString(minRecommendedNodeJsVersion.get())}\");")
-
-            line("")
-            block("static") {
-                block("if (DEFAULT_NODEJS_VERSION.compareTo(MIN_SUPPORTED_NODEJS_VERSION) < 0)") {
-                    line("throw new AssertionError(format(")
-                    indent {
-                        line("\"Default Node.js version %s is less than min supported version %s\",")
-                        line("DEFAULT_NODEJS_VERSION,")
-                        line("DEFAULT_NODEJS_VERSION")
-                    }
-                    line("));")
-                }
-                block("if (isInTest() && DEFAULT_NODEJS_VERSION.compareTo(MIN_RECOMMENDED_NODEJS_VERSION) < 0)") {
-                    line("throw new AssertionError(format(")
-                    indent {
-                        line("\"Default Node.js version %s is less than min recommended version %s\",")
-                        line("DEFAULT_NODEJS_VERSION,")
-                        line("MIN_RECOMMENDED_NODEJS_VERSION")
-                    }
-                    line("));")
-                }
-            }
-        }
-    }
-}
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-Map<OS, Set<Arch>> publishedNodeJsOs = new TreeMap<>()
-
-generateSources.forMainSourceSet.java {
-    inputs.property('publishedNodeJsOs', publishedNodeJsOs)
-
-    classFile(project.calculateBaseJavaPackage(), 'PublishedNodeJs') {
-        addImport("com.google.common.collect.ImmutableMap")
-        addImport("com.google.common.collect.ImmutableSet")
-        addImport(Arch)
-        addImport(OS)
-        addImport("java.util.Map")
-        addImport("java.util.Set")
+        addImport("lombok.Getter")
+        addImport("lombok.RequiredArgsConstructor")
 
         block("interface ${simpleName}") {
-            line("Map<OS, Set<Arch>> PUBLISHED_NODEJS_OS = ImmutableMap.<OS, Set<Arch>>builder()")
+            line("SonarDependency SONAR_JAVASCRIPT_PLUGIN_DEPENDENCY = SonarDependency.builder()")
             indent {
-                publishedNodeJsOs.forEach { os, arches ->
-                    line(".put(OS.$os, ImmutableSet.of(${arches.collect { "Arch.$it" }.join(', ')}))")
-                }
+                line(".group(\"${escapeString(javascriptPluginDependencyInfo.get().group)}\")")
+                line(".name(\"${escapeString(javascriptPluginDependencyInfo.get().name)}\")")
+                line(".version(\"${escapeString(javascriptPluginDependencyInfo.get().version)}\")")
                 line(".build();")
             }
-        }
-    }
-}
 
-Closure addPublishedNodeJs = { String urlTemplate, OS os, Arch arch ->
-    publishedNodeJsOs.computeIfAbsent(os, { new TreeSet<Arch>() }).add(arch)
+            line()
 
-    String url = urlTemplate.replaceAll(/\{version\}/, { project.ltsNodeJsVersion.get() })
-
-    String fileExtension = [
-        'zip',
-        'tar.gz',
-    ].find { url.endsWith(".$it") }
-    if (fileExtension == null) {
-        throw new GradleException("Unsupported extension: $url")
-    }
-
-    RegularFile archiveRegularFile = layout.buildDirectory.file("nodejs/$os-$arch.$fileExtension").get()
-
-    TaskProvider downloadNodeJs = tasks.register("downloadNodeJs-$os-$arch", DownloadTask) {
-        src(url)
-        dest(archiveRegularFile)
-        overwrite(false)
-    }
-
-    Directory unpackedDirectory = layout.buildDirectory.dir("nodejs/$os-$arch").get()
-
-    TaskProvider unpackNodeJs = tasks.register("unpackNodeJs-$os-$arch", Copy) {
-        dependsOn(downloadNodeJs)
-
-        inputs.file(archiveRegularFile).withPropertyName('archiveRegularFile')
-        outputs.dir(unpackedDirectory).withPropertyName('unpackedDirectory')
-
-        FileTree fileTree = null;
-        if (fileExtension == 'zip') {
-            fileTree = zipTree(archiveRegularFile)
-        } else if (fileExtension == 'tar.gz') {
-            fileTree = tarTree(resources.gzip(archiveRegularFile))
-        }
-        if (fileTree == null) {
-            throw new GradleException("Unsupported extension: $fileExtension")
-        }
-        from(fileTree) {
-            include(os == OS.windows ? '*/node.exe' : '*/bin/node')
-            filesMatching('**/*') { it.path = it.path.replaceFirst(/^.*\/([^\/]+)$/, '$1') }
-        }
-
-        into(unpackedDirectory)
-
-        doLast {
-            unpackedDirectory.asFile.listFiles()?.collect()?.forEach { File file ->
-                if (file.isDirectory()) {
-                    project.delete(file)
+            line("@Getter")
+            line("@RequiredArgsConstructor(access = PRIVATE)")
+            block("enum EmbeddedNodeJsPlatform") {
+                embeddedNodeJsPlatforms.get().forEach { platformName, classifier ->
+                    line('%s("%s"),', platformName, escapeString(classifier))
                 }
-            }
-        }
-    }
+                line(";")
 
-    afterEvaluate {
-        publishing.publications.named('pluginMaven', MavenPublication).configure {
-            Provider<File> fileProvider = provider { unpackedDirectory.asFile.listFiles()[0] }
-            artifact(fileProvider) {
-                extension = os == OS.windows ? 'exe' : ''
-                classifier = "$os-$arch"
-                builtBy(unpackNodeJs)
+                line()
+                line("private final String javascriptPluginClassifier;")
             }
         }
     }
 }
-
-//addPublishedNodeJs('https://nodejs.org/dist/v{version}/node-v{version}-aix-ppc64.tar.gz', OS.aix, Arch.ppc_64)
-//addPublishedNodeJs('https://nodejs.org/dist/v{version}/node-v{version}-linux-x64.tar.gz', OS.linux, Arch.x86_64)
-//addPublishedNodeJs('https://nodejs.org/dist/v{version}/node-v{version}-linux-arm64.tar.gz', OS.linux, Arch.aarch_64)
-//addPublishedNodeJs('https://nodejs.org/dist/v{version}/node-v{version}-linux-ppc64le.tar.gz', OS.linux, Arch.ppcle_64)
-//addPublishedNodeJs('https://nodejs.org/dist/v{version}/node-v{version}-darwin-x64.tar.gz', OS.osx, Arch.x86_64)
-//addPublishedNodeJs('https://nodejs.org/dist/v{version}/node-v{version}-darwin-arm64.tar.gz', OS.osx, Arch.aarch_64)
-//addPublishedNodeJs('https://nodejs.org/dist/v{version}/node-v{version}-win-x86.zip', OS.windows, Arch.x86_32)
-//addPublishedNodeJs('https://nodejs.org/dist/v{version}/node-v{version}-win-x64.zip', OS.windows, Arch.x86_64)
-//addPublishedNodeJs('https://nodejs.org/dist/v{version}/node-v{version}-win-arm64.zip', OS.windows, Arch.aarch_64)

@@ -6,8 +6,11 @@ import static name.remal.gradle_plugins.sonarlint.internal.RulesDocumentation.Ru
 import static name.remal.gradle_plugins.sonarlint.internal.RulesDocumentation.RuleStatus.DISABLED_EXPLICITLY;
 import static name.remal.gradle_plugins.sonarlint.internal.RulesDocumentation.RuleStatus.ENABLED_BY_DEFAULT;
 import static name.remal.gradle_plugins.sonarlint.internal.RulesDocumentation.RuleStatus.ENABLED_EXPLICITLY;
+import static name.remal.gradle_plugins.toolkit.NumbersAwareStringComparator.numbersAwareStringComparator;
+import static name.remal.gradle_plugins.toolkit.ObjectUtils.doNotInline;
 import static name.remal.gradle_plugins.toolkit.ObjectUtils.isNotEmpty;
 
+import com.google.common.annotations.VisibleForTesting;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Objects;
@@ -18,11 +21,17 @@ import java.util.function.Consumer;
 import javax.annotation.Nullable;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
+import name.remal.gradle_plugins.toolkit.HtmlToTextUtils;
 import name.remal.gradle_plugins.toolkit.ObjectUtils;
 
 public class RulesDocumentation implements Documentation {
 
-    private final SortedMap<String, RuleDoc> rules = new TreeMap<>();
+    @VisibleForTesting
+    public static final String NO_SONARLINT_RULES_FOUND_LOG_MESSAGE =
+        doNotInline("No SonarLint rules found");
+
+
+    private final SortedMap<String, RuleDoc> rules = new TreeMap<>(numbersAwareStringComparator());
 
     public void rule(String ruleKey, Consumer<RuleDoc> action) {
         var ruleDoc = new RuleDoc();
@@ -35,7 +44,7 @@ public class RulesDocumentation implements Documentation {
     @SuppressWarnings("java:S3776")
     public String renderToText() {
         if (rules.isEmpty()) {
-            return "No SonarLint rules found";
+            return NO_SONARLINT_RULES_FOUND_LOG_MESSAGE;
         }
 
         var message = new StringBuilder();
@@ -69,6 +78,8 @@ public class RulesDocumentation implements Documentation {
                     message.append("\n    ").append(paramKey);
                     Optional.ofNullable(paramDoc.getDescription())
                         .filter(ObjectUtils::isNotEmpty)
+                        .map(HtmlToTextUtils::convertHtmlToText)
+                        .map(text -> text.replace("\n\n", "\n"))
                         .ifPresent(desc -> message.append(" - ").append(desc));
 
                     Optional.ofNullable(paramDoc.getType())
