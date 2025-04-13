@@ -52,15 +52,13 @@ import org.gradle.jvm.toolchain.JavaLanguageVersion;
 @CustomLog
 public abstract class SonarLintPlugin implements Plugin<Project> {
 
-    public static final String SONARLINT_EXTENSION_NAME = doNotInline("sonarlint");
-    public static final String SONARLINT_EXTENSION_NAME_OLD = doNotInline("sonarLint");
+    public static final String SONARLINT_EXTENSION_NAME = doNotInline("sonarLint");
     public static final String SONARLINT_CORE_CONFIGURATION_NAME = doNotInline("sonarlintCore");
     public static final String SONARLINT_PLUGINS_CONFIGURATION_NAME = doNotInline("sonarlintPlugins");
 
     @Override
     public void apply(Project project) {
         var extension = project.getExtensions().create(SONARLINT_EXTENSION_NAME, SonarLintExtension.class);
-        project.getExtensions().add(SONARLINT_EXTENSION_NAME_OLD, extension);
 
         var coreConf = project.getConfigurations().register(SONARLINT_CORE_CONFIGURATION_NAME, conf -> {
             configureSonarLintConfiguration(conf);

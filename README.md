@@ -69,9 +69,9 @@ By default, this plugin generates `sonarlint*` tasks only for `src/*` directorie
 Even if infra languages were included, they wouldn't be checked unless infra code is placed inside a `src/*` directory.
 For this reason, infra languages are excluded by default.
 
-To include infra languages, use this configuration: `sonarlint.languages.includeInfra = true`
+To include infra languages, use this configuration: `sonarLint.languages.includeInfra = true`
 
-Also, a single infra language can be included like this: `sonarlint.languages.include('CloudFormation')`
+Also, a single infra language can be included like this: `sonarLint.languages.include('CloudFormation')`
 
 ## Frontend languages are excluded by default
 
@@ -91,14 +91,14 @@ Additionally, SonarLint checks for frontend languages are slow when run on singl
 
 For these reasons, frontend languages are excluded by default.
 
-To include frontend languages, use this configuration: `sonarlint.languages.includeFrontend = true`
+To include frontend languages, use this configuration: `sonarLint.languages.includeFrontend = true`
 
-Also, a single frontend language can be included like this: `sonarlint.languages.include('JavaScript')`
+Also, a single frontend language can be included like this: `sonarLint.languages.include('JavaScript')`
 
 ## Configuration
 
 ```groovy
-sonarlint {
+sonarLint {
   isGeneratedCodeIgnored = false // `true` by default, set to `false` to validate generated code (code inside `./build/`)
 
   rules {
@@ -152,7 +152,7 @@ sonarlint {
 For every property value (for both Sonar properties and rule properties) you can use `project.provider { ... }` to set a lazy value that will be calculated when a SonarLint task is executed. For example:
 
 ```groovy
-sonarlint {
+sonarLint {
   sonarProperty('sonar.html.file.suffixes', project.provider { '.custom-html' })
 }
 ```
@@ -161,7 +161,7 @@ sonarlint {
 
 Two additional help tasks are created:
 
-1. `sonarLintProperties` - displays Sonar properties that can be configured via `sonarlint.sonarProperties`
+1. `sonarLintProperties` - displays Sonar properties that can be configured via `sonarLint.sonarProperties`
    Properties of plugins for disabled languages are not shown.
 2. `sonarLintRules` - displays all Sonar rules available, their description and their properties.
    Rules of disabled languages are not shown.
@@ -171,22 +171,20 @@ Two additional help tasks are created:
 ## Version 5.* to 6.*
 
 * Min Gradle version was raised to 7.5 (from 7.1)
-* `sonarLint` extension was renamed to `sonarlint`.
-  The old name (`sonarLint`) still can be used for backward compatibility.
-* `sonarlint` extension no longer extends [`CodeQualityExtension`](https://docs.gradle.org/current/javadoc/org/gradle/api/plugins/quality/CodeQualityExtension.html)
-* `sonarlint.nodeJs` was removed
-* `sonarlint.logging.hideWarnings` was removed
+* `sonarLint` extension no longer extends [`CodeQualityExtension`](https://docs.gradle.org/current/javadoc/org/gradle/api/plugins/quality/CodeQualityExtension.html)
+* `sonarLint.nodeJs` was removed
+* `sonarLint.logging.hideWarnings` was removed
 * Infra languages (like CloudFormation) are disabled by default.
-  Infra languages can be enabled all at the time by using `sonarlint.languages.includeInfra = true`
-  or individually (e.g. `sonarlint.languages.include('CloudFormation')`)
+  Infra languages can be enabled all at the time by using `sonarLint.languages.includeInfra = true`
+  or individually (e.g. `sonarLint.languages.include('CloudFormation')`)
 * Frontend languages (like JavaScript) are disabled by default.
-  Frontend languages can be enabled all at the time by using `sonarlint.languages.includeFrontend = true`
-  or individually (e.g. `sonarlint.languages.include('JavaScript')`)
+  Frontend languages can be enabled all at the time by using `sonarLint.languages.includeFrontend = true`
+  or individually (e.g. `sonarLint.languages.include('JavaScript')`)
 * Node.js detection was removed.
   Instead, [JavaScript](https://rules.sonarsource.com/javascript/) plugin with embedded Node.js is loaded.
 * `SonarLint` task was reworked.
   If you use this type directly in your Gradle file, you'll need to apply some changes.
-  Consider using `sonarlint` extension only.
+  Consider using `sonarLint` extension only.
 
 ## Version 4.* to 5.*
 

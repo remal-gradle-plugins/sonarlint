@@ -158,9 +158,9 @@ class SonarLintPluginFunctionalTest {
             build.applyPlugin("java");
             build.addBuildDirMavenRepositories();
             build.line("repositories { mavenCentral() }");
-            build.block("sonarlint", sonarlint -> {
-                sonarlint.line("ignoreFailures = true");
-                sonarlint.line("rules.enable('no-rules:enabled-by-default')");
+            build.block("sonarLint", sonarLint -> {
+                sonarLint.line("ignoreFailures = true");
+                sonarLint.line("rules.enable('no-rules:enabled-by-default')");
             });
         });
 
@@ -204,7 +204,7 @@ class SonarLintPluginFunctionalTest {
         @BeforeEach
         void beforeEach() {
             project.getBuildFile().line(
-                "sonarlint.languages.include(%s)",
+                "sonarLint.languages.include(%s)",
                 stream(SonarLintLanguage.values())
                     .map(SonarLintLanguage::name)
                     .collect(joining("', '", "'", "'"))
@@ -213,7 +213,7 @@ class SonarLintPluginFunctionalTest {
 
         @Test
         void java() {
-            project.getBuildFile().line("sonarlint.languages.include('java')");
+            project.getBuildFile().line("sonarLint.languages.include('java')");
 
             new Assertions()
                 .rule("java:S1133")
@@ -222,7 +222,7 @@ class SonarLintPluginFunctionalTest {
 
         @Test
         void javascript() {
-            project.getBuildFile().line("sonarlint.languages.include('javascript')");
+            project.getBuildFile().line("sonarLint.languages.include('javascript')");
 
             new Assertions()
                 .rule("javascript:S930")
@@ -325,7 +325,7 @@ class SonarLintPluginFunctionalTest {
         @Test
         void ignoredPathsAreSupported() {
             project.getBuildFile().line(
-                "sonarlint.ignoredPaths.add('%s')",
+                "sonarLint.ignoredPaths.add('%s')",
                 "**/*S1171*"
             );
 
@@ -339,7 +339,7 @@ class SonarLintPluginFunctionalTest {
         @Test
         void ruleIgnoredPathsAreSupported() {
             project.forBuildFile(build -> build.line(
-                "sonarlint.rules.rule('java:S1171', { ignoredPaths.add('%s') })",
+                "sonarLint.rules.rule('java:S1171', { ignoredPaths.add('%s') })",
                 "**/*S1171*"
             ));
 
@@ -367,7 +367,7 @@ class SonarLintPluginFunctionalTest {
 
             @Test
             void issueDescriptionIsHidden() {
-                project.getBuildFile().line("sonarlint { logging { withDescription = false } }");
+                project.getBuildFile().line("sonarLint { logging { withDescription = false } }");
 
                 new Assertions()
                     .rule("java:S1171")
@@ -386,7 +386,7 @@ class SonarLintPluginFunctionalTest {
 
             @Test
             void includedLanguage() {
-                project.getBuildFile().line("sonarlint.languages.include('java')");
+                project.getBuildFile().line("sonarLint.languages.include('java')");
 
                 new Assertions()
                     .rule("java:S1171")
@@ -395,7 +395,7 @@ class SonarLintPluginFunctionalTest {
 
             @Test
             void includedOtherLanguage() {
-                project.getBuildFile().line("sonarlint.languages.include('kotlin')");
+                project.getBuildFile().line("sonarLint.languages.include('kotlin')");
 
                 new Assertions()
                     .rule("java:S1171")
@@ -405,7 +405,7 @@ class SonarLintPluginFunctionalTest {
             @Test
             @SuppressWarnings("java:S5841")
             void excludedLanguage() {
-                project.getBuildFile().line("sonarlint.languages.exclude('java')");
+                project.getBuildFile().line("sonarLint.languages.exclude('java')");
 
                 new Assertions()
                     .rule("java:S1171")
@@ -419,7 +419,7 @@ class SonarLintPluginFunctionalTest {
 
             @Test
             void excludedOtherLanguage() {
-                project.getBuildFile().line("sonarlint.languages.exclude('kotlin')");
+                project.getBuildFile().line("sonarLint.languages.exclude('kotlin')");
 
                 new Assertions()
                     .rule("java:S1171")
@@ -441,7 +441,7 @@ class SonarLintPluginFunctionalTest {
 
             @Test
             void infraLanguagesCanBeIncluded() {
-                project.getBuildFile().line("sonarlint.languages.includeInfra = true");
+                project.getBuildFile().line("sonarLint.languages.includeInfra = true");
 
                 new Assertions()
                     .rule("cloudformation:S6333")
@@ -458,7 +458,7 @@ class SonarLintPluginFunctionalTest {
 
             @Test
             void frontendLanguagesCanBeIncluded() {
-                project.getBuildFile().line("sonarlint.languages.includeFrontend = true");
+                project.getBuildFile().line("sonarLint.languages.includeFrontend = true");
 
                 new Assertions()
                     .rule("css:S4670")
@@ -525,12 +525,12 @@ class SonarLintPluginFunctionalTest {
             "}",
         }));
 
-        project.getBuildFile().line("sonarlint.rules.enable('java:S5785')");
+        project.getBuildFile().line("sonarLint.rules.enable('java:S5785')");
 
         project.assertBuildSuccessfully("sonarlintTest");
 
         assertThat(parseSonarLintIssuesOf(
-            "build/reports/sonarlint/sonarlintTest/sonarlintTest.xml",
+            "build/reports/sonarLint/sonarlintTest/sonarlintTest.xml",
             "src/test/java/pkg/JavaDependencyTest.java"
         ))
             .extracting(Issue::getRule)
@@ -631,7 +631,7 @@ class SonarLintPluginFunctionalTest {
 
     List<Issue> parseSonarLintIssues(@Nullable String reportRelativePath) {
         if (reportRelativePath == null) {
-            reportRelativePath = "build/reports/sonarlint/sonarlintMain/sonarlintMain.xml";
+            reportRelativePath = "build/reports/sonarLint/sonarlintMain/sonarlintMain.xml";
         }
         var reportFile = project.resolveRelativePath(reportRelativePath);
         return new CheckstyleXmlIssuesParser().parseIssuesFrom(reportFile);
@@ -696,7 +696,7 @@ class SonarLintPluginFunctionalTest {
         ));
 
         project.forBuildFile(build -> build.line(
-            "sonarlint.rules.enable('%s')",
+            "sonarLint.rules.enable('%s')",
             build.escapeString(rule)
         ));
 
