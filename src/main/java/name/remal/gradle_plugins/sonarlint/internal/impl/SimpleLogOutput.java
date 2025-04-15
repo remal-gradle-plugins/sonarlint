@@ -17,12 +17,12 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
-import lombok.CustomLog;
 import lombok.NoArgsConstructor;
 import name.remal.gradle_plugins.toolkit.ObjectUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.sonarsource.sonarlint.core.commons.log.LogOutput;
 
-@CustomLog
 @NoArgsConstructor(access = PRIVATE)
 class SimpleLogOutput implements LogOutput {
 
@@ -60,6 +60,8 @@ class SimpleLogOutput implements LogOutput {
         MESSAGE_LEVELS = unmodifiableMap(messageLevels);
     }
 
+
+    private static final Logger logger = LoggerFactory.getLogger(SimpleLogOutput.class);
 
     private final Set<String> loggedMessages = newSetFromMap(new ConcurrentHashMap<>());
 

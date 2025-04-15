@@ -198,7 +198,7 @@ public abstract class SonarLintPlugin implements Plugin<Project> {
     private void configureJvmProject(Project project, SonarLintExtension extension) {
         var sourceSets = project.getExtensions().getByType(SourceSetContainer.class);
 
-        var testSourceSets = sourceSets.matching(extension.getTestSourceSets().get()::contains);
+        var testSourceSets = sourceSets.matching(it -> extension.getTestSourceSets().get().contains(it));
         var mainSourceSets = sourceSets.matching(it -> !testSourceSets.contains(it));
 
         sourceSets.all(sourceSet -> {

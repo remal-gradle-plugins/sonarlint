@@ -10,9 +10,6 @@ import lombok.experimental.SuperBuilder;
 public class SonarLintServiceAnalysisParams extends AbstractSonarLintServiceParams {
 
     @NonNull
-    Path repositoryRoot;
-
-    @NonNull
     Path sonarUserHome;
 
     @NonNull

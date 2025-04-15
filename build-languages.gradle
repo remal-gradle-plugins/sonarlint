@@ -53,10 +53,23 @@ Map<String, String> defaultLanguageNames = [
     'azureresourcemanager': 'AzureResourceManager',
 ]
 
+Set<String> knownSonarProperties = new LinkedHashSet<>([
+    'sonar.kotlin.file.suffixes',
+    'sonar.scala.file.suffixes',
+])
+
+Set<String> unknownSonarProperties = new LinkedHashSet<>([
+    'sonar.cloudformation.file.suffixes',
+    'sonar.docker.file.suffixes',
+    'sonar.kubernetes.file.suffixes',
+    'sonar.secrets.file.suffixes',
+])
+
 @groovy.transform.Immutable(copyWith = true)
 class PluginLanguageInfo {
     String key
     String name
+    List<String> defaultFileSuffixes
     List<String> defaultFilenamePatterns
     String minNodeJsVersion
     DependencyInfo pluginDependency
@@ -68,6 +81,7 @@ class LanguageInfo {
     String key
     String name
     String type
+    List<String> defaultFileSuffixes
     List<String> defaultFilenamePatterns
     String fileSuffixesPropKey
     String filenamePatternsPropKey
@@ -149,9 +163,10 @@ ListProperty<List<PluginLanguageInfo>> pluginLanguageInfos = rootProject.ext.plu
                     }
 
 
-                    List<String> defaultFilenamePatterns = language.getFileSuffixes()
-                        ?.collect { "**/*$it" }
-                        ?.with { it.isEmpty() ? null : it }
+                    List<String> defaultFileSuffixes = language.getFileSuffixes()?.collect() ?: []
+                    List<String> defaultFilenamePatterns = defaultFileSuffixes
+                        .collect { "**/*$it" }
+                        .with { it.isEmpty() ? null : it }
 
                     if (defaultFilenamePatterns == null) {
                         defaultFilenamePatterns = language.filenamePatterns()
@@ -171,24 +186,27 @@ ListProperty<List<PluginLanguageInfo>> pluginLanguageInfos = rootProject.ext.plu
                     }
 
                     if (defaultFilenamePatterns == null && language.key == 'cloudformation') {
-                        defaultFilenamePatterns = [
+                        defaultFileSuffixes = [
                             '.json',
                             '.json5',
                             '.yaml',
                             '.yml',
-                        ].collect { "**/*$it" }
+                        ]
+                        defaultFilenamePatterns = defaultFileSuffixes.collect { "**/*$it" }
                     }
                     if (defaultFilenamePatterns == null && language.key == 'kubernetes') {
-                        defaultFilenamePatterns = [
+                        defaultFileSuffixes = [
                             '.yaml',
                             '.yml',
-                        ].collect { "**/*$it" }
+                        ]
+                        defaultFilenamePatterns = defaultFileSuffixes.collect { "**/*$it" }
                     }
 
 
                     new PluginLanguageInfo(
                         key: language.key,
                         name: language.name,
+                        defaultFileSuffixes: defaultFileSuffixes,
                         defaultFilenamePatterns: defaultFilenamePatterns,
                         minNodeJsVersion: minNodeJsVersion?.length() ? minNodeJsVersion : null,
                         pluginDependency: new DependencyInfo(
@@ -237,6 +255,7 @@ ListProperty<LanguageInfo> allLanguageInfos = rootProject.ext.allLanguageInfos =
                     ?: (pluginLanguageInfo?.pluginDependency?.name?.matches(/.*\b(html|javascript).*\b/) ? 'FRONTEND' : null)
                     ?: (pluginLanguageInfo?.pluginDependency?.name?.matches(/.*\b(text|xml).*\b/) ? 'MISC' : null)
                     ?: null,
+                defaultFileSuffixes: pluginLanguageInfo?.defaultFileSuffixes ?: language.defaultFileSuffixes.collect(),
                 defaultFilenamePatterns: (pluginLanguageInfo?.defaultFilenamePatterns ?: language.defaultFileSuffixes.collect { "**/*$it" }).with {
                     if (it.isEmpty() && pluginLanguageInfo?.dependencyGroupId != null) {
                         throw new GradleException("Empty defaultFilenamePatterns for ${language.name()}")
@@ -330,15 +349,17 @@ generateSources.forMainSourceSet.java {
                 indent {
                     line("\"${escapeString(info.name)}\",")
 
+                    line("List.of(${info.defaultFileSuffixes.collect { suffix -> '"' + escapeString(suffix) + '"' }.join(', ')}),")
+
                     line("List.of(${info.defaultFilenamePatterns.collect { suffix -> '"' + escapeString(suffix) + '"' }.join(', ')}),")
 
-                    if (info.fileSuffixesPropKey == null || info.fileSuffixesPropKey.isEmpty() || info.fileSuffixesPropKey.find(/[^\w.]/)) {
+                    if (info.fileSuffixesPropKey == null || info.fileSuffixesPropKey.isEmpty() || info.fileSuffixesPropKey.find(/[^\w.]/) || (!knownSonarProperties.contains(info.fileSuffixesPropKey) && unknownSonarProperties.contains(info.fileSuffixesPropKey))) {
                         line("null,")
                     } else {
                         line("\"${escapeString(info.fileSuffixesPropKey)}\",")
                     }
 
-                    if (info.filenamePatternsPropKey == null || info.filenamePatternsPropKey.isEmpty() || info.filenamePatternsPropKey.find(/[^\w.]/)) {
+                    if (info.filenamePatternsPropKey == null || info.filenamePatternsPropKey.isEmpty() || info.filenamePatternsPropKey.find(/[^\w.]/) || (!knownSonarProperties.contains(info.filenamePatternsPropKey) && unknownSonarProperties.contains(info.filenamePatternsPropKey))) {
                         line("null,")
                     } else {
                         line("\"${escapeString(info.filenamePatternsPropKey)}\",")
@@ -377,11 +398,43 @@ generateSources.forMainSourceSet.java {
             line(";")
             line("")
             line("private final String displayName;")
+            line("private final @Unmodifiable List<String> defaultFileSuffixes;")
             line("private final @Unmodifiable List<String> defaultFilenamePatterns;")
             line("private final @Nullable String fileSuffixesPropKey;")
             line("private final @Nullable String filenamePatternsPropKey;")
             line("private final List<SonarDependency> pluginDependencies;")
             line("private final SonarLintLanguageType type;")
+        }
+    }
+}
+
+generateSources.forSourceSet(sourceSets.componentTest).java {
+    inputs.property('knownSonarProperties', knownSonarProperties).optional(true)
+    inputs.property('unknownSonarProperties', unknownSonarProperties).optional(true)
+
+    classFile(project.calculateBaseJavaPackage() + ".internal.impl", 'SonarPropertiesInfo') {
+        addImport("com.google.common.collect.ImmutableSet")
+        addImport("java.util.Set")
+        addImport("org.jetbrains.annotations.Unmodifiable")
+
+        block("interface ${simpleName}") {
+            line("@Unmodifiable")
+            line("Set<String> KNOWN_SONAR_PROPERTIES = ImmutableSet.of(")
+            indent {
+                knownSonarProperties.eachWithIndex { knownSonarProperty, index ->
+                    line("\"${escapeString(knownSonarProperty)}\"${index < knownSonarProperties.size() - 1 ? ',' : ''}")
+                }
+            }
+            line(");")
+
+            line("@Unmodifiable")
+            line("Set<String> UNKNOWN_SONAR_PROPERTIES = ImmutableSet.of(")
+            indent {
+                unknownSonarProperties.eachWithIndex { unknownSonarProperty, index ->
+                    line("\"${escapeString(unknownSonarProperty)}\"${index < unknownSonarProperties.size() - 1 ? ',' : ''}")
+                }
+            }
+            line(");")
         }
     }
 }

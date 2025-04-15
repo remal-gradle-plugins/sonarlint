@@ -7,6 +7,7 @@ import static name.remal.gradle_plugins.sonarlint.internal.impl.SimpleLogOutput.
 import static name.remal.gradle_plugins.sonarlint.internal.impl.SimpleProgressMonitor.SIMPLE_PROGRESS_MONITOR;
 import static name.remal.gradle_plugins.toolkit.LazyValue.lazyValue;
 
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -51,6 +52,7 @@ public class SonarLintServiceAnalysis
 
     @SuppressWarnings("java:S3776")
     public Collection<Issue> analyze(
+        Path repositoryRoot,
         Collection<SourceFile> sourceFiles,
         Map<String, String> sonarProperties,
         Set<String> enabledRulesConfig,
@@ -89,7 +91,7 @@ public class SonarLintServiceAnalysis
             .collect(toUnmodifiableList());
 
         var analysisConfiguration = AnalysisConfiguration.builder()
-            .setBaseDir(params.getRepositoryRoot())
+            .setBaseDir(repositoryRoot)
             .addInputFiles(inputFiles)
             .putAllExtraProperties(sonarProperties)
             .addActiveRules(activeRules)

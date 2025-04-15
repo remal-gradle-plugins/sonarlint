@@ -1,12 +1,17 @@
 package name.remal.gradle_plugins.sonarlint.internal.impl;
 
+import static java.lang.String.join;
+import static name.remal.gradle_plugins.sonarlint.SonarLintLanguage.KOTLIN;
+import static name.remal.gradle_plugins.sonarlint.SonarLintLanguage.SCALA;
 import static name.remal.gradle_plugins.sonarlint.internal.RulesDocumentation.RuleStatus.DISABLED_BY_DEFAULT;
 import static name.remal.gradle_plugins.sonarlint.internal.RulesDocumentation.RuleStatus.ENABLED_BY_DEFAULT;
 
 import java.util.Optional;
 import lombok.SneakyThrows;
 import name.remal.gradle_plugins.sonarlint.internal.PropertiesDocumentation;
+import name.remal.gradle_plugins.sonarlint.internal.PropertiesDocumentation.PropertyDocumentation;
 import name.remal.gradle_plugins.sonarlint.internal.RulesDocumentation;
+import org.jetbrains.annotations.VisibleForTesting;
 import org.sonar.api.server.rule.RuleParamType;
 import org.sonarsource.sonarlint.core.commons.api.SonarLanguage;
 
@@ -17,7 +22,8 @@ public class SonarLintServiceHelp
         super(params);
     }
 
-    public PropertiesDocumentation collectPropertiesDocumentation() {
+    @VisibleForTesting
+    PropertiesDocumentation collectPropertiesDocumentationWithoutEnrichment() {
         var propertiesDoc = new PropertiesDocumentation();
         allPropertyDefinitions.forEach(propDef -> propertiesDoc.property(propDef.key(), propDoc -> {
             propDoc.setName(propDef.name());
@@ -27,6 +33,38 @@ public class SonarLintServiceHelp
                 .ifPresent(propDoc::setType);
             propDoc.setDefaultValue(propDef.defaultValue());
         }));
+        return propertiesDoc;
+    }
+
+    public PropertiesDocumentation collectPropertiesDocumentation() {
+        var propertiesDoc = collectPropertiesDocumentationWithoutEnrichment();
+
+        propertiesDoc.getProperties().computeIfAbsent("sonar.kotlin.file.suffixes", propertyKey -> {
+            if (!loadedPlugins.get().getLoadedPlugins().getAllPluginInstancesByKeys().containsKey("kotlin")) {
+                return null;
+            }
+
+            return PropertyDocumentation.builder()
+                .name("File Suffixes")
+                .description("List of suffixes for files to analyze.")
+                .type("STRING")
+                .defaultValue(join(",", KOTLIN.getDefaultFileSuffixes()))
+                .build();
+        });
+
+        propertiesDoc.getProperties().computeIfAbsent("sonar.scala.file.suffixes", propertyKey -> {
+            if (!loadedPlugins.get().getLoadedPlugins().getAllPluginInstancesByKeys().containsKey("sonarscala")) {
+                return null;
+            }
+
+            return PropertyDocumentation.builder()
+                .name("File Suffixes")
+                .description("List of suffixes for files to analyze.")
+                .type("STRING")
+                .defaultValue(join(",", SCALA.getDefaultFileSuffixes()))
+                .build();
+        });
+
         return propertiesDoc;
     }
 

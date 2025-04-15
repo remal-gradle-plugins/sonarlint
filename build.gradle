@@ -60,6 +60,8 @@ apply plugin: 'java-gradle-plugin'
 apply plugin: 'name.remal.classes-relocation'
 apply plugin: 'name.remal.generate-sources'
 
+SourceSet componentTestSourceSet = testSourceSets.create('componentTest')
+
 dependencies {
     classesRelocation 'com.tisonkun.os:os-detector-core:0.6.0'
 }
@@ -126,7 +128,6 @@ Closure<Configuration> createSonarArtifactsConfiguration = { String name, boolea
 
         if (addToIndirectApi) {
             project.configurations.indirectApi.extendsFrom(conf)
-            project.configurations.compileOnly.extendsFrom(conf)
         }
     }
 }
@@ -186,6 +187,14 @@ sonarCoreArtifactsConf.dependencies.withType(ModuleDependency).all { ModuleDepen
 
     configurations.optional.dependencies.add(project.dependencies.create("${dep.group}:${dep.name}:${dep.version}") {
         sonarLintCoreExclusions.forEach { exclude it }
+    })
+}
+
+sonarPluginArtifactsConf.dependencies.withType(ModuleDependency).all { ModuleDependency dep ->
+    sonarLintCoreExclusions.forEach { exclude it }
+
+    configurations.compileOnly.dependencies.add(project.dependencies.create("${dep.group}:${dep.name}:${dep.version}") {
+        transitive = false
     })
 }
 
@@ -408,6 +417,25 @@ generateSources.forMainSourceSet.java { Task task ->
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+Configuration sonarCoreTransitiveConf = configurations.create('sonarCoreTransitive') { Configuration conf ->
+    sonarCoreArtifactsConf.dependencies.all { Dependency dep ->
+        dep = dep.copy()
+        if (dep instanceof ModuleDependency) {
+            dep.transitive = true
+        }
+
+        conf.dependencies.add(dep)
+    }
+}
+
+configurations[componentTestSourceSet.runtimeOnlyConfigurationName].extendsFrom(sonarCoreTransitiveConf)
+
+tasks.withType(Test).configureEach { Test task ->
+    task.testClasspathScopeConfigurations.create('sonar-plugins').add(sonarPluginArtifactsConf)
+}
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 generateSources.forSourceSet(sourceSets.functionalTest).java {
     Property<String> currentMinorGradleVersion = objects.property(String).value(provider {
         return GradleVersion.current().baseVersion.version
@@ -581,6 +609,7 @@ abstract class ProcessSonar implements TransformAction<ProcessSonarParameters> {
 
                     if (!zipEntry.name.contains('sonar')
                         && !zipEntry.name.startsWith('META-INF/')
+                        && zipEntry.name.contains('/')
                     ) {
                         continue
                     }

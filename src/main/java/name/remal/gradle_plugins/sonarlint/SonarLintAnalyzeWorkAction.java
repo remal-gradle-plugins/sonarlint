@@ -47,7 +47,6 @@ abstract class SonarLintAnalyzeWorkAction
                 .collect(toUnmodifiableList())
             )
             .languagesToProcess(params.getLanguagesToProcess().get())
-            .repositoryRoot(params.getRootDirectory().get().getAsFile().toPath())
             .sonarUserHome(createDirectories(params.getHomeDirectory().get().getAsFile().toPath()))
             .workDir(createDirectories(params.getWorkDirectory().get().getAsFile().toPath()))
             .build();
@@ -60,6 +59,7 @@ abstract class SonarLintAnalyzeWorkAction
 
         try (var service = new SonarLintServiceAnalysis(serviceParams)) {
             var issues = service.analyze(
+                params.getRootDirectory().get().getAsFile().toPath(),
                 params.getSourceFiles().get(),
                 params.getSonarProperties().get(),
                 enabledRules,

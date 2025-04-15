@@ -19,7 +19,11 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.function.Consumer;
 import javax.annotation.Nullable;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import name.remal.gradle_plugins.toolkit.HtmlToTextUtils;
 import name.remal.gradle_plugins.toolkit.ObjectUtils;
@@ -31,6 +35,7 @@ public class RulesDocumentation implements Documentation {
         doNotInline("No SonarLint rules found");
 
 
+    @Getter
     private final SortedMap<String, RuleDoc> rules = new TreeMap<>(numbersAwareStringComparator());
 
     public void rule(String ruleKey, Consumer<RuleDoc> action) {
@@ -123,6 +128,9 @@ public class RulesDocumentation implements Documentation {
     }
 
     @Data
+    @NoArgsConstructor
+    @Builder
+    @AllArgsConstructor(access = PRIVATE)
     @FieldDefaults(level = PRIVATE)
     public static class RuleDoc {
 
@@ -146,6 +154,9 @@ public class RulesDocumentation implements Documentation {
     }
 
     @Data
+    @NoArgsConstructor
+    @Builder
+    @AllArgsConstructor(access = PRIVATE)
     @FieldDefaults(level = PRIVATE)
     public static class RuleParamDoc {
 

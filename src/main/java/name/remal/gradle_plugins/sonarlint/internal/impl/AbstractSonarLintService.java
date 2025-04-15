@@ -10,7 +10,10 @@ import static name.remal.gradle_plugins.toolkit.LazyProxy.asLazyListProxy;
 import static name.remal.gradle_plugins.toolkit.LazyProxy.asLazyMapProxy;
 import static name.remal.gradle_plugins.toolkit.LazyValue.lazyValue;
 import static name.remal.gradle_plugins.toolkit.ObjectUtils.isNotEmpty;
+import static name.remal.gradle_plugins.toolkit.SneakyThrowUtils.sneakyThrow;
 
+import java.io.IOException;
+import java.net.URL;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -23,9 +26,9 @@ import lombok.RequiredArgsConstructor;
 import name.remal.gradle_plugins.toolkit.AbstractClosablesContainer;
 import name.remal.gradle_plugins.toolkit.LazyValue;
 import name.remal.gradle_plugins.toolkit.ObjectUtils;
-import org.gradle.api.logging.Logger;
-import org.gradle.api.logging.Logging;
 import org.jetbrains.annotations.Unmodifiable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.sonar.api.config.PropertyDefinition;
 import org.sonar.api.config.PropertyDefinitions;
 import org.sonar.api.rule.RuleKey;
@@ -50,7 +53,7 @@ abstract class AbstractSonarLintService<Params extends AbstractSonarLintServiceP
     protected final Params params;
 
 
-    protected final Logger logger = Logging.getLogger(this.getClass());
+    protected final Logger logger = LoggerFactory.getLogger(this.getClass());
 
     static {
         SonarLintLogger.get().setTarget(SIMPLE_LOG_OUTPUT);
@@ -145,6 +148,15 @@ abstract class AbstractSonarLintService<Params extends AbstractSonarLintServiceP
                 Entry::getValue,
                 (oldProps, props) -> props
             ));
+    }
+
+
+    static {
+        try {
+            new URL("jar", "", "file:test.jar!/resource.txt").openConnection().setDefaultUseCaches(false);
+        } catch (IOException e) {
+            throw sneakyThrow(e);
+        }
     }
 
 }
