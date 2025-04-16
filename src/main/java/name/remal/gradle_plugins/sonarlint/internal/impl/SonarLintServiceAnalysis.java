@@ -1,9 +1,7 @@
 package name.remal.gradle_plugins.sonarlint.internal.impl;
 
-import static java.nio.file.Files.createDirectories;
 import static java.util.Collections.emptyMap;
 import static java.util.stream.Collectors.toUnmodifiableList;
-import static name.remal.gradle_plugins.sonarlint.internal.impl.SimpleLogOutput.SIMPLE_LOG_OUTPUT;
 import static name.remal.gradle_plugins.sonarlint.internal.impl.SimpleProgressMonitor.SIMPLE_PROGRESS_MONITOR;
 import static name.remal.gradle_plugins.toolkit.LazyValue.lazyValue;
 
@@ -20,8 +18,8 @@ import name.remal.gradle_plugins.toolkit.LazyValue;
 import name.remal.gradle_plugins.toolkit.issues.Issue;
 import org.sonarsource.sonarlint.core.analysis.api.ActiveRule;
 import org.sonarsource.sonarlint.core.analysis.api.AnalysisConfiguration;
-import org.sonarsource.sonarlint.core.analysis.api.AnalysisEngineConfiguration;
-import org.sonarsource.sonarlint.core.analysis.command.AnalyzeCommand;
+import org.sonarsource.sonarlint.core.analysis.api.AnalysisSchedulerConfiguration;
+import org.sonarsource.sonarlint.core.analysis.api.ClientInputFile;
 import org.sonarsource.sonarlint.core.analysis.container.global.GlobalAnalysisContainer;
 
 public class SonarLintServiceAnalysis
@@ -32,17 +30,17 @@ public class SonarLintServiceAnalysis
     }
 
     private final LazyValue<GlobalAnalysisContainer> analysisContainer = lazyValue(() -> {
-        var analysisEngineConfiguration = AnalysisEngineConfiguration.builder()
-            .setWorkDir(createDirectories(params.getWorkDir()))
-            .setClientPid(-1)
+        var analysisSchedulerConfiguration = AnalysisSchedulerConfiguration.builder()
+            .setWorkDir(params.getWorkDir())
             .setExtraProperties(Map.of(
                 "sonar.userHome", params.getSonarUserHome().toString()
             ))
+            .setClientPid(-1)
             .setModulesProvider(List::of)
             .build();
 
         var container = new GlobalAnalysisContainer(
-            analysisEngineConfiguration,
+            analysisSchedulerConfiguration,
             loadedPlugins.get().getLoadedPlugins()
         );
         container.startComponents();
@@ -66,6 +64,7 @@ public class SonarLintServiceAnalysis
         var inputFiles = sourceFiles.stream()
             .filter(Objects::nonNull)
             .map(SimpleClientInputFile::new)
+            .map(ClientInputFile.class::cast)
             .collect(toUnmodifiableList());
 
         var enabledRules = getRulesKeys(enabledRulesConfig);
@@ -108,16 +107,13 @@ public class SonarLintServiceAnalysis
             }
         };
 
-        var analyzeCommand = new AnalyzeCommand(
-            null,
+        var moduleRegistry = analysisContainer.get().getModuleRegistry();
+        var moduleContainer = moduleRegistry.createTransientContainer(inputFiles);
+        moduleContainer.analyze(
             analysisConfiguration,
             issueListener,
-            SIMPLE_LOG_OUTPUT,
+            SIMPLE_PROGRESS_MONITOR,
             null
-        );
-        analyzeCommand.execute(
-            analysisContainer.get().getModuleRegistry(),
-            SIMPLE_PROGRESS_MONITOR
         );
 
         return issues;
