@@ -90,7 +90,7 @@ abstract class AbstractSonarLintService<Params extends AbstractSonarLintServiceP
         );
 
         var loadedPlugins = new PluginsLoader().load(pluginsConfig, Set.of());
-        registerCloseable(loadedPlugins);
+        registerCloseable(loadedPlugins.getLoadedPlugins()::close);
         return loadedPlugins;
     });
 
