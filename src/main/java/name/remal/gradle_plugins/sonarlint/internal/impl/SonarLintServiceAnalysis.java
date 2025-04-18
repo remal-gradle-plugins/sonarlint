@@ -13,7 +13,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
-import name.remal.gradle_plugins.sonarlint.internal.SourceFile;
+import name.remal.gradle_plugins.sonarlint.internal.SourceFileInterface;
 import name.remal.gradle_plugins.toolkit.LazyValue;
 import name.remal.gradle_plugins.toolkit.issues.Issue;
 import org.sonarsource.sonarlint.core.analysis.api.ActiveRule;
@@ -51,7 +51,7 @@ public class SonarLintServiceAnalysis
     @SuppressWarnings("java:S3776")
     public Collection<Issue> analyze(
         Path repositoryRoot,
-        Collection<SourceFile> sourceFiles,
+        Collection<? extends SourceFileInterface> sourceFiles,
         Map<String, String> sonarProperties,
         Set<String> enabledRulesConfig,
         Set<String> disabledRulesConfig,

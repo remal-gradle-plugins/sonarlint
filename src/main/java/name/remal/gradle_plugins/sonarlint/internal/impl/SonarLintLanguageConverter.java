@@ -9,14 +9,18 @@ import org.sonarsource.sonarlint.core.commons.api.SonarLanguage;
 @NoArgsConstructor(access = PRIVATE)
 abstract class SonarLintLanguageConverter {
 
-    public static SonarLanguage convertSonarLintLanguage(SonarLintLanguage language) {
+    public static SonarLanguage convertSonarLintLanguage(String languageName) {
         for (var sonarLang : SonarLanguage.values()) {
-            if (sonarLang.name().equals(language.name())) {
+            if (sonarLang.name().equalsIgnoreCase(languageName)) {
                 return sonarLang;
             }
         }
 
-        throw new IllegalArgumentException("Unsupported SonarLint language: " + language);
+        throw new IllegalArgumentException("Unsupported SonarLint language: `" + languageName + "`");
+    }
+
+    public static SonarLanguage convertSonarLintLanguage(SonarLintLanguage language) {
+        return convertSonarLintLanguage(language.name());
     }
 
 }
