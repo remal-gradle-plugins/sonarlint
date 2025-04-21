@@ -35,7 +35,7 @@ import lombok.Value;
 import name.remal.gradle_plugins.toolkit.LazyValue;
 import name.remal.gradle_plugins.toolkit.issues.CheckstyleXmlIssuesParser;
 import name.remal.gradle_plugins.toolkit.issues.Issue;
-import name.remal.gradle_plugins.toolkit.testkit.MinSupportedGradleVersion;
+import name.remal.gradle_plugins.toolkit.testkit.MinTestableGradleVersion;
 import name.remal.gradle_plugins.toolkit.testkit.functional.GradleProject;
 import org.gradle.testkit.runner.BuildResult;
 import org.junit.jupiter.api.BeforeEach;
@@ -230,7 +230,7 @@ class SonarLintPluginFunctionalTest {
         }
 
         @Nested
-        @MinSupportedGradleVersion(CURRENT_MINOR_GRADLE_VERSION)
+        @MinTestableGradleVersion(CURRENT_MINOR_GRADLE_VERSION)
         class OtherLanguages {
 
             @Test

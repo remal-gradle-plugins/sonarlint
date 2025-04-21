@@ -9,9 +9,9 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import name.remal.gradle_plugins.sonarlint.SonarLintLanguage;
-import name.remal.gradle_plugins.toolkit.testkit.MinSupportedJavaVersion;
+import name.remal.gradle_plugins.toolkit.testkit.MinTestableJavaVersion;
 
-@MinSupportedJavaVersion(17)
+@MinTestableJavaVersion(17)
 abstract class AbstractSonarLintServiceComponentTest {
 
     protected static <
