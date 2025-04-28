@@ -138,8 +138,8 @@ Configuration sonarPluginArtifactsConf = createSonarArtifactsConfiguration('sona
 dependencies {
     // Core:
     //sonarCoreArtifacts 'org.sonarsource.sonarlint.core:sonarlint-core:10.18.0.80725'
-    sonarCoreArtifacts 'org.sonarsource.sonarlint.core:sonarlint-analysis-engine:10.19.1.80951'
-    sonarCoreArtifacts 'org.sonarsource.sonarlint.core:sonarlint-rule-extractor:10.19.1.80951'
+    sonarCoreArtifacts 'org.sonarsource.sonarlint.core:sonarlint-analysis-engine:10.20.0.81055'
+    sonarCoreArtifacts 'org.sonarsource.sonarlint.core:sonarlint-rule-extractor:10.20.0.81055'
 
 
     // Plugins:
