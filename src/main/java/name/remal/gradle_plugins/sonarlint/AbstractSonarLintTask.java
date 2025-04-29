@@ -15,6 +15,7 @@ import org.gradle.api.artifacts.dsl.DependencyHandler;
 import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.model.ObjectFactory;
 import org.gradle.api.provider.ProviderFactory;
+import org.gradle.api.tasks.CacheableTask;
 import org.gradle.api.tasks.Classpath;
 import org.gradle.api.tasks.InputFiles;
 import org.gradle.api.tasks.Internal;
@@ -24,6 +25,7 @@ import org.gradle.work.InputChanges;
 import org.gradle.workers.WorkQueue;
 import org.gradle.workers.WorkerExecutor;
 
+@CacheableTask
 public abstract class AbstractSonarLintTask<
     WorkActionParams extends AbstractSonarLintWorkActionParams,
     WorkAction extends AbstractSonarLintWorkAction<WorkActionParams>
