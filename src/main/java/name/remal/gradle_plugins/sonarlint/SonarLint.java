@@ -436,7 +436,7 @@ public abstract class SonarLint
         addJavaProperties(sonarProperties);
         sonarProperties.putAll(settings.getSonarProperties().get());
         addRuleByPathIgnoreProperties(sonarProperties);
-        sonarProperties.entrySet().removeIf(Objects::isNull);
+        sonarProperties.keySet().removeIf(Objects::isNull);
         sonarProperties.values().removeIf(Objects::isNull);
 
         var automaticallyDisabledRules = new LinkedHashMap<String, String>();
