@@ -1,5 +1,6 @@
 package name.remal.gradle_plugins.sonarlint.internal.impl;
 
+import static java.nio.file.Files.createDirectories;
 import static java.util.Collections.emptyMap;
 import static java.util.stream.Collectors.toUnmodifiableList;
 import static name.remal.gradle_plugins.sonarlint.internal.impl.SimpleProgressMonitor.SIMPLE_PROGRESS_MONITOR;
@@ -30,10 +31,12 @@ public class SonarLintServiceAnalysis
     }
 
     private final LazyValue<GlobalAnalysisContainer> analysisContainer = lazyValue(() -> {
+        createDirectories(params.getSonarUserHome().toPath());
+
         var analysisSchedulerConfiguration = AnalysisSchedulerConfiguration.builder()
-            .setWorkDir(params.getWorkDir())
+            .setWorkDir(params.getWorkDir().toPath())
             .setExtraProperties(Map.of(
-                "sonar.userHome", params.getSonarUserHome().toString()
+                "sonar.userHome", params.getSonarUserHome().getAbsolutePath()
             ))
             .setClientPid(-1)
             .setModulesProvider(List::of)

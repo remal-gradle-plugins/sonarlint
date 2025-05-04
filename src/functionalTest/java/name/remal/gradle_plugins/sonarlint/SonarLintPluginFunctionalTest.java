@@ -175,20 +175,25 @@ class SonarLintPluginFunctionalTest {
     }
 
 
-    @Test
-    void sonarLintProperties() {
-        var buildResult = project.assertBuildSuccessfully("sonarLintProperties");
+    @Nested
+    class HelpTasks {
 
-        assertThat(buildResult.getOutput())
-            .doesNotContain(NO_SONARLINT_PROPERTIES_FOUND_LOG_MESSAGE);
-    }
+        @Test
+        void sonarLintProperties() {
+            var buildResult = project.assertBuildSuccessfully("sonarLintProperties");
 
-    @Test
-    void sonarLintRules() {
-        var buildResult = project.assertBuildSuccessfully("sonarLintRules");
+            assertThat(buildResult.getOutput())
+                .doesNotContain(NO_SONARLINT_PROPERTIES_FOUND_LOG_MESSAGE);
+        }
 
-        assertThat(buildResult.getOutput())
-            .doesNotContain(NO_SONARLINT_RULES_FOUND_LOG_MESSAGE);
+        @Test
+        void sonarLintRules() {
+            var buildResult = project.assertBuildSuccessfully("sonarLintRules");
+
+            assertThat(buildResult.getOutput())
+                .doesNotContain(NO_SONARLINT_RULES_FOUND_LOG_MESSAGE);
+        }
+
     }
 
 

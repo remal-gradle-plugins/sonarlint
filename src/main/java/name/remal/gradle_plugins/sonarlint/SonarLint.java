@@ -10,8 +10,6 @@ import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static java.util.stream.Collectors.toUnmodifiableList;
-import static name.remal.gradle_plugins.sonarlint.CanonizationUtils.canonizeProperties;
-import static name.remal.gradle_plugins.sonarlint.CanonizationUtils.canonizeRulesProperties;
 import static name.remal.gradle_plugins.toolkit.ClosureUtils.configureWith;
 import static name.remal.gradle_plugins.toolkit.FileTreeElementUtils.createFileTreeElement;
 import static name.remal.gradle_plugins.toolkit.FileUtils.normalizeFile;
@@ -41,6 +39,7 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -73,6 +72,7 @@ import org.gradle.api.tasks.InputFiles;
 import org.gradle.api.tasks.Internal;
 import org.gradle.api.tasks.Nested;
 import org.gradle.api.tasks.PathSensitive;
+import org.gradle.api.tasks.TaskAction;
 import org.gradle.api.tasks.VerificationTask;
 import org.gradle.api.tasks.util.PatternFilterable;
 import org.gradle.api.tasks.util.PatternSet;
@@ -405,6 +405,14 @@ public abstract class SonarLint
     //#endregion
 
 
+    @TaskAction
+    public final void execute(@Nullable InputChanges inputChanges) {
+        var workQueue = createWorkQueue();
+        workQueue.submit(getWorkActionClass(), params ->
+            configureWorkActionParams(params, inputChanges)
+        );
+    }
+
     @Override
     @OverridingMethodsMustInvokeSuper
     void configureWorkActionParams(
@@ -426,18 +434,20 @@ public abstract class SonarLint
 
         var sonarProperties = new LinkedHashMap<String, String>();
         addJavaProperties(sonarProperties);
-        sonarProperties.putAll(canonizeProperties(settings.getSonarProperties()));
+        sonarProperties.putAll(settings.getSonarProperties().get());
         addRuleByPathIgnoreProperties(sonarProperties);
+        sonarProperties.entrySet().removeIf(Objects::isNull);
+        sonarProperties.values().removeIf(Objects::isNull);
 
         var automaticallyDisabledRules = new LinkedHashMap<String, String>();
         disableRulesConflictingWithLombok(automaticallyDisabledRules);
         disableRulesFromCheckstyleConfig(automaticallyDisabledRules);
 
-        workActionParams.getSonarProperties().set(canonizeProperties(sonarProperties));
+        workActionParams.getSonarProperties().set(sonarProperties);
         workActionParams.getEnabledRules().set(settings.getRules().getEnabled());
         workActionParams.getDisabledRules().set(settings.getRules().getDisabled());
         workActionParams.getAutomaticallyDisabledRules().set(automaticallyDisabledRules);
-        workActionParams.getRulesProperties().set(canonizeRulesProperties(settings.getRules().getRulesSettings()));
+        workActionParams.getRulesProperties().set(settings.getRules().getProperties());
 
 
         workActionParams.getIsIgnoreFailures().set(getIgnoreFailures());

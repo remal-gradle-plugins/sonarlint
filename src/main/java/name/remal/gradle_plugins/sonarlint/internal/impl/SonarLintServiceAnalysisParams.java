@@ -1,6 +1,6 @@
 package name.remal.gradle_plugins.sonarlint.internal.impl;
 
-import java.nio.file.Path;
+import java.io.File;
 import lombok.NonNull;
 import lombok.Value;
 import lombok.experimental.SuperBuilder;
@@ -10,9 +10,9 @@ import lombok.experimental.SuperBuilder;
 public class SonarLintServiceAnalysisParams extends AbstractSonarLintServiceParams {
 
     @NonNull
-    Path sonarUserHome;
+    File sonarUserHome;
 
     @NonNull
-    Path workDir;
+    File workDir;
 
 }

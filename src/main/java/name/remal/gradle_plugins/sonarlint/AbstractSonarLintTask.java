@@ -3,15 +3,12 @@ package name.remal.gradle_plugins.sonarlint;
 import static name.remal.gradle_plugins.sonarlint.SonarLintConstants.MIN_SUPPORTED_SONAR_RUNTIME_JAVA_VERSION;
 
 import com.google.common.reflect.TypeToken;
-import com.google.errorprone.annotations.ForOverride;
 import com.google.errorprone.annotations.OverridingMethodsMustInvokeSuper;
 import java.lang.reflect.ParameterizedType;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.JavaVersion;
-import org.gradle.api.artifacts.ConfigurationContainer;
-import org.gradle.api.artifacts.dsl.DependencyHandler;
 import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.model.ObjectFactory;
 import org.gradle.api.provider.ProviderFactory;
@@ -20,7 +17,6 @@ import org.gradle.api.tasks.Classpath;
 import org.gradle.api.tasks.InputFiles;
 import org.gradle.api.tasks.Internal;
 import org.gradle.api.tasks.Nested;
-import org.gradle.api.tasks.TaskAction;
 import org.gradle.work.InputChanges;
 import org.gradle.workers.WorkQueue;
 import org.gradle.workers.WorkerExecutor;
@@ -47,7 +43,6 @@ public abstract class AbstractSonarLintTask<
     protected abstract SonarLintLanguagesSettings getLanguages();
 
 
-    @ForOverride
     @OverridingMethodsMustInvokeSuper
     void configureWorkActionParams(WorkActionParams workActionParams, @Nullable InputChanges inputChanges) {
         workActionParams.getPluginFiles().from(getPluginFiles());
@@ -55,17 +50,8 @@ public abstract class AbstractSonarLintTask<
         workActionParams.getLanguagesToProcess().set(getLanguages().getLanguagesToProcess());
     }
 
-    @TaskAction
-    public final void execute(@Nullable InputChanges inputChanges) {
-        var workQueue = createWorkQueue();
-        workQueue.submit(getWorkActionClass(), params ->
-            configureWorkActionParams(params, inputChanges)
-        );
-    }
-
 
     @Internal
-    @ForOverride
     @SuppressWarnings("unchecked")
     protected Class<WorkAction> getWorkActionClass() {
         var typeToken = (TypeToken<? extends AbstractSonarLintTask<?, ?>>) TypeToken.of(this.getClass());
@@ -116,12 +102,6 @@ public abstract class AbstractSonarLintTask<
 
     @Inject
     protected abstract WorkerExecutor getWorkerExecutor();
-
-    @Inject
-    protected abstract ConfigurationContainer getConfigurations();
-
-    @Inject
-    protected abstract DependencyHandler getDependencies();
 
     @Inject
     protected abstract ProviderFactory getProviders();

@@ -1,14 +1,11 @@
 package name.remal.gradle_plugins.sonarlint;
 
 import static java.lang.String.format;
-import static java.nio.file.Files.createDirectories;
 import static java.util.function.Predicate.not;
-import static java.util.stream.Collectors.toUnmodifiableList;
 import static lombok.AccessLevel.PUBLIC;
 import static name.remal.gradle_plugins.toolkit.PathUtils.tryToDeleteRecursively;
 import static name.remal.gradle_plugins.toolkit.VerificationExceptionUtils.newVerificationException;
 
-import java.io.File;
 import java.util.LinkedHashSet;
 import javax.inject.Inject;
 import lombok.CustomLog;
@@ -42,13 +39,10 @@ abstract class SonarLintAnalyzeWorkAction
         }
 
         var serviceParams = SonarLintServiceAnalysisParams.builder()
-            .pluginPaths(params.getPluginFiles().getFiles().stream()
-                .map(File::toPath)
-                .collect(toUnmodifiableList())
-            )
+            .pluginFiles(params.getPluginFiles().getFiles())
             .languagesToProcess(params.getLanguagesToProcess().get())
-            .sonarUserHome(createDirectories(params.getHomeDirectory().get().getAsFile().toPath()))
-            .workDir(createDirectories(params.getWorkDirectory().get().getAsFile().toPath()))
+            .sonarUserHome(params.getHomeDirectory().get().getAsFile())
+            .workDir(params.getWorkDirectory().get().getAsFile())
             .build();
 
         var enabledRules = params.getEnabledRules().get();

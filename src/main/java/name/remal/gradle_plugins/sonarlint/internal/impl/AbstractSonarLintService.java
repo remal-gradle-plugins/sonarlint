@@ -12,6 +12,7 @@ import static name.remal.gradle_plugins.toolkit.LazyValue.lazyValue;
 import static name.remal.gradle_plugins.toolkit.ObjectUtils.isNotEmpty;
 import static name.remal.gradle_plugins.toolkit.SneakyThrowUtils.sneakyThrow;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Collection;
@@ -63,8 +64,9 @@ abstract class AbstractSonarLintService<Params extends AbstractSonarLintServiceP
     protected final LazyValue<PluginsLoadResult> loadedPlugins = lazyValue(() -> {
         var params = getParams();
 
-        var pluginJarLocations = params.getPluginPaths().stream()
+        var pluginJarLocations = params.getPluginFiles().stream()
             .filter(Objects::nonNull)
+            .map(File::toPath)
             .distinct()
             .filter(path -> {
                 try {

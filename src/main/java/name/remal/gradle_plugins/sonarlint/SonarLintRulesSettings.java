@@ -1,9 +1,12 @@
 package name.remal.gradle_plugins.sonarlint;
 
+import static java.util.Collections.unmodifiableMap;
 import static java.util.stream.Collectors.toUnmodifiableList;
 import static name.remal.gradle_plugins.toolkit.ObjectUtils.unwrapProviders;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.StreamSupport;
 import javax.inject.Inject;
@@ -15,7 +18,9 @@ import org.gradle.api.provider.Provider;
 import org.gradle.api.provider.ProviderFactory;
 import org.gradle.api.provider.SetProperty;
 import org.gradle.api.tasks.Input;
+import org.gradle.api.tasks.Internal;
 import org.gradle.api.tasks.Nested;
+import org.jetbrains.annotations.Unmodifiable;
 
 @Getter
 public abstract class SonarLintRulesSettings {
@@ -85,6 +90,20 @@ public abstract class SonarLintRulesSettings {
             getRulesSettings().put(rule, settings);
         }
         action.execute(settings);
+    }
+
+
+    @Internal
+    @Unmodifiable
+    final Map<String, Map<String, String>> getProperties() {
+        var allProperties = new LinkedHashMap<String, Map<String, String>>();
+        getRulesSettings().get().forEach((rule, settings) -> {
+            var properties = settings.getProperties().get();
+            if (!properties.isEmpty()) {
+                allProperties.put(rule, properties);
+            }
+        });
+        return unmodifiableMap(allProperties);
     }
 
 

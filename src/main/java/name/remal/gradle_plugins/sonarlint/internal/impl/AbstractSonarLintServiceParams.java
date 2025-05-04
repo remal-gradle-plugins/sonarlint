@@ -2,7 +2,7 @@ package name.remal.gradle_plugins.sonarlint.internal.impl;
 
 import static lombok.AccessLevel.PRIVATE;
 
-import java.nio.file.Path;
+import java.io.File;
 import java.util.Set;
 import lombok.Data;
 import lombok.Singular;
@@ -18,7 +18,7 @@ public abstract class AbstractSonarLintServiceParams {
 
     @Unmodifiable
     @Singular
-    Set<Path> pluginPaths;
+    Set<File> pluginFiles;
 
 
     @Unmodifiable

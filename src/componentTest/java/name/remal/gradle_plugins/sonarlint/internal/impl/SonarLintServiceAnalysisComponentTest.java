@@ -18,8 +18,8 @@ class SonarLintServiceAnalysisComponentTest extends AbstractSonarLintServiceComp
     @BeforeAll
     static void beforeAll() {
         var params = configureParamsBuilderBase(SonarLintServiceAnalysisParams.builder())
-            .sonarUserHome(tempPath.resolve("sonar-user"))
-            .workDir(tempPath.resolve("sonar-work"))
+            .sonarUserHome(tempPath.resolve("sonar-user").toFile())
+            .workDir(tempPath.resolve("sonar-work").toFile())
             .build();
 
         service = new SonarLintServiceAnalysis(params);
