@@ -436,17 +436,19 @@ tasks.withType(Test).configureEach { Test task ->
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-generateSources.forSourceSet(sourceSets.functionalTest).java {
-    Property<String> currentMinorGradleVersion = objects.property(String).value(provider {
-        return GradleVersion.current().baseVersion.version
-            .replaceFirst(/^(\d+\.\d+).*$/, '$1')
-    }).with { it.finalizeValueOnRead(); it }
+Property<String> currentMinorGradleVersion = objects.property(String).value(provider {
+    return GradleVersion.current().baseVersion.version
+        .replaceFirst(/^(\d+\.\d+).*$/, '$1')
+}).with { it.finalizeValueOnRead(); it }
 
-    inputs.property('currentMinorGradleVersion', currentMinorGradleVersion)
+sourceSets.matching { it.name != 'main' }.all { SourceSet sourceSet ->
+    generateSources.forSourceSet(sourceSet).java {
+        inputs.property('currentMinorGradleVersion', currentMinorGradleVersion)
 
-    classFile(project.calculateBaseJavaPackage(), 'FunctionalTestConstants') {
-        block("interface ${simpleName}") {
-            line("String CURRENT_MINOR_GRADLE_VERSION = \"${escapeString(currentMinorGradleVersion.get())}\";")
+        classFile(project.calculateBaseJavaPackage(), "${sourceSet.name.capitalize()}Constants") {
+            block("public interface ${simpleName}") {
+                line("String CURRENT_MINOR_GRADLE_VERSION = \"${escapeString(currentMinorGradleVersion.get())}\";")
+            }
         }
     }
 }
