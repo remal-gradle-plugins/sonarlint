@@ -44,6 +44,8 @@ out/
 !/.idea/.editorconfig
 !/.idea/groovyc.xml
 !/.idea/jsonSchemas.xml
+!/.idea/externalDependencies.xml
+!/.idea/saveactions_settings.xml
 !/.idea/google-java-format.xml
 !/.idea/inspectionProfiles/
 !/.idea/inspectionProfiles/*
