@@ -79,6 +79,20 @@ gradlePlugin {
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+apply plugin: 'java-test-fixtures'
+
+configurations.testFixturesImplementation.extendsFrom(configurations.testConstraints)
+
+configurations.testImplementation.dependencies.withType(ExternalModuleDependency).all {
+    if (configurations.testFixturesImplementation.state != Configuration.State.UNRESOLVED) {
+        return
+    }
+
+    configurations.testFixturesImplementation.dependencies.add(it)
+}
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 generateSources.forMainSourceSet.java {
     Provider<MavenPublication> publication = provider { publishing.publications.withType(MavenPublication).pluginMaven }
     Provider<String> group = provider { publication.get().groupId }
@@ -146,7 +160,7 @@ dependencies {
     // See full list of supported plugins here: https://github.com/SonarSource/sonarlint-intellij/blob/master/gradle/libs.versions.toml
     sonarPluginArtifacts 'org.sonarsource.java:sonar-java-plugin:8.16.0.39645'
     sonarPluginArtifacts 'org.sonarsource.java:sonar-java-symbolic-execution-plugin:8.17.0.181'
-    sonarPluginArtifacts 'org.sonarsource.javascript:sonar-javascript-plugin:10.24.0.33043'
+    sonarPluginArtifacts 'org.sonarsource.javascript:sonar-javascript-plugin:10.24.0.33043:multi'
     //sonarPluginArtifacts 'org.sonarsource.php:sonar-php-plugin:3.39.0.12526' // PHP projects are unlikely built with Gradle
     //sonarPluginArtifacts 'org.sonarsource.python:sonar-python-plugin:4.23.0.17664' // Python projects are unlikely built with Gradle
     sonarPluginArtifacts 'org.sonarsource.kotlin:sonar-kotlin-plugin:3.2.0.7239'
@@ -165,13 +179,7 @@ dependencies {
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-List<Map<String, String>> sonarLintCoreExclusions = [
-    [group: 'org.slf4j'],
-    [group: 'org.apache.logging.log4j'],
-    [group: 'log4j'],
-    [group: 'ch.qos.logback'],
-    [group: 'org.springframework', module: 'spring-jcl'],
-
+List<Map<String, String>> sonarLintCoreLibrariesExclusions = [
     [group: 'org.apache.httpcomponents.client5'],
     [group: 'org.apache.httpcomponents.core5'],
     [group: 'org.sonarsource.sonarlint.core', module: 'sonarlint-server-connection'],
@@ -182,16 +190,35 @@ List<Map<String, String>> sonarLintCoreExclusions = [
     [group: 'org.sonarsource.git.blame'],
 ]
 
+List<Map<String, String>> sonarLintCoreImplLoggingExclusions = [
+    [group: 'ch.qos.logback'],
+    [group: 'org.apache.logging.log4j', module: 'log4j-core'],
+    [group: 'org.apache.logging.log4j', module: 'log4j-slf4j-impl'],
+    [group: 'log4j'],
+]
+
+List<Map<String, String>> sonarLintCoreAllLoggingExclusions = sonarLintCoreImplLoggingExclusions + [
+    [group: 'org.slf4j'],
+    [group: 'org.apache.logging.log4j'],
+    [group: 'org.springframework', module: 'spring-jcl'],
+]
+
+List<Map<String, String>> allSonarLintCoreExclusions = sonarLintCoreLibrariesExclusions + sonarLintCoreAllLoggingExclusions
+
+allSonarArtifactsConf.dependencies.withType(ModuleDependency).all { ModuleDependency dep ->
+    allSonarLintCoreExclusions.forEach { dep.exclude(it) }
+}
+
 sonarCoreArtifactsConf.dependencies.withType(ModuleDependency).all { ModuleDependency dep ->
-    sonarLintCoreExclusions.forEach { exclude it }
+    allSonarLintCoreExclusions.forEach { dep.exclude(it) }
 
     configurations.optional.dependencies.add(project.dependencies.create("${dep.group}:${dep.name}:${dep.version}") {
-        sonarLintCoreExclusions.forEach { exclude it }
+        allSonarLintCoreExclusions.forEach { exclude(it) }
     })
 }
 
 sonarPluginArtifactsConf.dependencies.withType(ModuleDependency).all { ModuleDependency dep ->
-    sonarLintCoreExclusions.forEach { exclude it }
+    allSonarLintCoreExclusions.forEach { dep.exclude(it) }
 
     configurations.compileOnly.dependencies.add(project.dependencies.create("${dep.group}:${dep.name}:${dep.version}") {
         transitive = false
@@ -270,7 +297,9 @@ generateSources.forMainSourceSet.java { Task task ->
     inputs.files(allSonarArtifactsConf).withPropertyName(allSonarArtifactsConf.name + 'Conf').optional()
     inputs.files(sonarCoreArtifactsConf).withPropertyName(sonarCoreArtifactsConf.name + 'Conf').optional()
     inputs.files(sonarPluginArtifactsConf).withPropertyName(sonarPluginArtifactsConf.name + 'Conf').optional()
-    inputs.property('sonarLintCoreExclusions', sonarLintCoreExclusions).optional(true)
+    inputs.property('sonarLintCoreLibrariesExclusions', sonarLintCoreLibrariesExclusions).optional(true)
+    inputs.property('sonarLintCoreImplLoggingExclusions', sonarLintCoreImplLoggingExclusions).optional(true)
+    inputs.property('sonarLintCoreAllLoggingExclusions', sonarLintCoreAllLoggingExclusions).optional(true)
 
     classFile(project.calculateBaseJavaPackage(), 'SonarDependencies') {
         addImport("com.google.common.collect.ImmutableMap")
@@ -309,29 +338,35 @@ generateSources.forMainSourceSet.java { Task task ->
             }
             line(");")
 
-            line()
-            line("@Unmodifiable")
-            line("List<Map<String, String>> SONARLINT_CORE_EXCLUSIONS = List.of(")
-            indent {
-                sonarLintCoreExclusions.eachWithIndex { exclusion, exclusionIndex ->
-                    StringBuilder string = new StringBuilder()
-                    string.append('ImmutableMap.of(')
-                    exclusion.entrySet().eachWithIndex { entry, entryIndex ->
-                        if (entryIndex > 0) {
-                            string.append(', ')
+            [
+                'SONARLINT_CORE_LIBRARIES_EXCLUSIONS': sonarLintCoreLibrariesExclusions,
+                'SONARLINT_CORE_IMPL_LOGGING_EXCLUSIONS': sonarLintCoreImplLoggingExclusions,
+                'SONARLINT_CORE_ALL_LOGGING_EXCLUSIONS': sonarLintCoreAllLoggingExclusions,
+            ].forEach { field, exclusions ->
+                line()
+                line("@Unmodifiable")
+                line("List<Map<String, String>> $field = List.of(")
+                indent {
+                    exclusions.eachWithIndex { exclusion, exclusionIndex ->
+                        StringBuilder string = new StringBuilder()
+                        string.append('ImmutableMap.of(')
+                        exclusion.entrySet().eachWithIndex { entry, entryIndex ->
+                            if (entryIndex > 0) {
+                                string.append(', ')
+                            }
+
+                            string.append("\"${escapeString(entry.key.toString())}\", \"${escapeString(entry.value.toString())}\"")
                         }
+                        string.append(')')
 
-                        string.append("\"${escapeString(entry.key.toString())}\", \"${escapeString(entry.value.toString())}\"")
+                        if (exclusionIndex < exclusions.size() - 1) {
+                            string.append(',')
+                        }
+                        line(string)
                     }
-                    string.append(')')
-
-                    if (exclusionIndex < sonarLintCoreExclusions.size() - 1) {
-                        string.append(',')
-                    }
-                    line(string)
                 }
+                line(");")
             }
-            line(");")
         }
     }
 
@@ -517,61 +552,62 @@ allprojects {
     }
     */
 
-    Attribute<String> artifactType = Attribute.of('artifactType', String)
-    Attribute<Boolean> unprocessedSonar = Attribute.of('unprocessedSonar', Boolean)
-    dependencies {
-        attributesSchema {
-            attribute(unprocessedSonar)
-        }
-        artifactTypes.getByName('jar') {
-            attributes.attribute(unprocessedSonar, false)
-        }
-    }
-
-    configurations
-        .matching { !it.name.startsWith('sonar') }
-        .matching { !it.name.startsWith('allSonar') }
-        .all { Configuration conf ->
-            if (conf.state != Configuration.State.UNRESOLVED
-                || !conf.canBeResolved
-            ) {
-                return
+    pluginManager.withPlugin('java') {
+        Attribute<Boolean> unprocessedSonar = Attribute.of('unprocessedSonar', Boolean)
+        dependencies {
+            attributesSchema {
+                attribute(unprocessedSonar)
             }
-
-            Closure<Boolean> isSonarGroup = { String group ->
-                return group == 'org.sonarsource'
-                    || group.startsWith('org.sonarsource.')
+            artifactTypes.getByName('jar') {
+                attributes.attribute(unprocessedSonar, false)
             }
+        }
 
-            conf.dependencies.withType(ExternalModuleDependency).configureEach { ExternalModuleDependency dep ->
-                if (isSonarGroup(dep.group)) {
-                    dep.exclude(group: 'com.google.guava')
+        configurations
+            .matching { !it.name.startsWith('sonar') }
+            .matching { !it.name.startsWith('allSonar') }
+            .all { Configuration conf ->
+                if (conf.state != Configuration.State.UNRESOLVED
+                    || !conf.canBeResolved
+                ) {
+                    return
                 }
-            }
 
-            conf.resolutionStrategy.dependencySubstitution { DependencySubstitutions substitutions ->
-                substitutions.all { DependencySubstitution substitution ->
-                    if (!(substitution.requested instanceof ModuleComponentSelector)) {
-                        return
+                Closure<Boolean> isSonarGroup = { String group ->
+                    return group == 'org.sonarsource'
+                        || group.startsWith('org.sonarsource.')
+                }
+
+                conf.dependencies.withType(ExternalModuleDependency).configureEach { ExternalModuleDependency dep ->
+                    if (isSonarGroup(dep.group)) {
+                        dep.exclude(group: 'com.google.guava')
                     }
+                }
 
-                    ModuleComponentSelector requested = (ModuleComponentSelector) substitution.requested
-                    if (isSonarGroup(requested.group)) {
-                        ComponentSelector target = substitutions.variant(requested) { VariantSelectionDetails details ->
-                            details.attributes {
-                                attribute(unprocessedSonar, true)
-                            }
+                conf.resolutionStrategy.dependencySubstitution { DependencySubstitutions substitutions ->
+                    substitutions.all { DependencySubstitution substitution ->
+                        if (!(substitution.requested instanceof ModuleComponentSelector)) {
+                            return
                         }
-                        substitution.useTarget(target)
+
+                        ModuleComponentSelector requested = (ModuleComponentSelector) substitution.requested
+                        if (isSonarGroup(requested.group)) {
+                            ComponentSelector target = substitutions.variant(requested) { VariantSelectionDetails details ->
+                                details.attributes {
+                                    attribute(unprocessedSonar, true)
+                                }
+                            }
+                            substitution.useTarget(target)
+                        }
                     }
                 }
             }
-        }
 
-    dependencies {
-        registerTransform(ProcessSonar) {
-            from.attribute(unprocessedSonar, false).attribute(artifactType, 'jar')
-            to.attribute(unprocessedSonar, true).attribute(artifactType, 'jar')
+        dependencies {
+            registerTransform(ProcessSonar) {
+                from.attribute(unprocessedSonar, false)
+                to.attribute(unprocessedSonar, true)
+            }
         }
     }
 }
@@ -587,6 +623,7 @@ abstract class ProcessSonar implements TransformAction<ProcessSonarParameters> {
     void transform(TransformOutputs outputs) {
         File file = inputArtifact.get().asFile
         //println file
+
         File outputFile = outputs.file(file.name)
         if (outputFile.exists() && outputFile.lastModified() >= rootProject.buildFile.lastModified()) {
             return

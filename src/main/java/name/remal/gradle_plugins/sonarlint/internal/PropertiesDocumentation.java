@@ -6,6 +6,7 @@ import static name.remal.gradle_plugins.toolkit.ObjectUtils.doNotInline;
 import static name.remal.gradle_plugins.toolkit.ObjectUtils.isNotEmpty;
 
 import com.google.common.annotations.VisibleForTesting;
+import java.io.Serializable;
 import java.util.Optional;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -20,7 +21,8 @@ import lombok.experimental.FieldDefaults;
 import name.remal.gradle_plugins.toolkit.HtmlToTextUtils;
 import name.remal.gradle_plugins.toolkit.ObjectUtils;
 
-public class PropertiesDocumentation implements Documentation {
+@NoArgsConstructor
+public class PropertiesDocumentation implements Documentation, Serializable {
 
     @VisibleForTesting
     public static final String NO_SONARLINT_PROPERTIES_FOUND_LOG_MESSAGE =
@@ -83,7 +85,7 @@ public class PropertiesDocumentation implements Documentation {
     @Builder
     @AllArgsConstructor(access = PRIVATE)
     @FieldDefaults(level = PRIVATE)
-    public static class PropertyDocumentation {
+    public static class PropertyDocumentation implements Serializable {
 
         @Nullable
         String name;
