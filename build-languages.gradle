@@ -379,7 +379,7 @@ generateSources.forMainSourceSet.java {
                         languagePluginDependencies.find { it.id == 'org.sonarsource.java:sonar-java-plugin' }?.with {
                             sonarPluginDependencies.get()
                                 .find { it.name == 'sonar-java-symbolic-execution-plugin' }
-                                ?.with {
+                                .with {
                                     languagePluginDependencies.add(new DependencyInfo([
                                         group: it.group,
                                         name: it.name,
