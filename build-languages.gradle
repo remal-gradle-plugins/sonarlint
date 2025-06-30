@@ -102,12 +102,20 @@ class DependencyInfo {
 }
 
 
-ListProperty<List<PluginLanguageInfo>> pluginLanguageInfos = rootProject.ext.pluginLanguageInfos = project.objects.listProperty(PluginLanguageInfo).value(provider {
+ListProperty<Dependency> sonarCoreDependencies = project.objects.listProperty(Dependency).value(provider {
+    return project.configurations.sonarCoreArtifacts.dependencies
+}).with { it.finalizeValueOnRead(); it }
+
+ListProperty<Dependency> sonarPluginDependencies = project.objects.listProperty(Dependency).value(provider {
     return project.configurations.sonarPluginArtifacts.dependencies
+}).with { it.finalizeValueOnRead(); it }
+
+ListProperty<List<PluginLanguageInfo>> pluginLanguageInfos = rootProject.ext.pluginLanguageInfos = project.objects.listProperty(PluginLanguageInfo).value(provider {
+    return sonarPluginDependencies.get()
         .collect { project.dependencies.create("${it.group}:${it.name}:${it.version}") { transitive = false } }
         .collect { Dependency pluginDependency ->
             Configuration pluginConfiguration = configurations.detachedConfiguration(pluginDependency)
-            project.configurations.sonarCoreArtifacts.dependencies
+            sonarCoreDependencies.get()
                 .collect { project.dependencies.create("${it.group}:${it.name}:${it.version}") }
                 .forEach { pluginConfiguration.dependencies.add(it) }
 
@@ -226,7 +234,7 @@ ListProperty<List<PluginLanguageInfo>> pluginLanguageInfos = rootProject.ext.plu
 
 ListProperty<LanguageInfo> allLanguageInfos = rootProject.ext.allLanguageInfos = project.objects.listProperty(LanguageInfo).value(provider {
     Configuration sonarAllLanguagesConf = configurations.detachedConfiguration()
-    project.configurations.sonarCoreArtifacts.dependencies
+    sonarCoreDependencies.get()
         .collect { project.dependencies.create("${it.group}:${it.name}:${it.version}") }
         .forEach { sonarAllLanguagesConf.dependencies.add(it) }
 
@@ -276,7 +284,7 @@ ListProperty<LanguageInfo> allLanguageInfos = rootProject.ext.allLanguageInfos =
 
 
 SetProperty<String> allPluginDependencyIds = project.ext.allPluginDependencyIds = project.objects.setProperty(String).value(provider {
-    return project.configurations.sonarPluginArtifacts.dependencies
+    return sonarPluginDependencies.get()
         .collect { "${it.group}:${it.name}".toString() }.toSet()
 }).with { it.finalizeValueOnRead(); it }
 
@@ -311,7 +319,7 @@ generateSources.forMainSourceSet.java {
     ].forEach { confName ->
         inputs.property(
             "${confName}Notations",
-            configurations.sonarCoreArtifacts.dependencies
+            sonarCoreDependencies.get()
                 .collect { "${it.group}:${it.name}:${it.version}".toString() }
         ).optional(true)
     }
@@ -369,9 +377,15 @@ generateSources.forMainSourceSet.java {
                     indent {
                         List<DependencyInfo> languagePluginDependencies = [info.pluginDependency]
                         languagePluginDependencies.find { it.id == 'org.sonarsource.java:sonar-java-plugin' }?.with {
-                            languagePluginDependencies.add(it.copyWith(
-                                name: 'sonar-java-symbolic-execution-plugin',
-                            ))
+                            sonarPluginDependencies.get()
+                                .find { it.name == 'sonar-java-symbolic-execution-plugin' }
+                                ?.with {
+                                    languagePluginDependencies.add(new DependencyInfo([
+                                        group: it.group,
+                                        name: it.name,
+                                        version: it.version,
+                                    ]))
+                                }
                         }
                         languagePluginDependencies.forEach { usedPluginDependencyIds.add(it.id) }
 
