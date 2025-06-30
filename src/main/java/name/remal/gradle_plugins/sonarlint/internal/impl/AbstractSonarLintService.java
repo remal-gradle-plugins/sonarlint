@@ -5,7 +5,7 @@ import static com.google.common.collect.ImmutableSet.toImmutableSet;
 import static java.util.function.Function.identity;
 import static java.util.function.Predicate.not;
 import static lombok.AccessLevel.PRIVATE;
-import static name.remal.gradle_plugins.sonarlint.internal.impl.SimpleLogOutput.SIMPLE_LOG_OUTPUT;
+import static name.remal.gradle_plugins.sonarlint.internal.impl.LogOutputViaSlf4j.LOG_OUTPUT_VIA_SLF4J;
 import static name.remal.gradle_plugins.toolkit.LazyProxy.asLazyListProxy;
 import static name.remal.gradle_plugins.toolkit.LazyProxy.asLazyMapProxy;
 import static name.remal.gradle_plugins.toolkit.LazyValue.lazyValue;
@@ -58,7 +58,7 @@ abstract class AbstractSonarLintService<Params extends AbstractSonarLintServiceP
     protected final Logger logger = LoggerFactory.getLogger(this.getClass());
 
     static {
-        SonarLintLogger.get().setTarget(SIMPLE_LOG_OUTPUT);
+        SonarLintLogger.get().setTarget(LOG_OUTPUT_VIA_SLF4J);
     }
 
 

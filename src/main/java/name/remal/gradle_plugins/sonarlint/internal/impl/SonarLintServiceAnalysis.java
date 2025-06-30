@@ -3,7 +3,7 @@ package name.remal.gradle_plugins.sonarlint.internal.impl;
 import static java.nio.file.Files.createDirectories;
 import static java.util.Collections.emptyMap;
 import static java.util.stream.Collectors.toUnmodifiableList;
-import static name.remal.gradle_plugins.sonarlint.internal.impl.SimpleProgressMonitor.SIMPLE_PROGRESS_MONITOR;
+import static name.remal.gradle_plugins.sonarlint.internal.impl.NoOpProgressMonitor.NOOP_PROGRESS_MONITOR;
 import static name.remal.gradle_plugins.toolkit.LazyValue.lazyValue;
 
 import java.nio.file.Path;
@@ -115,7 +115,7 @@ public class SonarLintServiceAnalysis
         moduleContainer.analyze(
             analysisConfiguration,
             issueListener,
-            SIMPLE_PROGRESS_MONITOR,
+            NOOP_PROGRESS_MONITOR,
             null
         );
 

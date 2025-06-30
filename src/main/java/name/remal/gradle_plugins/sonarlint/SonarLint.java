@@ -10,12 +10,12 @@ import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static java.util.stream.Collectors.toUnmodifiableList;
+import static name.remal.gradle_plugins.sonarlint.SonarLintLanguageIncludes.getLanguageIncludes;
 import static name.remal.gradle_plugins.toolkit.ClosureUtils.configureWith;
 import static name.remal.gradle_plugins.toolkit.FileTreeElementUtils.createFileTreeElement;
 import static name.remal.gradle_plugins.toolkit.FileUtils.normalizeFile;
 import static name.remal.gradle_plugins.toolkit.LayoutUtils.getCodeFormattingPathsFor;
 import static name.remal.gradle_plugins.toolkit.LayoutUtils.getRootDirOf;
-import static name.remal.gradle_plugins.toolkit.LazyProxy.asLazyMapProxy;
 import static name.remal.gradle_plugins.toolkit.LazyValue.lazyValue;
 import static name.remal.gradle_plugins.toolkit.ObjectUtils.isEmpty;
 import static name.remal.gradle_plugins.toolkit.ObjectUtils.isNotEmpty;
@@ -28,7 +28,6 @@ import static name.remal.gradle_plugins.toolkit.xml.XmlUtils.parseXml;
 import static org.gradle.api.tasks.PathSensitivity.RELATIVE;
 import static org.gradle.language.base.plugins.LifecycleBasePlugin.VERIFICATION_GROUP;
 
-import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.OverridingMethodsMustInvokeSuper;
 import groovy.lang.Closure;
@@ -127,9 +126,10 @@ public abstract class SonarLint
         sources = sources.matching(patternSet);
 
         sources = sources.matching(filter -> {
+            var languageIncludes = getLanguageIncludes(getSettings().getSonarProperties().get());
             getLanguages().getLanguagesToProcess().forEach(lang -> {
-                var languageFilter = languagePatternSets.get(lang);
-                filter.include(languageFilter.getIncludes());
+                var includes = languageIncludes.get(lang);
+                filter.include(includes);
             });
         });
 
@@ -159,43 +159,6 @@ public abstract class SonarLint
         return sources.get();
     }
 
-
-    private final Map<SonarLintLanguage, PatternSet> languagePatternSets = asLazyMapProxy(() -> {
-        var result = new LinkedHashMap<SonarLintLanguage, PatternSet>();
-
-        for (var language : SonarLintLanguage.values()) {
-            var includes = new LinkedHashSet<>(language.getDefaultFilenamePatterns());
-
-            var fileSuffixesPropKey = language.getFileSuffixesPropKey();
-            if (fileSuffixesPropKey != null) {
-                var fileSuffixes = getSettings().getSonarProperties().getting(fileSuffixesPropKey).getOrNull();
-                if (isNotEmpty(fileSuffixes)) {
-                    Splitter.on(',').splitToStream(fileSuffixes)
-                        .map(String::trim)
-                        .filter(ObjectUtils::isNotEmpty)
-                        .map(suffix -> "**/*" + suffix)
-                        .forEach(includes::add);
-                }
-            }
-
-            var filenamePatternsPropKey = language.getFilenamePatternsPropKey();
-            if (filenamePatternsPropKey != null) {
-                var filenamePatterns = getSettings().getSonarProperties().getting(filenamePatternsPropKey).getOrNull();
-                if (isNotEmpty(filenamePatterns)) {
-                    Splitter.on(',').splitToStream(filenamePatterns)
-                        .map(String::trim)
-                        .filter(ObjectUtils::isNotEmpty)
-                        .map(pattern -> pattern.startsWith("**/") ? pattern : "**/" + pattern)
-                        .forEach(includes::add);
-                }
-            }
-
-            var filter = new PatternSet().include(includes);
-            result.put(language, filter);
-        }
-
-        return ImmutableMap.copyOf(result);
-    });
 
     @Internal
     protected abstract ConfigurableFileCollection getAllProjectsBuildDirectories();
