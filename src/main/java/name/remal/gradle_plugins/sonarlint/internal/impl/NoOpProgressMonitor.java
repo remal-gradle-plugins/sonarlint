@@ -9,27 +9,23 @@ import org.sonarsource.sonarlint.core.commons.progress.ProgressMonitor;
 
 @CustomLog
 @NoArgsConstructor(access = PRIVATE)
-class SimpleProgressMonitor implements ProgressMonitor {
+class NoOpProgressMonitor implements ProgressMonitor {
 
-    public static final SimpleProgressMonitor SIMPLE_PROGRESS_MONITOR = new SimpleProgressMonitor();
+    public static final NoOpProgressMonitor NOOP_PROGRESS_MONITOR = new NoOpProgressMonitor();
 
 
     private final Thread executingThread = Thread.currentThread();
-
-    @Override
-    public void notifyProgress(@Nullable String message, @Nullable Integer percentage) {
-        if (message != null && percentage != null) {
-            logger.info("{}: {}%", message, percentage);
-        } else if (message != null) {
-            logger.info(message);
-        }
-    }
 
     @Override
     public boolean isCanceled() {
         return executingThread.isInterrupted();
     }
 
+
+    @Override
+    public void notifyProgress(@Nullable String message, @Nullable Integer percentage) {
+        // do nothing
+    }
 
     @Override
     public void complete() {

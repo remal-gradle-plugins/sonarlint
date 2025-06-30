@@ -11,6 +11,7 @@ import static name.remal.gradle_plugins.toolkit.ObjectUtils.doNotInline;
 import static name.remal.gradle_plugins.toolkit.ObjectUtils.isNotEmpty;
 
 import com.google.common.annotations.VisibleForTesting;
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Objects;
@@ -28,7 +29,8 @@ import lombok.experimental.FieldDefaults;
 import name.remal.gradle_plugins.toolkit.HtmlToTextUtils;
 import name.remal.gradle_plugins.toolkit.ObjectUtils;
 
-public class RulesDocumentation implements Documentation {
+@NoArgsConstructor
+public class RulesDocumentation implements Documentation, Serializable {
 
     @VisibleForTesting
     public static final String NO_SONARLINT_RULES_FOUND_LOG_MESSAGE =
@@ -132,7 +134,7 @@ public class RulesDocumentation implements Documentation {
     @Builder
     @AllArgsConstructor(access = PRIVATE)
     @FieldDefaults(level = PRIVATE)
-    public static class RuleDoc {
+    public static class RuleDoc implements Serializable {
 
         @Nullable
         String name;
@@ -158,7 +160,8 @@ public class RulesDocumentation implements Documentation {
     @Builder
     @AllArgsConstructor(access = PRIVATE)
     @FieldDefaults(level = PRIVATE)
-    public static class RuleParamDoc {
+    @SuppressWarnings("java:S1948")
+    public static class RuleParamDoc implements Serializable {
 
         @Nullable
         String description;
