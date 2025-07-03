@@ -59,7 +59,7 @@ class SonarLintPluginFunctionalTest {
 
     private List<Issue> parseSonarLintIssues(@Nullable String reportRelativePath) {
         if (reportRelativePath == null) {
-            reportRelativePath = "build/reports/sonarlint/sonarlintMain/sonarlintMain.xml";
+            reportRelativePath = "build/reports/sonarLint/sonarLintMain/sonarlintMain.xml";
         }
         var reportFile = project.resolveRelativePath(reportRelativePath);
         return new CheckstyleXmlIssuesParser().parseIssuesFrom(reportFile);
