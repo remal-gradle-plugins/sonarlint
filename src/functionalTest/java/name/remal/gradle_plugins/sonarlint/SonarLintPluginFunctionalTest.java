@@ -59,7 +59,7 @@ class SonarLintPluginFunctionalTest {
 
     private List<Issue> parseSonarLintIssues(@Nullable String reportRelativePath) {
         if (reportRelativePath == null) {
-            reportRelativePath = "build/reports/sonarLint/sonarLintMain/sonarlintMain.xml";
+            reportRelativePath = "build/reports/sonarLint/sonarlintMain/sonarlintMain.xml";
         }
         var reportFile = project.resolveRelativePath(reportRelativePath);
         return new CheckstyleXmlIssuesParser().parseIssuesFrom(reportFile);
@@ -331,7 +331,7 @@ class SonarLintPluginFunctionalTest {
         project.assertBuildSuccessfully("sonarlintTest");
 
         assertThat(parseSonarLintIssuesOf(
-            "build/reports/sonarLint/sonarLintTest/sonarlintTest.xml",
+            "build/reports/sonarLint/sonarlintTest/sonarlintTest.xml",
             "src/test/java/pkg/JavaDependencyTest.java"
         ))
             .extracting(Issue::getRule)
