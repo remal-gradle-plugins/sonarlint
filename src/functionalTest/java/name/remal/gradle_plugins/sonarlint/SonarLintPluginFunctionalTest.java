@@ -557,6 +557,22 @@ class SonarLintPluginFunctionalTest {
         project.assertBuildSuccessfully("sonarlintMain");
     }
 
+    @Test
+    void javaWithGStringCompilerArgs() {
+        project.getBuildFile().line(join("\n", new String[]{
+            "def paramValue = 'value'",
+            "tasks.withType(JavaCompile).configureEach {",
+            "  options.compilerArgs.add(\"-Aname=$paramValue\")",
+            "}",
+        }));
+
+        project.getBuildFile().line("sonarLint.languages.include('java')");
+
+        new Assertions()
+            .rule("java:S1133")
+            .assertAllRulesAreRaised();
+    }
+
 
     @SuppressWarnings("UnusedReturnValue")
     class Assertions {
