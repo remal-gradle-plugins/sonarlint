@@ -331,7 +331,7 @@ class SonarLintPluginFunctionalTest {
         project.assertBuildSuccessfully("sonarlintTest");
 
         assertThat(parseSonarLintIssuesOf(
-            "build/reports/sonarlint/sonarlintTest/sonarlintTest.xml",
+            "build/reports/sonarLint/sonarLintTest/sonarlintTest.xml",
             "src/test/java/pkg/JavaDependencyTest.java"
         ))
             .extracting(Issue::getRule)
