@@ -113,6 +113,25 @@ class SonarLintPluginFunctionalTest {
             .contains("java:S1171");
     }
 
+    @Test
+    void javaWithGStringCompilerArgs() {
+        project.getBuildFile().line(join("\n", new String[]{
+            "def paramValue = 'value'",
+            "tasks.withType(JavaCompile).configureEach {",
+            "  options.compilerArgs.add(\"-Aname=$paramValue\")",
+            "}",
+        }));
+
+        var sourceFileRelativePath = addJavaS1133RuleExample("src/main/java");
+
+        project.assertBuildSuccessfully("sonarlintMain");
+
+        var issues = parseSonarLintIssuesOf("src/main/java/" + sourceFileRelativePath);
+        assertThat(issues)
+            .extracting(Issue::getRule)
+            .contains("java:S1133");
+    }
+
     @Nested
     class NodeJsDetection {
 

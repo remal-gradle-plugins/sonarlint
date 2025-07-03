@@ -353,7 +353,7 @@ public abstract class SonarLintPlugin extends AbstractCodeQualityPlugin<SonarLin
                     javaProps.put(SONAR_JAVA_TARGET_PROPERTY, targetCompatibility)
                 );
             javaCompileTask.map(JavaCompile::getOptions)
-                .map(CompileOptions::getCompilerArgs)
+                .map(CompileOptions::getAllCompilerArgs)
                 .filter(ObjectUtils::isNotEmpty)
                 .ifPresent(args -> {
                     var isPreviewEnabled = args.stream().anyMatch("--enable-preview"::equals);
