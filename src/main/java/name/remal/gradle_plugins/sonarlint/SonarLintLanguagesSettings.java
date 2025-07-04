@@ -9,7 +9,9 @@ import static java.util.stream.Collectors.toUnmodifiableList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
+import java.util.List;
 import javax.inject.Inject;
+import org.gradle.api.Project;
 import org.gradle.api.provider.Property;
 import org.gradle.api.provider.ProviderFactory;
 import org.gradle.api.provider.SetProperty;
@@ -43,6 +45,17 @@ public abstract class SonarLintLanguagesSettings {
 
 
     @Internal
+    public abstract Property<Boolean> getIncludeJvm();
+
+    {
+        var jvmPlugins = List.of("jvm-ecosystem", "java-base", "java");
+        getIncludeJvm().convention(getProviders().provider(() ->
+            jvmPlugins.stream()
+                .anyMatch(getProject().getPluginManager()::hasPlugin)
+        ));
+    }
+
+    @Internal
     public abstract Property<Boolean> getIncludeInfra();
 
     {
@@ -57,10 +70,14 @@ public abstract class SonarLintLanguagesSettings {
     }
 
     private Collection<SonarLintLanguage> getAutomaticallyExcludedLanguages() {
+        var jvmIncluded = getIncludeJvm().get();
         var infraIncluded = getIncludeInfra().get();
         var frontendIncluded = getIncludeFrontend().get();
         return stream(SonarLintLanguage.values())
             .filter(lang -> {
+                if (!jvmIncluded && lang.getType() == SonarLintLanguageType.JVM) {
+                    return true;
+                }
                 if (!infraIncluded && lang.getType() == SonarLintLanguageType.INFRA) {
                     return true;
                 }
@@ -131,5 +148,8 @@ public abstract class SonarLintLanguagesSettings {
 
     @Inject
     protected abstract ProviderFactory getProviders();
+
+    @Inject
+    protected abstract Project getProject();
 
 }

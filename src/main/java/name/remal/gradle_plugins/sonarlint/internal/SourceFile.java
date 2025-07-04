@@ -15,7 +15,7 @@ import lombok.Value;
 @Builder
 @RequiredArgsConstructor(access = PRIVATE)
 @NoArgsConstructor(access = PRIVATE, force = true)
-public class SourceFile implements SourceFileInterface, Serializable {
+public class SourceFile implements Serializable {
 
     private static final long serialVersionUID = 1L;
 

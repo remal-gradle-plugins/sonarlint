@@ -12,14 +12,14 @@ import java.nio.charset.Charset;
 import java.util.Optional;
 import javax.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
-import name.remal.gradle_plugins.sonarlint.internal.SourceFileInterface;
+import name.remal.gradle_plugins.sonarlint.internal.SourceFile;
 import org.sonarsource.sonarlint.core.analysis.api.ClientInputFile;
 
 @RequiredArgsConstructor
 @SuppressWarnings({"deprecation", "RedundantSuppression"})
 class SimpleClientInputFile implements ClientInputFile {
 
-    private final SourceFileInterface sourceFile;
+    private final SourceFile sourceFile;
 
     @Override
     public String getPath() {
