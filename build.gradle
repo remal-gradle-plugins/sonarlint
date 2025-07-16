@@ -21,7 +21,7 @@ buildscript {
         classpath 'name.remal.gradle-plugins.toolkit:build-logic:0.73.2'
         classpath 'de.undercouch:gradle-download-task:5.6.0'
         classpath 'com.tisonkun.os:os-detector-core:0.6.0'
-        classpath 'io.github.classgraph:classgraph:4.8.180'
+        classpath 'io.github.classgraph:classgraph:4.8.181'
 
         classpath platform("org.ow2.asm:asm-bom:9.8")
         classpath 'org.ow2.asm:asm-tree'
