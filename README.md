@@ -1,6 +1,6 @@
 **Tested on Java LTS versions from <!--property:java-runtime.min-version-->11<!--/property--> to <!--property:java-runtime.max-version-->24<!--/property-->.**
 
-**Tested on Gradle versions from <!--property:gradle-api.min-version-->7.5<!--/property--> to <!--property:gradle-api.max-version-->9.0.0-rc-3<!--/property-->.**
+**Tested on Gradle versions from <!--property:gradle-api.min-version-->7.5<!--/property--> to <!--property:gradle-api.max-version-->9.0.0<!--/property-->.**
 
 # `name.remal.sonarlint` plugin
 
@@ -29,7 +29,7 @@ The plugin uses these Sonar plugins:
 * [Docker](https://rules.sonarsource.com/docker/)
 * [Java](https://rules.sonarsource.com/java/)
 * [JavaScript](https://rules.sonarsource.com/javascript/)
-* JSON
+* [JSON](https://rules.sonarsource.com/json/)
 * JSP
 * [Kotlin](https://rules.sonarsource.com/kotlin/)
 * [Kubernetes](https://rules.sonarsource.com/kubernetes/)
@@ -40,7 +40,7 @@ The plugin uses these Sonar plugins:
 * [TypeScript](https://rules.sonarsource.com/typescript/)
 * [HTML](https://rules.sonarsource.com/web/)
 * [XML](https://rules.sonarsource.com/xml/)
-* YAML
+* [YAML](https://rules.sonarsource.com/yaml/)
 
 <!--/sonar-plugins-list-->
 
