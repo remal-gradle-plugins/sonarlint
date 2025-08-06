@@ -12,9 +12,9 @@ permissions:
   actions: 'write'
 
 jobs:
-  cancel-pr-actions-on-merge:
+  cancel-pr-actions:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-    - name: Cancel PR actions on merge
+    - name: Cancel PR actions
       uses: remal-github-actions/cancel-pr-actions@v1
