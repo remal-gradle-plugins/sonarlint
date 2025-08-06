@@ -239,7 +239,7 @@ jobs:
       id: download-workspace
       uses: Wandalen/wretry.action@v3.8.0
       with:
-        action: actions/download-artifact@v4
+        action: actions/download-artifact@v5
         attempt_limit: 3
         attempt_delay: 5000
         with: |
@@ -320,7 +320,7 @@ jobs:
       id: download-workspace
       uses: Wandalen/wretry.action@v3.8.0
       with:
-        action: actions/download-artifact@v4
+        action: actions/download-artifact@v5
         attempt_limit: 3
         attempt_delay: 5000
         with: |
@@ -407,7 +407,7 @@ jobs:
       id: download-workspace
       uses: Wandalen/wretry.action@v3.8.0
       with:
-        action: actions/download-artifact@v4
+        action: actions/download-artifact@v5
         attempt_limit: 3
         attempt_delay: 5000
         with: |
@@ -462,7 +462,7 @@ jobs:
       id: download-workspace
       uses: Wandalen/wretry.action@v3.8.0
       with:
-        action: actions/download-artifact@v4
+        action: actions/download-artifact@v5
         attempt_limit: 3
         attempt_delay: 5000
         with: |
