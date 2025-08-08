@@ -1,0 +1,57 @@
+name: Auto-assign issues or PRs
+
+on:
+  issues:
+    types:
+    - opened
+    - transferred
+  pull_request:
+    types:
+    - opened
+
+env:
+  DEFAULT_ASSIGNEE: ${{secrets.DEFAULT_ASSIGNEE || 'remal'}}
+
+permissions:
+  issues: write
+  pull-requests: write
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  auto-assign:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+    - name: Define assignee
+      id: assignee
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const repository = await github.rest.repos.get({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+          }).then(it => it.data)
+          const isOrg = repository.owner.type == 'Organization'
+          if (!isOrg) {
+            core.setOutput('assignee', context.repo.owner)
+            return
+          }
+
+          const defaultAssignee = '${{env.DEFAULT_ASSIGNEE}}'
+          const members = (await github.paginate(github.rest.orgs.listMembers, {
+            org: context.repo.owner,
+          })).filter(it => it.type === 'User').map(it => it.login)
+          if (members.includes(defaultAssignee)) {
+            core.setOutput('assignee', defaultAssignee)
+            return
+          }
+
+    - name: Auto-assign ${{github.event == 'pull_request' && 'PR' || 'issue'}}
+      if: ${{steps.assignee.outputs.assignee}}
+      uses: pozil/auto-assign-issue@v1
+      with:
+        assignees: ${{steps.assignee.outputs.assignee}}
+        abortIfPreviousAssignees: true
