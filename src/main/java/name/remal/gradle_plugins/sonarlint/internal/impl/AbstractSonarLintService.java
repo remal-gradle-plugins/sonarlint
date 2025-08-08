@@ -44,6 +44,7 @@ import org.sonarsource.sonarlint.core.plugin.commons.PluginsLoader.Configuration
 import org.sonarsource.sonarlint.core.plugin.commons.container.SpringComponentContainer;
 import org.sonarsource.sonarlint.core.plugin.commons.loading.PluginInfo;
 import org.sonarsource.sonarlint.core.rule.extractor.RuleDefinitionsLoader;
+import org.sonarsource.sonarlint.core.rule.extractor.RuleSettings;
 import org.sonarsource.sonarlint.core.rule.extractor.RulesDefinitionExtractorContainer;
 
 @RequiredArgsConstructor
@@ -98,7 +99,8 @@ abstract class AbstractSonarLintService<Params extends AbstractSonarLintServiceP
 
     private final LazyValue<SpringComponentContainer> definitionsExtractorContainer = lazyValue(() -> {
         var container = new RulesDefinitionExtractorContainer(
-            loadedPlugins.get().getLoadedPlugins().getAllPluginInstancesByKeys()
+            loadedPlugins.get().getLoadedPlugins().getAllPluginInstancesByKeys(),
+            new RuleSettings(Map.of())
         );
         container.startComponents();
         registerCloseable(container::stopComponents);
