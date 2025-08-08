@@ -5,9 +5,9 @@ on:
     types:
     - opened
     - transferred
-  pull_request:
-    types:
-    - opened
+#  pull_request:
+#    types:
+#    - opened
 
 env:
   DEFAULT_ASSIGNEE: ${{secrets.DEFAULT_ASSIGNEE || 'remal'}}
