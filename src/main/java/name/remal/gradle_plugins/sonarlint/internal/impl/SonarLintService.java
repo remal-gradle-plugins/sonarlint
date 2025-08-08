@@ -102,26 +102,26 @@ public class SonarLintService extends AbstractClosablesContainer {
 
     private final LazyValue<PluginsLoadResult> loadedPlugins = lazyValue(() -> {
         var pluginJarLocations = getPluginFiles().stream()
-                .filter(Objects::nonNull)
-                .map(File::toPath)
-                .distinct()
-                .filter(path -> {
-                    try {
-                        var pluginInfo = PluginInfo.create(path);
-                        logger.debug("plugin={}: {}", pluginInfo, path);
-                        return true;
-                    } catch (Exception e) {
-                        logger.debug("not a plugin: " + path, e);
-                        return false;
-                    }
-                })
-                .collect(toImmutableSet());
+            .filter(Objects::nonNull)
+            .map(File::toPath)
+            .distinct()
+            .filter(path -> {
+                try {
+                    var pluginInfo = PluginInfo.create(path);
+                    logger.debug("plugin={}: {}", pluginInfo, path);
+                    return true;
+                } catch (Exception e) {
+                    logger.debug("not a plugin: " + path, e);
+                    return false;
+                }
+            })
+            .collect(toImmutableSet());
 
         var pluginsConfig = new Configuration(
-                pluginJarLocations,
-                Set.of(SonarLanguage.values()),
-                true,
-                Optional.of(Version.create("9999.9999.9999"))
+            pluginJarLocations,
+            Set.of(SonarLanguage.values()),
+            true,
+            Optional.of(Version.create("9999.9999.9999"))
         );
 
         var loadedPlugins = new PluginsLoader().load(pluginsConfig, Set.of());
@@ -131,7 +131,7 @@ public class SonarLintService extends AbstractClosablesContainer {
 
     private final LazyValue<SpringComponentContainer> definitionsExtractorContainer = lazyValue(() -> {
         var container = new RulesDefinitionExtractorContainer(
-                loadedPlugins.get().getLoadedPlugins().getAllPluginInstancesByKeys()
+            loadedPlugins.get().getLoadedPlugins().getAllPluginInstancesByKeys()
         );
         container.startComponents();
         registerCloseable(container::stopComponents);
@@ -141,8 +141,8 @@ public class SonarLintService extends AbstractClosablesContainer {
     @Unmodifiable
     private final List<PropertyDefinition> allPropertyDefinitions = asLazyListProxy(() -> {
         var definitions = definitionsExtractorContainer.get()
-                .getComponentByType(PropertyDefinitions.class)
-                .getAll();
+            .getComponentByType(PropertyDefinitions.class)
+            .getAll();
 
         return List.copyOf(definitions);
     });
@@ -150,17 +150,17 @@ public class SonarLintService extends AbstractClosablesContainer {
     @Unmodifiable
     private final Map<RuleKey, Rule> allRules = asLazyMapProxy(() -> {
         var rulesDefinitionContext = definitionsExtractorContainer.get()
-                .getComponentByType(RuleDefinitionsLoader.class)
-                .getContext();
+            .getComponentByType(RuleDefinitionsLoader.class)
+            .getContext();
         return rulesDefinitionContext.repositories().stream()
-                .filter(not(Repository::isExternal))
-                .map(ExtendedRepository::rules)
-                .flatMap(Collection::stream)
-                .collect(toImmutableMap(
-                        rule -> RuleKey.of(rule.repository().key(), rule.key()),
-                        identity(),
-                        (oldRule, rule) -> rule
-                ));
+            .filter(not(Repository::isExternal))
+            .map(ExtendedRepository::rules)
+            .flatMap(Collection::stream)
+            .collect(toImmutableMap(
+                rule -> RuleKey.of(rule.repository().key(), rule.key()),
+                identity(),
+                (oldRule, rule) -> rule
+            ));
     });
 
     //#endregion
@@ -171,43 +171,43 @@ public class SonarLintService extends AbstractClosablesContainer {
     @Unmodifiable
     @VisibleForTesting
     Map<RuleKey, Rule> getEnabledRules(
-            Set<SonarLintLanguage> enabledLanguages,
-            Set<String> enabledRulesConfig,
-            Set<String> disabledRulesConfig
+        Set<SonarLintLanguage> enabledLanguages,
+        Set<String> enabledRulesConfig,
+        Set<String> disabledRulesConfig
     ) {
         var enabledLanguageIds = enabledLanguages.stream()
-                .map(SonarLintLanguageConverter::convertSonarLintLanguage)
-                .flatMap(lang -> Stream.of(lang.name(), lang.getSonarLanguageKey()))
-                .map(String::toLowerCase)
-                .collect(toImmutableSet());
+            .map(SonarLintLanguageConverter::convertSonarLintLanguage)
+            .flatMap(lang -> Stream.of(lang.name(), lang.getSonarLanguageKey()))
+            .map(String::toLowerCase)
+            .collect(toImmutableSet());
 
         var enabledRules = getRulesKeys(enabledRulesConfig);
         var disabledRules = getRulesKeys(disabledRulesConfig);
 
         return allRules.entrySet().stream()
-                .filter(entry -> {
-                    var ruleKey = entry.getKey();
-                    var rule = entry.getValue();
+            .filter(entry -> {
+                var ruleKey = entry.getKey();
+                var rule = entry.getValue();
 
-                    var ruleLanguage = rule.repository().language();
-                    if (!enabledLanguageIds.contains(ruleLanguage.toLowerCase())) {
-                        return false;
-                    }
+                var ruleLanguage = rule.repository().language();
+                if (!enabledLanguageIds.contains(ruleLanguage.toLowerCase())) {
+                    return false;
+                }
 
-                    if (disabledRules.contains(ruleKey)) {
-                        return false;
-                    }
-                    if (!rule.activatedByDefault() && !enabledRules.contains(ruleKey)) {
-                        return false;
-                    }
+                if (disabledRules.contains(ruleKey)) {
+                    return false;
+                }
+                if (!rule.activatedByDefault() && !enabledRules.contains(ruleKey)) {
+                    return false;
+                }
 
-                    return true;
-                })
-                .collect(toImmutableMap(
-                        Entry::getKey,
-                        Entry::getValue,
-                        (oldRule, rule) -> rule
-                ));
+                return true;
+            })
+            .collect(toImmutableMap(
+                Entry::getKey,
+                Entry::getValue,
+                (oldRule, rule) -> rule
+            ));
     }
 
     @SuppressWarnings("ResultOfMethodCallIgnored")
@@ -216,16 +216,16 @@ public class SonarLintService extends AbstractClosablesContainer {
         var userHomeDir = createTempDirectory(SonarLintService.class.getSimpleName() + "-userHome-");
 
         var analysisSchedulerConfiguration = AnalysisSchedulerConfiguration.builder()
-                .setWorkDir(workDir)
-                .setExtraProperties(Map.of(
-                        "sonar.userHome", userHomeDir.toString()
-                ))
-                .setClientPid(-1)
-                .build();
+            .setWorkDir(workDir)
+            .setExtraProperties(Map.of(
+                "sonar.userHome", userHomeDir.toString()
+            ))
+            .setClientPid(-1)
+            .build();
 
         var container = new GlobalAnalysisContainer(
-                analysisSchedulerConfiguration,
-                loadedPlugins.get().getLoadedPlugins()
+            analysisSchedulerConfiguration,
+            loadedPlugins.get().getLoadedPlugins()
         );
         container.startComponents();
         registerCloseable(container::stopComponents);
@@ -246,92 +246,92 @@ public class SonarLintService extends AbstractClosablesContainer {
 
     @SuppressWarnings({"java:S107", "java:S3776"})
     public Collection<Issue> analyze(
-            String moduleId,
-            File repositoryRoot,
-            Collection<SourceFile> sourceFiles,
-            Map<String, String> sonarProperties,
-            Set<SonarLintLanguage> enabledLanguages,
-            Set<String> enabledRulesConfig,
-            Set<String> disabledRulesConfig,
-            Map<String, Map<String, String>> rulesPropertiesConfig,
-            @Nullable Consumer<String> logMessagesConsumer
+        String moduleId,
+        File repositoryRoot,
+        Collection<SourceFile> sourceFiles,
+        Map<String, String> sonarProperties,
+        Set<SonarLintLanguage> enabledLanguages,
+        Set<String> enabledRulesConfig,
+        Set<String> disabledRulesConfig,
+        Map<String, Map<String, String>> rulesPropertiesConfig,
+        @Nullable Consumer<String> logMessagesConsumer
     ) {
         if (sourceFiles.isEmpty()) {
             return List.of();
         }
 
         return withLogMessagesConsumer(logMessagesConsumer, () ->
-                withSingleThreadedFirstFrontendScan(sourceFiles, sonarProperties, enabledLanguages, () -> {
-                    var inputFiles = sourceFiles.stream()
-                            .filter(Objects::nonNull)
-                            .map(SimpleClientInputFile::new)
-                            .map(ClientInputFile.class::cast)
-                            .collect(toUnmodifiableList());
+            withSingleThreadedFirstFrontendScan(sourceFiles, sonarProperties, enabledLanguages, () -> {
+                var inputFiles = sourceFiles.stream()
+                    .filter(Objects::nonNull)
+                    .map(SimpleClientInputFile::new)
+                    .map(ClientInputFile.class::cast)
+                    .collect(toUnmodifiableList());
 
-                    var clientFileSystem = new SimpleClientModuleFileSystem(inputFiles);
-                    var moduleInfo = new ClientModuleInfo(moduleId, clientFileSystem);
-                    var moduleRegistry = this.moduleRegistry.get();
-                    moduleRegistry.registerModule(moduleInfo);
-                    try {
-                        var enabledRules = getEnabledRules(
-                                enabledLanguages,
-                                enabledRulesConfig,
-                                disabledRulesConfig
-                        );
-                        var rulesProperties = getRuleProperties(rulesPropertiesConfig);
-                        var activeRules = enabledRules.entrySet().stream()
-                                .map(entry -> {
-                                    var ruleKey = entry.getKey();
-                                    var rule = entry.getValue();
+                var clientFileSystem = new SimpleClientModuleFileSystem(inputFiles);
+                var moduleInfo = new ClientModuleInfo(moduleId, clientFileSystem);
+                var moduleRegistry = this.moduleRegistry.get();
+                moduleRegistry.registerModule(moduleInfo);
+                try {
+                    var enabledRules = getEnabledRules(
+                        enabledLanguages,
+                        enabledRulesConfig,
+                        disabledRulesConfig
+                    );
+                    var rulesProperties = getRuleProperties(rulesPropertiesConfig);
+                    var activeRules = enabledRules.entrySet().stream()
+                        .map(entry -> {
+                            var ruleKey = entry.getKey();
+                            var rule = entry.getValue();
 
-                                    var activeRule = new ActiveRule(ruleKey.toString(), rule.repository().language());
+                            var activeRule = new ActiveRule(ruleKey.toString(), rule.repository().language());
 
-                                    var ruleProperties = rulesProperties.get(ruleKey);
-                                    if (ruleProperties != null) {
-                                        activeRule.setParams(ruleProperties);
-                                    }
-
-                                    return activeRule;
-                                })
-                                .collect(toUnmodifiableList());
-
-
-                        var analysisConfiguration = AnalysisConfiguration.builder()
-                                .setBaseDir(repositoryRoot.toPath())
-                                .addInputFiles(inputFiles)
-                                .putAllExtraProperties(sonarProperties)
-                                .addActiveRules(activeRules)
-                                .build();
-
-
-                        Collection<Issue> issues = new LinkedHashSet<>();
-                        var issueConverter = new SonarIssueConverter(allRules);
-                        Consumer<org.sonarsource.sonarlint.core.analysis.api.Issue> issueListener = sonarIssue -> {
-                            synchronized (issues) {
-                                var issue = issueConverter.convert(sonarIssue);
-                                if (issue != null) {
-                                    issues.add(issue);
-                                }
+                            var ruleProperties = rulesProperties.get(ruleKey);
+                            if (ruleProperties != null) {
+                                activeRule.setParams(ruleProperties);
                             }
-                        };
+
+                            return activeRule;
+                        })
+                        .collect(toUnmodifiableList());
 
 
-                        var moduleContainer = requireNonNull(moduleRegistry.getContainerFor(moduleId));
-                        var startTime = nanoTime();
-                        moduleContainer.analyze(
-                                analysisConfiguration,
-                                issueListener,
-                                NOOP_PROGRESS_MONITOR,
-                                null
-                        );
-                        System.err.printf("%s: %d%n", moduleId, NANOSECONDS.toMillis(nanoTime() - startTime));
+                    var analysisConfiguration = AnalysisConfiguration.builder()
+                        .setBaseDir(repositoryRoot.toPath())
+                        .addInputFiles(inputFiles)
+                        .putAllExtraProperties(sonarProperties)
+                        .addActiveRules(activeRules)
+                        .build();
 
-                        return issues;
 
-                    } finally {
-                        moduleRegistry.unregisterModule(moduleId);
-                    }
-                })
+                    Collection<Issue> issues = new LinkedHashSet<>();
+                    var issueConverter = new SonarIssueConverter(allRules);
+                    Consumer<org.sonarsource.sonarlint.core.analysis.api.Issue> issueListener = sonarIssue -> {
+                        synchronized (issues) {
+                            var issue = issueConverter.convert(sonarIssue);
+                            if (issue != null) {
+                                issues.add(issue);
+                            }
+                        }
+                    };
+
+
+                    var moduleContainer = requireNonNull(moduleRegistry.getContainerFor(moduleId));
+                    var startTime = nanoTime();
+                    moduleContainer.analyze(
+                        analysisConfiguration,
+                        issueListener,
+                        NOOP_PROGRESS_MONITOR,
+                        null
+                    );
+                    System.err.printf("%s: %d%n", moduleId, NANOSECONDS.toMillis(nanoTime() - startTime));
+
+                    return issues;
+
+                } finally {
+                    moduleRegistry.unregisterModule(moduleId);
+                }
+            })
         );
     }
 
@@ -339,22 +339,22 @@ public class SonarLintService extends AbstractClosablesContainer {
 
     @SneakyThrows
     private <T> T withSingleThreadedFirstFrontendScan(
-            Collection<SourceFile> sourceFiles,
-            Map<String, String> sonarProperties,
-            Set<SonarLintLanguage> enabledLanguages,
-            Callable<T> action
+        Collection<SourceFile> sourceFiles,
+        Map<String, String> sonarProperties,
+        Set<SonarLintLanguage> enabledLanguages,
+        Callable<T> action
     ) {
         var frontendRelativePathPredicate = ALWAYS_FALSE_RELATIVE_PATH_PREDICATE;
         for (var entry : getLanguageRelativePathPredicates(sonarProperties).entrySet()) {
             if (enabledLanguages.contains(entry.getKey())
-                    && entry.getKey().getType() == SonarLintLanguageType.FRONTEND
+                && entry.getKey().getType() == SonarLintLanguageType.FRONTEND
             ) {
                 frontendRelativePathPredicate = frontendRelativePathPredicate.or(entry.getValue());
             }
         }
         var hasAnyFrontendSourceFile = sourceFiles.stream()
-                .map(SourceFile::getRelativePath)
-                .anyMatch(frontendRelativePathPredicate);
+            .map(SourceFile::getRelativePath)
+            .anyMatch(frontendRelativePathPredicate);
         if (!hasAnyFrontendSourceFile) {
             return action.call();
         }
@@ -376,8 +376,8 @@ public class SonarLintService extends AbstractClosablesContainer {
             propDoc.setName(propDef.name());
             propDoc.setDescription(propDef.description());
             Optional.ofNullable(propDef.type())
-                    .map(Enum::name)
-                    .ifPresent(propDoc::setType);
+                .map(Enum::name)
+                .ifPresent(propDoc::setType);
             propDoc.setDefaultValue(propDef.defaultValue());
         }));
         return propertiesDoc;
@@ -393,11 +393,11 @@ public class SonarLintService extends AbstractClosablesContainer {
                 }
 
                 return PropertyDocumentation.builder()
-                        .name("File Suffixes")
-                        .description("List of suffixes for files to analyze.")
-                        .type("STRING")
-                        .defaultValue(join(",", KOTLIN.getDefaultFileSuffixes()))
-                        .build();
+                    .name("File Suffixes")
+                    .description("List of suffixes for files to analyze.")
+                    .type("STRING")
+                    .defaultValue(join(",", KOTLIN.getDefaultFileSuffixes()))
+                    .build();
             });
 
             propertiesDoc.getProperties().computeIfAbsent("sonar.scala.file.suffixes", propertyKey -> {
@@ -406,11 +406,11 @@ public class SonarLintService extends AbstractClosablesContainer {
                 }
 
                 return PropertyDocumentation.builder()
-                        .name("File Suffixes")
-                        .description("List of suffixes for files to analyze.")
-                        .type("STRING")
-                        .defaultValue(join(",", SCALA.getDefaultFileSuffixes()))
-                        .build();
+                    .name("File Suffixes")
+                    .description("List of suffixes for files to analyze.")
+                    .type("STRING")
+                    .defaultValue(join(",", SCALA.getDefaultFileSuffixes()))
+                    .build();
             });
 
             return propertiesDoc;
@@ -431,15 +431,15 @@ public class SonarLintService extends AbstractClosablesContainer {
                 }
 
                 Optional.ofNullable(rule.repository().language())
-                        .flatMap(SonarLanguage::forKey)
-                        .map(SonarLanguage::getSonarLanguageKey)
-                        .ifPresent(ruleDoc::setLanguage);
+                    .flatMap(SonarLanguage::forKey)
+                    .map(SonarLanguage::getSonarLanguageKey)
+                    .ifPresent(ruleDoc::setLanguage);
 
                 rule.params().forEach(param -> ruleDoc.param(param.key(), paramDoc -> {
                     paramDoc.setDescription(param.description());
                     Optional.ofNullable(param.type())
-                            .map(RuleParamType::type)
-                            .ifPresent(paramDoc::setType);
+                        .map(RuleParamType::type)
+                        .ifPresent(paramDoc::setType);
                     paramDoc.setDefaultValue(param.defaultValue());
                     paramDoc.setPossibleValues(param.type().values());
                 }));
@@ -477,22 +477,22 @@ public class SonarLintService extends AbstractClosablesContainer {
     @Unmodifiable
     private static Set<RuleKey> getRulesKeys(Collection<String> ruleKeyStrings) {
         return ruleKeyStrings.stream()
-                .filter(ObjectUtils::isNotEmpty)
-                .map(RuleKey::parse)
-                .collect(toImmutableSet());
+            .filter(ObjectUtils::isNotEmpty)
+            .map(RuleKey::parse)
+            .collect(toImmutableSet());
     }
 
     @Unmodifiable
     private static Map<RuleKey, Map<String, String>> getRuleProperties(
-            Map<String, Map<String, String>> rulePropertiesWithStringKeys
+        Map<String, Map<String, String>> rulePropertiesWithStringKeys
     ) {
         return rulePropertiesWithStringKeys.entrySet().stream()
-                .filter(entry -> isNotEmpty(entry.getKey()) && isNotEmpty(entry.getValue()))
-                .collect(toImmutableMap(
-                        entry -> RuleKey.parse(entry.getKey()),
-                        Entry::getValue,
-                        (oldProps, props) -> props
-                ));
+            .filter(entry -> isNotEmpty(entry.getKey()) && isNotEmpty(entry.getValue()))
+            .collect(toImmutableMap(
+                entry -> RuleKey.parse(entry.getKey()),
+                Entry::getValue,
+                (oldProps, props) -> props
+            ));
     }
 
 

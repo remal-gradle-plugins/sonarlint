@@ -26,34 +26,34 @@ abstract class AbstractLogOutput implements LogOutput {
     private final Set<String> loggedMessages = newSetFromMap(new ConcurrentHashMap<>());
 
     private static final Map<Pattern, Level> MESSAGE_LEVELS = ImmutableMap.<Pattern, Level>builder()
-            .put(
-                    Pattern.compile("No workDir in SonarLint"),
-                    TRACE
-            )
-            .put(
-                    Pattern.compile(".+\\. Enable DEBUG mode to see them\\."),
-                    TRACE
-            )
-            .put(
-                    Pattern.compile("Plugin '[^']+' is excluded because"
-                            + " (none of languages '[^']+' are|language '[^']+' is not) enabled"
-                            + "\\. Skip loading it\\."
-                    ),
-                    DEBUG
-            )
-            .put(
-                    Pattern.compile("Plugin '[^']+' is excluded .+\\. Skip loading it\\."),
-                    WARN
-            )
-            .put(
-                    Pattern.compile("Your platform is not supported for embedded.*"),
-                    WARN
-            )
-            .put(
-                    Pattern.compile("Embedded node not found for platform.*"),
-                    WARN
-            )
-            .build();
+        .put(
+            Pattern.compile("No workDir in SonarLint"),
+            TRACE
+        )
+        .put(
+            Pattern.compile(".+\\. Enable DEBUG mode to see them\\."),
+            TRACE
+        )
+        .put(
+            Pattern.compile("Plugin '[^']+' is excluded because"
+                + " (none of languages '[^']+' are|language '[^']+' is not) enabled"
+                + "\\. Skip loading it\\."
+            ),
+            DEBUG
+        )
+        .put(
+            Pattern.compile("Plugin '[^']+' is excluded .+\\. Skip loading it\\."),
+            WARN
+        )
+        .put(
+            Pattern.compile("Your platform is not supported for embedded.*"),
+            WARN
+        )
+        .put(
+            Pattern.compile("Embedded node not found for platform.*"),
+            WARN
+        )
+        .build();
 
     @Override
     public final void log(@Nullable String formattedMessage, Level level, @Nullable String stacktrace) {
@@ -62,9 +62,9 @@ abstract class AbstractLogOutput implements LogOutput {
         }
 
         var message = Stream.of(formattedMessage, stacktrace)
-                .filter(Objects::nonNull)
-                .filter(not(String::isBlank))
-                .collect(joining("\n"));
+            .filter(Objects::nonNull)
+            .filter(not(String::isBlank))
+            .collect(joining("\n"));
 
         message = message.trim();
         if (message.isEmpty()) {
