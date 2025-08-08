@@ -1,6 +1,7 @@
 import io.github.classgraph.ClassGraph
 import io.github.classgraph.ScanResult
 import java.nio.file.Paths
+import java.util.concurrent.atomic.AtomicReference
 import java.util.jar.JarFile
 
 buildscript {
@@ -162,12 +163,12 @@ ListProperty<List<PluginLanguageInfo>> pluginLanguageInfos = rootProject.ext.plu
                     }
                     File languageJarFile = Paths.get(languageJarUrl.toURI()).toFile()
 
-                    String pluginKey = null
-                    String minNodeJsVersion = null
+                    AtomicReference<String> pluginKey = new AtomicReference<>()
+                    AtomicReference<String> minNodeJsVersion = new AtomicReference<>()
                     new JarFile(languageJarFile).withCloseable { jarFile ->
                         def attrs = jarFile.manifest?.mainAttributes
-                        pluginKey = attrs?.getValue('Plugin-Key')?.toString()
-                        minNodeJsVersion = attrs?.getValue('NodeJs-Min-Version')?.toString()
+                        pluginKey.set(attrs?.getValue('Plugin-Key')?.toString())
+                        minNodeJsVersion.set(attrs?.getValue('NodeJs-Min-Version')?.toString())
                     }
 
 
@@ -216,7 +217,7 @@ ListProperty<List<PluginLanguageInfo>> pluginLanguageInfos = rootProject.ext.plu
                         name: language.name,
                         defaultFileSuffixes: defaultFileSuffixes,
                         defaultFilenamePatterns: defaultFilenamePatterns,
-                        minNodeJsVersion: minNodeJsVersion?.length() ? minNodeJsVersion : null,
+                        minNodeJsVersion: minNodeJsVersion.get()?.with { it.isEmpty() ? null : it },
                         pluginDependency: new DependencyInfo(
                             group: pluginDependency.group,
                             name: pluginDependency.name,
