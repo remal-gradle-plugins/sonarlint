@@ -42,7 +42,7 @@ jobs:
       cancel-in-progress: true
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         submodules: recursive
         fetch-depth: 1
@@ -89,7 +89,7 @@ jobs:
       allMatrixIncludes: ${{steps.matrixVersions.outputs.allMatrixIncludes}}
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         submodules: recursive
         fetch-depth: 1
@@ -220,7 +220,7 @@ jobs:
       DISABLE_VERIFICATION_EXCEPT_TESTS: 'true'
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         submodules: recursive
         fetch-depth: 1
@@ -303,7 +303,7 @@ jobs:
       DISABLE_VERIFICATION: 'true'
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         submodules: recursive
         fetch-depth: 1
@@ -390,7 +390,7 @@ jobs:
       PUSH_BACK_TOKEN: ${{secrets.PUSH_BACK_TOKEN}}
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         submodules: recursive
         fetch-depth: 1
@@ -445,7 +445,7 @@ jobs:
       PUSH_BACK_TOKEN: ${{secrets.PUSH_BACK_TOKEN}}
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         submodules: recursive
         fetch-depth: 1
