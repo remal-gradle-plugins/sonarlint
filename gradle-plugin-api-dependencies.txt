@@ -11,7 +11,7 @@ org.sonarsource.kotlin:sonar-kotlin-plugin:3.3.0.7402
 org.sonarsource.slang:sonar-scala-plugin:1.19.0.484
 org.sonarsource.sonarlint.core:sonarlint-analysis-engine:10.27.1.81985
 org.sonarsource.sonarlint.core:sonarlint-rule-extractor:10.27.1.81985
-org.sonarsource.text:sonar-text-plugin:2.26.0.7517
+org.sonarsource.text:sonar-text-plugin:2.27.0.7705
 org.sonarsource.xml:sonar-xml-plugin:2.13.0.5938:@sonar-plugin
 zzzz-classes-relying-on-gradle-internal-api:name.remal.gradle_plugins.sonarlint.AbstractSonarLintHelpTask:7d3e3ca2e80d779d940ef4df4df81011d39947707dbf734198c019ef185b3739
 zzzz-classes-relying-on-gradle-internal-api:name.remal.gradle_plugins.sonarlint.SonarLintPlugin:1ed503016ebdfd50a429bd23a6f71c56d74ab75d0e4375f78f4ebe9b1c7c3ce8
