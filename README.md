@@ -23,7 +23,7 @@ This plugin executes [SonarLint](https://www.sonarlint.org/) inspections without
 The plugin uses these Sonar plugins:
 <!--sonar-plugins-list-->
 
-* [AzureResourceManager](https://rules.sonarsource.com/azureresourcemanager/)
+* [Azure Resource Manager](https://rules.sonarsource.com/azureresourcemanager/)
 * [CloudFormation](https://rules.sonarsource.com/cloudformation/)
 * [CSS](https://rules.sonarsource.com/css/)
 * [Docker](https://rules.sonarsource.com/docker/)
@@ -50,7 +50,7 @@ For every [`SourceSet`](https://docs.gradle.org/current/javadoc/org/gradle/api/t
 
 Infra languages are excluded by default:
 <!--iterable-property:infraLanguageNames-->
-* AzureResourceManager
+* Azure Resource Manager
 * CloudFormation
 * Docker
 * JSON
