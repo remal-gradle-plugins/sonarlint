@@ -17,17 +17,18 @@ class SimpleProgressMonitor implements ProgressMonitor {
     private final Thread executingThread = Thread.currentThread();
 
     @Override
-    public void notifyProgress(@Nullable String message, @Nullable Integer percentage) {
-        if (message != null && percentage != null) {
-            logger.info("{}: {}%", message, percentage);
-        } else if (message != null) {
-            logger.info(message);
-        }
-    }
-
-    @Override
     public boolean isCanceled() {
         return executingThread.isInterrupted();
+    }
+
+
+    @Override
+    public void notifyProgress(@Nullable String message, @Nullable Integer percentage) {
+        if (message != null && percentage != null) {
+            logger.debug("{}: {}%", message, percentage);
+        } else if (message != null) {
+            logger.debug(message);
+        }
     }
 
 

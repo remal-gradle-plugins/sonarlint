@@ -56,6 +56,7 @@ abstract class SonarLintAnalyzeWorkAction
                 params.getRootDirectory().get().getAsFile().toPath(),
                 params.getSourceFiles().get(),
                 params.getSonarProperties().get(),
+                true,
                 enabledRules,
                 disabledRules,
                 params.getRulesProperties().get()

@@ -10,12 +10,12 @@ import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static java.util.stream.Collectors.toUnmodifiableList;
+import static name.remal.gradle_plugins.sonarlint.internal.SonarLintLanguageIncludes.getLanguageIncludes;
 import static name.remal.gradle_plugins.toolkit.ClosureUtils.configureWith;
 import static name.remal.gradle_plugins.toolkit.FileTreeElementUtils.createFileTreeElement;
 import static name.remal.gradle_plugins.toolkit.FileUtils.normalizeFile;
 import static name.remal.gradle_plugins.toolkit.LayoutUtils.getCodeFormattingPathsFor;
 import static name.remal.gradle_plugins.toolkit.LayoutUtils.getRootDirOf;
-import static name.remal.gradle_plugins.toolkit.LazyProxy.asLazyMapProxy;
 import static name.remal.gradle_plugins.toolkit.LazyValue.lazyValue;
 import static name.remal.gradle_plugins.toolkit.ObjectUtils.isEmpty;
 import static name.remal.gradle_plugins.toolkit.ObjectUtils.isNotEmpty;
@@ -28,7 +28,6 @@ import static name.remal.gradle_plugins.toolkit.xml.XmlUtils.parseXml;
 import static org.gradle.api.tasks.PathSensitivity.RELATIVE;
 import static org.gradle.language.base.plugins.LifecycleBasePlugin.VERIFICATION_GROUP;
 
-import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.OverridingMethodsMustInvokeSuper;
 import groovy.lang.Closure;
@@ -44,7 +43,6 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.StreamSupport;
-import javax.annotation.Nullable;
 import lombok.Getter;
 import name.remal.gradle_plugins.sonarlint.internal.SourceFile;
 import name.remal.gradle_plugins.toolkit.EditorConfig;
@@ -82,6 +80,7 @@ import org.gradle.work.ChangeType;
 import org.gradle.work.Incremental;
 import org.gradle.work.InputChanges;
 import org.jetbrains.annotations.Contract;
+import org.jspecify.annotations.Nullable;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
@@ -127,9 +126,10 @@ public abstract class SonarLint
         sources = sources.matching(patternSet);
 
         sources = sources.matching(filter -> {
+            var languageIncludes = getLanguageIncludes(getSettings().getSonarProperties().get());
             getLanguages().getLanguagesToProcess().forEach(lang -> {
-                var languageFilter = languagePatternSets.get(lang);
-                filter.include(languageFilter.getIncludes());
+                var includes = languageIncludes.get(lang);
+                filter.include(includes);
             });
         });
 
@@ -159,43 +159,6 @@ public abstract class SonarLint
         return sources.get();
     }
 
-
-    private final Map<SonarLintLanguage, PatternSet> languagePatternSets = asLazyMapProxy(() -> {
-        var result = new LinkedHashMap<SonarLintLanguage, PatternSet>();
-
-        for (var language : SonarLintLanguage.values()) {
-            var includes = new LinkedHashSet<>(language.getDefaultFilenamePatterns());
-
-            var fileSuffixesPropKey = language.getFileSuffixesPropKey();
-            if (fileSuffixesPropKey != null) {
-                var fileSuffixes = getSettings().getSonarProperties().getting(fileSuffixesPropKey).getOrNull();
-                if (isNotEmpty(fileSuffixes)) {
-                    Splitter.on(',').splitToStream(fileSuffixes)
-                        .map(String::trim)
-                        .filter(ObjectUtils::isNotEmpty)
-                        .map(suffix -> "**/*" + suffix)
-                        .forEach(includes::add);
-                }
-            }
-
-            var filenamePatternsPropKey = language.getFilenamePatternsPropKey();
-            if (filenamePatternsPropKey != null) {
-                var filenamePatterns = getSettings().getSonarProperties().getting(filenamePatternsPropKey).getOrNull();
-                if (isNotEmpty(filenamePatterns)) {
-                    Splitter.on(',').splitToStream(filenamePatterns)
-                        .map(String::trim)
-                        .filter(ObjectUtils::isNotEmpty)
-                        .map(pattern -> pattern.startsWith("**/") ? pattern : "**/" + pattern)
-                        .forEach(includes::add);
-                }
-            }
-
-            var filter = new PatternSet().include(includes);
-            result.put(language, filter);
-        }
-
-        return ImmutableMap.copyOf(result);
-    });
 
     @Internal
     protected abstract ConfigurableFileCollection getAllProjectsBuildDirectories();
@@ -415,6 +378,7 @@ public abstract class SonarLint
 
     @Override
     @OverridingMethodsMustInvokeSuper
+    @SuppressWarnings("java:S2259")
     void configureWorkActionParams(
         SonarLintAnalyzeWorkActionParams workActionParams,
         @Nullable InputChanges inputChanges
@@ -432,7 +396,7 @@ public abstract class SonarLint
 
         var settings = getSettings();
 
-        var sonarProperties = new LinkedHashMap<String, String>();
+        Map<String, @Nullable String> sonarProperties = new LinkedHashMap<>();
         addJavaProperties(sonarProperties);
         sonarProperties.putAll(settings.getSonarProperties().get());
         addRuleByPathIgnoreProperties(sonarProperties);
@@ -529,7 +493,8 @@ public abstract class SonarLint
     }
 
     @Contract(mutates = "param1")
-    private void addJavaProperties(Map<String, String> sonarProperties) {
+    @SuppressWarnings("java:S2259")
+    private void addJavaProperties(Map<String, @Nullable String> sonarProperties) {
         sonarProperties.put(SONAR_JAVA_JDK_HOME_PROPERTY,
             getJava().getJvm()
                 .map(JavaInstallationMetadata::getInstallationPath)
@@ -569,7 +534,7 @@ public abstract class SonarLint
     }
 
     @Contract(mutates = "param1")
-    private void addRuleByPathIgnoreProperties(Map<String, String> sonarProperties) {
+    private void addRuleByPathIgnoreProperties(Map<String, @Nullable String> sonarProperties) {
         var settings = getSettings();
         settings.getIgnoredPaths().get().forEach(ignoredPath ->
             addRuleByPathIgnoreProperties(
@@ -593,8 +558,9 @@ public abstract class SonarLint
     }
 
     @Contract(mutates = "param1")
+    @SuppressWarnings("java:S2259")
     private static void addRuleByPathIgnoreProperties(
-        Map<String, String> sonarProperties,
+        Map<String, @Nullable String> sonarProperties,
         String scope,
         String rule,
         String path

@@ -62,7 +62,14 @@ public class PropertiesDocumentation implements Documentation {
                 .map(toIndentedString(2))
                 .ifPresent(desc -> message.append("\n").append(desc));
 
+            /*
+            Optional.ofNullable(propDoc.getCategory())
+                .filter(ObjectUtils::isNotEmpty)
+                .ifPresent(type -> message.append("\n  Category: ").append(type));
+            */
+
             Optional.ofNullable(propDoc.getType())
+                .filter(ObjectUtils::isNotEmpty)
                 .ifPresent(type -> message.append("\n  Type: ").append(type));
 
             Optional.ofNullable(propDoc.getCurrentValue())
@@ -87,6 +94,9 @@ public class PropertiesDocumentation implements Documentation {
 
         @Nullable
         String name;
+
+        @Nullable
+        String category;
 
         @Nullable
         String description;

@@ -5,7 +5,7 @@ import static com.google.common.collect.ImmutableSet.toImmutableSet;
 import static java.util.function.Function.identity;
 import static java.util.function.Predicate.not;
 import static lombok.AccessLevel.PRIVATE;
-import static name.remal.gradle_plugins.sonarlint.internal.impl.SimpleLogOutput.SIMPLE_LOG_OUTPUT;
+import static name.remal.gradle_plugins.sonarlint.internal.impl.LogOutputViaSlf4j.LOG_OUTPUT_VIA_SLF4J;
 import static name.remal.gradle_plugins.toolkit.LazyProxy.asLazyListProxy;
 import static name.remal.gradle_plugins.toolkit.LazyProxy.asLazyMapProxy;
 import static name.remal.gradle_plugins.toolkit.LazyValue.lazyValue;
@@ -22,8 +22,10 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.Callable;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import name.remal.gradle_plugins.toolkit.AbstractClosablesContainer;
 import name.remal.gradle_plugins.toolkit.LazyValue;
 import name.remal.gradle_plugins.toolkit.ObjectUtils;
@@ -58,7 +60,7 @@ abstract class AbstractSonarLintService<Params extends AbstractSonarLintServiceP
     protected final Logger logger = LoggerFactory.getLogger(this.getClass());
 
     static {
-        SonarLintLogger.get().setTarget(SIMPLE_LOG_OUTPUT);
+        SonarLintLogger.get().setTarget(LOG_OUTPUT_VIA_SLF4J);
     }
 
 
@@ -152,6 +154,20 @@ abstract class AbstractSonarLintService<Params extends AbstractSonarLintServiceP
                 Entry::getValue,
                 (oldProps, props) -> props
             ));
+    }
+
+
+    @SneakyThrows
+    protected static <T> T withThreadLogger(Callable<T> action) {
+        var logger = SonarLintLogger.get();
+        var prevTarget = logger.getTargetForCopy();
+        logger.setTarget(LOG_OUTPUT_VIA_SLF4J);
+        try {
+            return action.call();
+
+        } finally {
+            logger.setTarget(prevTarget);
+        }
     }
 
 
