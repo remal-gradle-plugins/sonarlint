@@ -28,21 +28,23 @@ public class SonarLintServiceHelp
 
     @VisibleForTesting
     PropertiesDocumentation collectPropertiesDocumentationWithoutEnrichment() {
-        var propertiesDoc = new PropertiesDocumentation();
-        allPropertyDefinitions.forEach(propDef -> propertiesDoc.property(propDef.key(), propDoc -> {
-            propDoc.setName(propDef.name());
-            propDoc.setCategory(Stream.of(propDef.category(), propDef.subCategory())
-                .filter(Objects::nonNull)
-                .filter(not(String::isEmpty))
-                .collect(joining(" > "))
-            );
-            propDoc.setDescription(propDef.description());
-            Optional.ofNullable(propDef.type())
-                .map(Enum::name)
-                .ifPresent(propDoc::setType);
-            propDoc.setDefaultValue(propDef.defaultValue());
-        }));
-        return propertiesDoc;
+        return withThreadLogger(() -> {
+            var propertiesDoc = new PropertiesDocumentation();
+            allPropertyDefinitions.forEach(propDef -> propertiesDoc.property(propDef.key(), propDoc -> {
+                propDoc.setName(propDef.name());
+                propDoc.setCategory(Stream.of(propDef.category(), propDef.subCategory())
+                    .filter(Objects::nonNull)
+                    .filter(not(String::isEmpty))
+                    .collect(joining(" > "))
+                );
+                propDoc.setDescription(propDef.description());
+                Optional.ofNullable(propDef.type())
+                    .map(Enum::name)
+                    .ifPresent(propDoc::setType);
+                propDoc.setDefaultValue(propDef.defaultValue());
+            }));
+            return propertiesDoc;
+        });
     }
 
     public PropertiesDocumentation collectPropertiesDocumentation() {
