@@ -1,9 +1,9 @@
 package name.remal.gradle_plugins.sonarlint;
 
 import static java.lang.String.join;
-import static name.remal.gradle_plugins.sonarlint.FunctionalTestConstants.CURRENT_MINOR_GRADLE_VERSION;
 import static name.remal.gradle_plugins.sonarlint.RuleExamples.getSonarRuleLanguage;
 import static name.remal.gradle_plugins.sonarlint.RuleExamples.writeSonarRuleExample;
+import static name.remal.gradle_plugins.sonarlint.TestConstants.CURRENT_MINOR_GRADLE_VERSION;
 import static name.remal.gradle_plugins.sonarlint.internal.PropertiesDocumentation.NO_SONARLINT_PROPERTIES_FOUND_LOG_MESSAGE;
 import static name.remal.gradle_plugins.sonarlint.internal.RulesDocumentation.NO_SONARLINT_RULES_FOUND_LOG_MESSAGE;
 import static name.remal.gradle_plugins.toolkit.LazyValue.lazyValue;

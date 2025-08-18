@@ -1,7 +1,7 @@
 package name.remal.gradle_plugins.sonarlint.internal.impl;
 
 import static com.google.common.collect.ImmutableSet.toImmutableSet;
-import static name.remal.gradle_plugins.sonarlint.ComponentTestConstants.CURRENT_MINOR_GRADLE_VERSION;
+import static name.remal.gradle_plugins.sonarlint.TestConstants.CURRENT_MINOR_GRADLE_VERSION;
 import static name.remal.gradle_plugins.toolkit.testkit.TestClasspath.getTestClasspathFirstLevelLibraryNotations;
 import static name.remal.gradle_plugins.toolkit.testkit.TestClasspath.getTestClasspathLibraryFilePaths;
 
