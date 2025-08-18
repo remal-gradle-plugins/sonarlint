@@ -135,6 +135,8 @@ abstract class AbstractSonarLintService<Params extends AbstractSonarLintServiceP
     });
 
 
+    //#region Utils
+
     @Unmodifiable
     protected static Set<RuleKey> getRulesKeys(Collection<String> ruleKeyStrings) {
         return ruleKeyStrings.stream()
@@ -178,5 +180,7 @@ abstract class AbstractSonarLintService<Params extends AbstractSonarLintServiceP
             throw sneakyThrow(e);
         }
     }
+
+    //#endregion
 
 }
