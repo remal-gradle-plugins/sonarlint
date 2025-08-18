@@ -64,6 +64,7 @@ Set<String> unknownSonarProperties = new LinkedHashSet<>([
     'sonar.docker.file.suffixes',
     'sonar.kubernetes.file.suffixes',
     'sonar.secrets.file.suffixes',
+    'sonar.text.file.suffixes',
 ])
 
 @groovy.transform.Immutable(copyWith = true)
@@ -183,17 +184,6 @@ ListProperty<List<PluginLanguageInfo>> pluginLanguageInfos = rootProject.ext.plu
                             ?.with { it.isEmpty() ? null : it }
                     }
 
-                    if (defaultFilenamePatterns == null) {
-                        try {
-                            defaultFilenamePatterns = Class.forName('org.sonar.plugins.secrets.SecretsSpecificationFilesDefinition', true, classLoader)
-                                .existingSecretSpecifications()
-                                ?.collect { it.startsWith('**/') ? it : "**/$it" }
-                                ?.with { it.isEmpty() ? null : it }
-                        } catch (ClassNotFoundException ignored) {
-                            // do nothing
-                        }
-                    }
-
                     if (defaultFilenamePatterns == null && language.key == 'cloudformation') {
                         defaultFileSuffixes = [
                             '.json',
@@ -209,6 +199,21 @@ ListProperty<List<PluginLanguageInfo>> pluginLanguageInfos = rootProject.ext.plu
                             '.yml',
                         ]
                         defaultFilenamePatterns = defaultFileSuffixes.collect { "**/*$it" }
+                    }
+                    if (defaultFilenamePatterns == null && (language.key == 'secrets' || language.key == 'text')) {
+                        defaultFileSuffixes = []
+                        Set<String> patterns = new TreeSet<>()
+                        Class.forName('org.sonar.plugins.secrets.SecretsSpecificationFilesDefinition', true, classLoader)
+                            .existingSecretSpecifications()
+                            .collect { it.startsWith('**/') ? it : "**/$it" }
+                            .forEach { patterns.add(it.toString()) }
+                        Class.forName('org.sonar.plugins.common.TextAndSecretsSensor', true, classLoader)
+                            .TEXT_INCLUSIONS_DEFAULT_VALUE
+                            .split(/\s*,\s*/)
+                            .findAll { !it.isEmpty() }
+                            .collect { it.startsWith('**/') ? it : "**/$it" }
+                            .forEach { patterns.add(it.toString()) }
+                        defaultFilenamePatterns = patterns.isEmpty() ? null : patterns.toList()
                     }
 
 
@@ -266,7 +271,7 @@ ListProperty<LanguageInfo> allLanguageInfos = rootProject.ext.allLanguageInfos =
                     ?: null,
                 defaultFileSuffixes: pluginLanguageInfo?.defaultFileSuffixes ?: language.defaultFileSuffixes.collect(),
                 defaultFilenamePatterns: (pluginLanguageInfo?.defaultFilenamePatterns ?: language.defaultFileSuffixes.collect { "**/*$it" }).with {
-                    if (it.isEmpty() && pluginLanguageInfo?.dependencyGroupId != null) {
+                    if (it.isEmpty() && pluginLanguageInfo?.pluginDependency != null) {
                         throw new GradleException("Empty defaultFilenamePatterns for ${language.name()}")
                     }
                     it

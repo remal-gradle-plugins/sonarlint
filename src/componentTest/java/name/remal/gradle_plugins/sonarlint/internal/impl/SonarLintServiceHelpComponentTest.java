@@ -3,9 +3,9 @@ package name.remal.gradle_plugins.sonarlint.internal.impl;
 import static name.remal.gradle_plugins.sonarlint.internal.impl.SonarPropertiesInfo.KNOWN_SONAR_PROPERTIES;
 import static name.remal.gradle_plugins.sonarlint.internal.impl.SonarPropertiesInfo.UNKNOWN_SONAR_PROPERTIES;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import name.remal.gradle_plugins.sonarlint.SonarLintLanguage;
+import org.assertj.core.api.AutoCloseableSoftAssertions;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -31,21 +31,24 @@ class SonarLintServiceHelpComponentTest extends AbstractSonarLintServiceComponen
     @Test
     void sonarLintLanguagesUseKnownProperties() {
         var knownProperties = service.collectPropertiesDocumentation().getProperties().keySet();
-        for (var lang : SonarLintLanguage.values()) {
-            var fileSuffixesPropKey = lang.getFileSuffixesPropKey();
-            if (fileSuffixesPropKey != null) {
-                assertTrue(
-                    knownProperties.contains(fileSuffixesPropKey),
-                    lang + ": unknown fileSuffixesPropKey: " + fileSuffixesPropKey
-                );
-            }
+        assertThat(knownProperties).as("Known properties")
+            .isNotEmpty();
 
-            var filenamePatternsPropKey = lang.getFilenamePatternsPropKey();
-            if (filenamePatternsPropKey != null) {
-                assertTrue(
-                    knownProperties.contains(filenamePatternsPropKey),
-                    lang + ": unknown filenamePatternsPropKey: " + filenamePatternsPropKey
-                );
+        try (var assertions = new AutoCloseableSoftAssertions()) {
+            for (var lang : SonarLintLanguage.values()) {
+                var fileSuffixesPropKey = lang.getFileSuffixesPropKey();
+                if (fileSuffixesPropKey != null) {
+                    assertions.assertThat(knownProperties.contains(fileSuffixesPropKey))
+                        .as("%s: unknown fileSuffixesPropKey: %s", lang, fileSuffixesPropKey)
+                        .isTrue();
+                }
+
+                var filenamePatternsPropKey = lang.getFilenamePatternsPropKey();
+                if (filenamePatternsPropKey != null) {
+                    assertions.assertThat(knownProperties.contains(filenamePatternsPropKey))
+                        .as("%s: unknown filenamePatternsPropKey: %s", lang, fileSuffixesPropKey)
+                        .isTrue();
+                }
             }
         }
     }

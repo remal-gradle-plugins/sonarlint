@@ -1,12 +1,16 @@
 package name.remal.gradle_plugins.sonarlint.internal.impl;
 
 import static java.lang.String.join;
+import static java.util.function.Predicate.not;
+import static java.util.stream.Collectors.joining;
 import static name.remal.gradle_plugins.sonarlint.SonarLintLanguage.KOTLIN;
 import static name.remal.gradle_plugins.sonarlint.SonarLintLanguage.SCALA;
 import static name.remal.gradle_plugins.sonarlint.internal.RulesDocumentation.RuleStatus.DISABLED_BY_DEFAULT;
 import static name.remal.gradle_plugins.sonarlint.internal.RulesDocumentation.RuleStatus.ENABLED_BY_DEFAULT;
 
+import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Stream;
 import lombok.SneakyThrows;
 import name.remal.gradle_plugins.sonarlint.internal.PropertiesDocumentation;
 import name.remal.gradle_plugins.sonarlint.internal.PropertiesDocumentation.PropertyDocumentation;
@@ -27,6 +31,11 @@ public class SonarLintServiceHelp
         var propertiesDoc = new PropertiesDocumentation();
         allPropertyDefinitions.forEach(propDef -> propertiesDoc.property(propDef.key(), propDoc -> {
             propDoc.setName(propDef.name());
+            propDoc.setCategory(Stream.of(propDef.category(), propDef.subCategory())
+                .filter(Objects::nonNull)
+                .filter(not(String::isEmpty))
+                .collect(joining(" > "))
+            );
             propDoc.setDescription(propDef.description());
             Optional.ofNullable(propDef.type())
                 .map(Enum::name)
