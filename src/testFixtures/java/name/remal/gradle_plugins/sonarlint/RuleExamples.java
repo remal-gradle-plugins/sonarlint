@@ -129,10 +129,23 @@ public abstract class RuleExamples {
         }))
         .build();
 
+
     @Unmodifiable
     public static Set<String> getConfiguredSonarExampleRules() {
         return RULE_EXAMPLES.keySet();
     }
+
+    public static class ConfiguredSonarExampleRulesProvider implements ArgumentsProvider {
+        @Override
+        public Stream<? extends Arguments> provideArguments(
+            ParameterDeclarations parameters,
+            ExtensionContext context
+        ) {
+            return getConfiguredSonarExampleRules().stream()
+                .map(Arguments::of);
+        }
+    }
+
 
     @Unmodifiable
     public static Set<String> getConfiguredSonarExampleRulesWithDistinctLanguage() {
@@ -152,6 +165,7 @@ public abstract class RuleExamples {
                 .map(Arguments::of);
         }
     }
+
 
     public static String writeSonarRuleExample(
         File projectDir,

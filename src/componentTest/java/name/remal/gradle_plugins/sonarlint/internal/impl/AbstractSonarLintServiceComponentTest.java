@@ -4,6 +4,7 @@ import static com.google.common.collect.ImmutableSet.toImmutableSet;
 import static name.remal.gradle_plugins.sonarlint.TestConstants.CURRENT_MINOR_GRADLE_VERSION;
 import static name.remal.gradle_plugins.toolkit.testkit.TestClasspath.getTestClasspathFirstLevelLibraryNotations;
 import static name.remal.gradle_plugins.toolkit.testkit.TestClasspath.getTestClasspathLibraryFilePaths;
+import static org.junit.jupiter.api.parallel.ExecutionMode.CONCURRENT;
 
 import java.io.File;
 import java.nio.file.Path;
@@ -14,7 +15,9 @@ import name.remal.gradle_plugins.sonarlint.SonarLintLanguage;
 import name.remal.gradle_plugins.sonarlint.internal.impl.AbstractSonarLintServiceParams.AbstractSonarLintServiceParamsBuilder;
 import name.remal.gradle_plugins.toolkit.testkit.MinTestableGradleVersion;
 import name.remal.gradle_plugins.toolkit.testkit.MinTestableJavaVersion;
+import org.junit.jupiter.api.parallel.Execution;
 
+@Execution(CONCURRENT)
 @MinTestableJavaVersion(17)
 @MinTestableGradleVersion(CURRENT_MINOR_GRADLE_VERSION)
 abstract class AbstractSonarLintServiceComponentTest {

@@ -6,7 +6,6 @@ import static name.remal.gradle_plugins.toolkit.LazyProxy.asLazyProxy;
 import static name.remal.gradle_plugins.toolkit.PathUtils.tryToDeleteRecursively;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.io.CleanupMode.ON_SUCCESS;
-import static org.junit.jupiter.api.parallel.ExecutionMode.CONCURRENT;
 
 import java.io.File;
 import java.nio.file.Path;
@@ -19,12 +18,10 @@ import name.remal.gradle_plugins.sonarlint.internal.SourceFile;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.io.TempDir;
-import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ArgumentsSource;
 import org.junit.jupiter.params.provider.EnumSource;
 
-@Execution(CONCURRENT)
 @SuppressWarnings("java:S2187")
 class SonarLintServiceAnalysisComponentTest extends AbstractSonarLintServiceComponentTest {
 

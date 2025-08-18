@@ -3,17 +3,17 @@ package name.remal.gradle_plugins.sonarlint.internal.impl;
 import static name.remal.gradle_plugins.sonarlint.internal.impl.SonarPropertiesInfo.KNOWN_SONAR_PROPERTIES;
 import static name.remal.gradle_plugins.sonarlint.internal.impl.SonarPropertiesInfo.UNKNOWN_SONAR_PROPERTIES;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.parallel.ExecutionMode.CONCURRENT;
 
+import name.remal.gradle_plugins.sonarlint.RuleExamples.ConfiguredSonarExampleRulesProvider;
 import name.remal.gradle_plugins.sonarlint.SonarLintLanguage;
 import org.assertj.core.api.AutoCloseableSoftAssertions;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ArgumentsSource;
 
-@Execution(CONCURRENT)
 class SonarLintServiceHelpComponentTest extends AbstractSonarLintServiceComponentTest {
 
     private static SonarLintServiceHelp service;
@@ -82,9 +82,13 @@ class SonarLintServiceHelpComponentTest extends AbstractSonarLintServiceComponen
     @Nested
     class RulesDocumentation {
 
-        @Test
-        void knownRulesAreDocumented() {
+        @ParameterizedTest
+        @ArgumentsSource(ConfiguredSonarExampleRulesProvider.class)
+        void knownRulesAreDocumented(String rule) {
             var rulesDoc = service.collectRulesDocumentation();
+            assertThat(rulesDoc.getRules())
+                .extractingByKey(rule).as("%s documentation", rule)
+                .isNotNull();
         }
 
     }
