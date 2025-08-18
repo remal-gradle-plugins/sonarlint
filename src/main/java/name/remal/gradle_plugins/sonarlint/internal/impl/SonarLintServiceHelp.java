@@ -46,64 +46,68 @@ public class SonarLintServiceHelp
     }
 
     public PropertiesDocumentation collectPropertiesDocumentation() {
-        var propertiesDoc = collectPropertiesDocumentationWithoutEnrichment();
+        return withThreadLogger(() -> {
+            var propertiesDoc = collectPropertiesDocumentationWithoutEnrichment();
 
-        propertiesDoc.getProperties().computeIfAbsent("sonar.kotlin.file.suffixes", propertyKey -> {
-            if (!loadedPlugins.get().getLoadedPlugins().getAllPluginInstancesByKeys().containsKey("kotlin")) {
-                return null;
-            }
+            propertiesDoc.getProperties().computeIfAbsent("sonar.kotlin.file.suffixes", propertyKey -> {
+                if (!loadedPlugins.get().getLoadedPlugins().getAllPluginInstancesByKeys().containsKey("kotlin")) {
+                    return null;
+                }
 
-            return PropertyDocumentation.builder()
-                .name("File Suffixes")
-                .description("List of suffixes for files to analyze.")
-                .type("STRING")
-                .defaultValue(join(",", KOTLIN.getDefaultFileSuffixes()))
-                .build();
+                return PropertyDocumentation.builder()
+                    .name("File Suffixes")
+                    .description("List of suffixes for files to analyze.")
+                    .type("STRING")
+                    .defaultValue(join(",", KOTLIN.getDefaultFileSuffixes()))
+                    .build();
+            });
+
+            propertiesDoc.getProperties().computeIfAbsent("sonar.scala.file.suffixes", propertyKey -> {
+                if (!loadedPlugins.get().getLoadedPlugins().getAllPluginInstancesByKeys().containsKey("sonarscala")) {
+                    return null;
+                }
+
+                return PropertyDocumentation.builder()
+                    .name("File Suffixes")
+                    .description("List of suffixes for files to analyze.")
+                    .type("STRING")
+                    .defaultValue(join(",", SCALA.getDefaultFileSuffixes()))
+                    .build();
+            });
+
+            return propertiesDoc;
         });
-
-        propertiesDoc.getProperties().computeIfAbsent("sonar.scala.file.suffixes", propertyKey -> {
-            if (!loadedPlugins.get().getLoadedPlugins().getAllPluginInstancesByKeys().containsKey("sonarscala")) {
-                return null;
-            }
-
-            return PropertyDocumentation.builder()
-                .name("File Suffixes")
-                .description("List of suffixes for files to analyze.")
-                .type("STRING")
-                .defaultValue(join(",", SCALA.getDefaultFileSuffixes()))
-                .build();
-        });
-
-        return propertiesDoc;
     }
 
     @SneakyThrows
     public RulesDocumentation collectRulesDocumentation() {
-        var rulesDoc = new RulesDocumentation();
-        allRules.forEach((key, rule) -> rulesDoc.rule(key.toString(), ruleDoc -> {
-            ruleDoc.setName(rule.name());
+        return withThreadLogger(() -> {
+            var rulesDoc = new RulesDocumentation();
+            allRules.forEach((key, rule) -> rulesDoc.rule(key.toString(), ruleDoc -> {
+                ruleDoc.setName(rule.name());
 
-            if (rule.activatedByDefault()) {
-                ruleDoc.setStatus(ENABLED_BY_DEFAULT);
-            } else {
-                ruleDoc.setStatus(DISABLED_BY_DEFAULT);
-            }
+                if (rule.activatedByDefault()) {
+                    ruleDoc.setStatus(ENABLED_BY_DEFAULT);
+                } else {
+                    ruleDoc.setStatus(DISABLED_BY_DEFAULT);
+                }
 
-            Optional.ofNullable(rule.repository().language())
-                .flatMap(SonarLanguage::forKey)
-                .map(SonarLanguage::getSonarLanguageKey)
-                .ifPresent(ruleDoc::setLanguage);
+                Optional.ofNullable(rule.repository().language())
+                    .flatMap(SonarLanguage::forKey)
+                    .map(SonarLanguage::getSonarLanguageKey)
+                    .ifPresent(ruleDoc::setLanguage);
 
-            rule.params().forEach(param -> ruleDoc.param(param.key(), paramDoc -> {
-                paramDoc.setDescription(param.description());
-                Optional.ofNullable(param.type())
-                    .map(RuleParamType::type)
-                    .ifPresent(paramDoc::setType);
-                paramDoc.setDefaultValue(param.defaultValue());
-                paramDoc.setPossibleValues(param.type().values());
+                rule.params().forEach(param -> ruleDoc.param(param.key(), paramDoc -> {
+                    paramDoc.setDescription(param.description());
+                    Optional.ofNullable(param.type())
+                        .map(RuleParamType::type)
+                        .ifPresent(paramDoc::setType);
+                    paramDoc.setDefaultValue(param.defaultValue());
+                    paramDoc.setPossibleValues(param.type().values());
+                }));
             }));
-        }));
-        return rulesDoc;
+            return rulesDoc;
+        });
     }
 
 }

@@ -79,6 +79,20 @@ gradlePlugin {
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+apply plugin: 'java-test-fixtures'
+
+configurations.testFixturesImplementation.extendsFrom(configurations.testConstraints)
+
+configurations.testImplementation.dependencies.withType(ExternalModuleDependency).all {
+    if (configurations.testFixturesImplementation.state != Configuration.State.UNRESOLVED) {
+        return
+    }
+
+    configurations.testFixturesImplementation.dependencies.add(it)
+}
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 generateSources.forMainSourceSet.java {
     Provider<MavenPublication> publication = provider { publishing.publications.withType(MavenPublication).pluginMaven }
     Provider<String> group = provider { publication.get().groupId }
@@ -517,61 +531,62 @@ allprojects {
     }
     */
 
-    Attribute<String> artifactType = Attribute.of('artifactType', String)
-    Attribute<Boolean> unprocessedSonar = Attribute.of('unprocessedSonar', Boolean)
-    dependencies {
-        attributesSchema {
-            attribute(unprocessedSonar)
-        }
-        artifactTypes.getByName('jar') {
-            attributes.attribute(unprocessedSonar, false)
-        }
-    }
-
-    configurations
-        .matching { !it.name.startsWith('sonar') }
-        .matching { !it.name.startsWith('allSonar') }
-        .all { Configuration conf ->
-            if (conf.state != Configuration.State.UNRESOLVED
-                || !conf.canBeResolved
-            ) {
-                return
+    pluginManager.withPlugin('java') {
+        Attribute<Boolean> unprocessedSonar = Attribute.of('unprocessedSonar', Boolean)
+        dependencies {
+            attributesSchema {
+                attribute(unprocessedSonar)
             }
-
-            Closure<Boolean> isSonarGroup = { String group ->
-                return group == 'org.sonarsource'
-                    || group.startsWith('org.sonarsource.')
+            artifactTypes.getByName('jar') {
+                attributes.attribute(unprocessedSonar, false)
             }
+        }
 
-            conf.dependencies.withType(ExternalModuleDependency).configureEach { ExternalModuleDependency dep ->
-                if (isSonarGroup(dep.group)) {
-                    dep.exclude(group: 'com.google.guava')
+        configurations
+            .matching { !it.name.startsWith('sonar') }
+            .matching { !it.name.startsWith('allSonar') }
+            .all { Configuration conf ->
+                if (conf.state != Configuration.State.UNRESOLVED
+                    || !conf.canBeResolved
+                ) {
+                    return
                 }
-            }
 
-            conf.resolutionStrategy.dependencySubstitution { DependencySubstitutions substitutions ->
-                substitutions.all { DependencySubstitution substitution ->
-                    if (!(substitution.requested instanceof ModuleComponentSelector)) {
-                        return
+                Closure<Boolean> isSonarGroup = { String group ->
+                    return group == 'org.sonarsource'
+                        || group.startsWith('org.sonarsource.')
+                }
+
+                conf.dependencies.withType(ExternalModuleDependency).configureEach { ExternalModuleDependency dep ->
+                    if (isSonarGroup(dep.group)) {
+                        dep.exclude(group: 'com.google.guava')
                     }
+                }
 
-                    ModuleComponentSelector requested = (ModuleComponentSelector) substitution.requested
-                    if (isSonarGroup(requested.group)) {
-                        ComponentSelector target = substitutions.variant(requested) { VariantSelectionDetails details ->
-                            details.attributes {
-                                attribute(unprocessedSonar, true)
-                            }
+                conf.resolutionStrategy.dependencySubstitution { DependencySubstitutions substitutions ->
+                    substitutions.all { DependencySubstitution substitution ->
+                        if (!(substitution.requested instanceof ModuleComponentSelector)) {
+                            return
                         }
-                        substitution.useTarget(target)
+
+                        ModuleComponentSelector requested = (ModuleComponentSelector) substitution.requested
+                        if (isSonarGroup(requested.group)) {
+                            ComponentSelector target = substitutions.variant(requested) { VariantSelectionDetails details ->
+                                details.attributes {
+                                    attribute(unprocessedSonar, true)
+                                }
+                            }
+                            substitution.useTarget(target)
+                        }
                     }
                 }
             }
-        }
 
-    dependencies {
-        registerTransform(ProcessSonar) {
-            from.attribute(unprocessedSonar, false).attribute(artifactType, 'jar')
-            to.attribute(unprocessedSonar, true).attribute(artifactType, 'jar')
+        dependencies {
+            registerTransform(ProcessSonar) {
+                from.attribute(unprocessedSonar, false)
+                to.attribute(unprocessedSonar, true)
+            }
         }
     }
 }
@@ -587,6 +602,7 @@ abstract class ProcessSonar implements TransformAction<ProcessSonarParameters> {
     void transform(TransformOutputs outputs) {
         File file = inputArtifact.get().asFile
         //println file
+
         File outputFile = outputs.file(file.name)
         if (outputFile.exists() && outputFile.lastModified() >= rootProject.buildFile.lastModified()) {
             return

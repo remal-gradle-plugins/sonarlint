@@ -1,19 +1,19 @@
 package name.remal.gradle_plugins.sonarlint;
 
 import static java.lang.String.join;
-import static java.util.Arrays.stream;
-import static java.util.stream.Collectors.joining;
 import static name.remal.gradle_plugins.sonarlint.FunctionalTestConstants.CURRENT_MINOR_GRADLE_VERSION;
+import static name.remal.gradle_plugins.sonarlint.RuleExamples.getSonarRuleLanguage;
+import static name.remal.gradle_plugins.sonarlint.RuleExamples.writeSonarRuleExample;
 import static name.remal.gradle_plugins.sonarlint.internal.PropertiesDocumentation.NO_SONARLINT_PROPERTIES_FOUND_LOG_MESSAGE;
 import static name.remal.gradle_plugins.sonarlint.internal.RulesDocumentation.NO_SONARLINT_RULES_FOUND_LOG_MESSAGE;
 import static name.remal.gradle_plugins.toolkit.LazyValue.lazyValue;
 import static name.remal.gradle_plugins.toolkit.SneakyThrowUtils.sneakyThrows;
 import static name.remal.gradle_plugins.toolkit.StringUtils.normalizeString;
-import static name.remal.gradle_plugins.toolkit.StringUtils.substringBefore;
-import static org.apache.commons.lang3.StringUtils.capitalize;
+import static name.remal.gradle_plugins.toolkit.StringUtils.substringBeforeLast;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.google.common.collect.ImmutableMap;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
+import com.google.errorprone.annotations.CheckReturnValue;
 import java.io.File;
 import java.net.URL;
 import java.security.CodeSource;
@@ -22,16 +22,12 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
-import lombok.Builder;
-import lombok.Builder.Default;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
-import lombok.Value;
 import name.remal.gradle_plugins.toolkit.LazyValue;
 import name.remal.gradle_plugins.toolkit.issues.CheckstyleXmlIssuesParser;
 import name.remal.gradle_plugins.toolkit.issues.Issue;
@@ -45,109 +41,6 @@ import org.junit.jupiter.api.Test;
 @RequiredArgsConstructor
 @SuppressWarnings({"java:S5976", "java:S1854", "UnusedReturnValue"})
 class SonarLintPluginFunctionalTest {
-
-    private static final Map<String, String> RULE_EXAMPLES = ImmutableMap.<String, String>builder()
-        .put("css:S4670", join("\n", new String[]{
-            "field {}",
-        }))
-        .put("cloudformation:S6333", join("\n", new String[]{
-            "AWSTemplateFormatVersion: 2010-09-09",
-            "Resources:",
-            "  ExampleMethod:",
-            "    Type: AWS::ApiGateway::Method",
-            "    Properties:",
-            "      AuthorizationType: NONE",
-            "      HttpMethod: GET",
-        }))
-        .put("docker:S6596", join("\n", new String[]{
-            "FROM node:latest",
-        }))
-        .put("Web:S5725", join("\n", new String[]{
-            "<script src=\"https://cdn.example.com/latest/script.js\"/>",
-        }))
-        .put("java:S1133", join("\n", new String[]{
-            "package pkg;",
-            "",
-            "public class JavaS1133 {",
-            "",
-            "    @Deprecated",
-            "    void method() {",
-            "        System.exit(1);",
-            "    }",
-            "",
-            "}",
-        }))
-        .put("java:S1171", join("\n", new String[]{
-            "package pkg;",
-            "",
-            "import java.util.LinkedHashMap;",
-            "",
-            "public class JavaS1171 extends LinkedHashMap<String, String> {",
-            "",
-            "    {",
-            "        put(\"a\", \"b\");",
-            "    }",
-            "",
-            "}",
-        }))
-        .put("javascript:S930", join("\n", new String[]{
-            "function sum(a, b) {",
-            "    return a + b;",
-            "}",
-            "",
-            "sum(1, 2, 3);",
-        }))
-        .put("kotlin:S899", join("\n", new String[]{
-            "package pkg",
-            "",
-            "import java.io.File",
-            "",
-            "fun doSomething(file: File, lock: Lock) {",
-            "    file.delete()",
-            "}",
-        }))
-        .put("kubernetes:S6868", join("\n", new String[]{
-            "apiVersion: rbac.authorization.k8s.io/v1",
-            "kind: Role",
-            "metadata:",
-            "  namespace: default",
-            "  name: example-role",
-            "rules:",
-            "- apiGroups: [\"\"]",
-            "  resources: [\"pods\"]",
-            "  verbs: [\"get\"]",
-            "- apiGroups: [\"\"]",
-            "  resources: [\"pods/exec\"]",
-            "  verbs: [\"create\"]",
-        }))
-        .put("scala:S4663", join("\n", new String[]{
-            "/*  */",
-        }))
-        .put("terraform:S6414", join("\n", new String[]{
-            "resource \"google_project_iam_audit_config\" \"example\" {",
-            "    project = data.google_project.project.id",
-            "    service = \"allServices\"",
-            "    audit_log_config {",
-            "        log_type = \"ADMIN_READ\"",
-            "        exempted_members = [",
-            "            \"user:rogue.administrator@gmail.com\",",
-            "        ]",
-            "    }",
-            "}",
-        }))
-        .put("typescript:S909", join("\n", new String[]{
-            "for (i = 0; i < 10; i++) {",
-            "    if (i == 5) {",
-            "        continue;",
-            "    }",
-            "    alert(\"i = \" + i);",
-            "}",
-        }))
-        .put("xml:S2321", join("\n", new String[]{
-            "<parent><child/></parent>",
-        }))
-        .build();
-
 
     final GradleProject project;
 
@@ -206,31 +99,10 @@ class SonarLintPluginFunctionalTest {
     @Nested
     class RulePerLanguage {
 
-        @BeforeEach
-        void beforeEach() {
-            project.getBuildFile().line(
-                "sonarLint.languages.include(%s)",
-                stream(SonarLintLanguage.values())
-                    .map(SonarLintLanguage::name)
-                    .collect(joining("', '", "'", "'"))
-            );
-        }
-
         @Test
         void java() {
-            project.getBuildFile().line("sonarLint.languages.include('java')");
-
             new Assertions()
                 .rule("java:S1133")
-                .assertAllRulesAreRaised();
-        }
-
-        @Test
-        void javascript() {
-            project.getBuildFile().line("sonarLint.languages.include('javascript')");
-
-            new Assertions()
-                .rule("javascript:S930")
                 .assertAllRulesAreRaised();
         }
 
@@ -239,51 +111,9 @@ class SonarLintPluginFunctionalTest {
         class OtherLanguages {
 
             @Test
-            void css() {
+            void javascript() {
                 new Assertions()
-                    .rule("css:S4670")
-                    .assertAllRulesAreRaised();
-            }
-
-            @Test
-            void cloudformation() {
-                new Assertions()
-                    .rule("cloudformation:S6333")
-                    .assertAllRulesAreRaised();
-            }
-
-            @Test
-            void docker() {
-                new Assertions()
-                    .rule("docker:S6596")
-                    .assertAllRulesAreRaised();
-            }
-
-            @Test
-            void html() {
-                new Assertions()
-                    .rule("Web:S5725")
-                    .assertAllRulesAreRaised();
-            }
-
-            @Test
-            void kotlin() {
-                new Assertions()
-                    .rule("kotlin:S899")
-                    .assertAllRulesAreRaised();
-            }
-
-            @Test
-            void kubernetes() {
-                new Assertions()
-                    .rule("kubernetes:S6868")
-                    .assertAllRulesAreRaised();
-            }
-
-            @Test
-            void scala() {
-                new Assertions()
-                    .rule("scala:S4663")
+                    .rule("javascript:S930")
                     .assertAllRulesAreRaised();
             }
 
@@ -291,13 +121,6 @@ class SonarLintPluginFunctionalTest {
             void terraform() {
                 new Assertions()
                     .rule("terraform:S6414")
-                    .assertAllRulesAreRaised();
-            }
-
-            @Test
-            void typescript() {
-                new Assertions()
-                    .rule("typescript:S909")
                     .assertAllRulesAreRaised();
             }
 
@@ -394,6 +217,7 @@ class SonarLintPluginFunctionalTest {
                 project.getBuildFile().line("sonarLint.languages.include('java')");
 
                 new Assertions()
+                    .includeLanguageByDefault(false)
                     .rule("java:S1171")
                     .assertAllRulesAreRaised();
             }
@@ -403,6 +227,7 @@ class SonarLintPluginFunctionalTest {
                 project.getBuildFile().line("sonarLint.languages.include('kotlin')");
 
                 new Assertions()
+                    .includeLanguageByDefault(false)
                     .rule("java:S1171")
                     .assertNoRulesAreRaised();
             }
@@ -413,6 +238,7 @@ class SonarLintPluginFunctionalTest {
                 project.getBuildFile().line("sonarLint.languages.exclude('java')");
 
                 new Assertions()
+                    .includeLanguageByDefault(false)
                     .rule("java:S1171")
                     .assertNoRulesAreRaised()
                     .assertBuildOutput(output ->
@@ -427,6 +253,7 @@ class SonarLintPluginFunctionalTest {
                 project.getBuildFile().line("sonarLint.languages.exclude('kotlin')");
 
                 new Assertions()
+                    .includeLanguageByDefault(false)
                     .rule("java:S1171")
                     .assertAllRulesAreRaised()
                     .assertBuildOutput(output ->
@@ -440,6 +267,7 @@ class SonarLintPluginFunctionalTest {
             @Test
             void infraLanguagesAreExcludedByDefault() {
                 new Assertions()
+                    .includeLanguageByDefault(false)
                     .rule("cloudformation:S6333")
                     .assertNoRulesAreRaised();
             }
@@ -449,6 +277,7 @@ class SonarLintPluginFunctionalTest {
                 project.getBuildFile().line("sonarLint.languages.includeInfra = true");
 
                 new Assertions()
+                    .includeLanguageByDefault(false)
                     .rule("cloudformation:S6333")
                     .assertAllRulesAreRaised();
             }
@@ -457,6 +286,7 @@ class SonarLintPluginFunctionalTest {
             @Test
             void frontendLanguagesAreExcludedByDefault() {
                 new Assertions()
+                    .includeLanguageByDefault(false)
                     .rule("css:S4670")
                     .assertNoRulesAreRaised();
             }
@@ -466,6 +296,7 @@ class SonarLintPluginFunctionalTest {
                 project.getBuildFile().line("sonarLint.languages.includeFrontend = true");
 
                 new Assertions()
+                    .includeLanguageByDefault(false)
                     .rule("css:S4670")
                     .assertAllRulesAreRaised();
             }
@@ -583,10 +414,12 @@ class SonarLintPluginFunctionalTest {
 
         private final Set<String> writtenRuleExamples = new LinkedHashSet<>();
 
+        @CheckReturnValue
         public Assertions rule(String rule) {
             return rule(rule, __ -> { });
         }
 
+        @CheckReturnValue
         public Assertions rule(String rule, Consumer<RuleExampleParams.RuleExampleParamsBuilder> configurer) {
             if (buildResult.isInitialized()) {
                 throw new IllegalStateException("Project has been built");
@@ -598,12 +431,23 @@ class SonarLintPluginFunctionalTest {
         }
 
 
+        private boolean includeLanguageByDefault = true;
+
+        @CheckReturnValue
+        public Assertions includeLanguageByDefault(boolean includeLanguageByDefault) {
+            this.includeLanguageByDefault = includeLanguageByDefault;
+            return this;
+        }
+
+
+        @CanIgnoreReturnValue
         public Assertions assertBuildOutput(Consumer<String> outputVerifier) {
             var output = normalizeString(buildResult.get().getOutput());
             outputVerifier.accept(output);
             return this;
         }
 
+        @CanIgnoreReturnValue
         public Assertions assertAllRulesAreRaised() {
             return assertRaisedIssues(issues ->
                 assertThat(issues)
@@ -612,6 +456,7 @@ class SonarLintPluginFunctionalTest {
             );
         }
 
+        @CanIgnoreReturnValue
         public Assertions assertRulesAreRaised(String... rules) {
             return assertRaisedIssues(issues ->
                 assertThat(issues)
@@ -620,6 +465,7 @@ class SonarLintPluginFunctionalTest {
             );
         }
 
+        @CanIgnoreReturnValue
         public Assertions assertNoRulesAreRaised() {
             return assertRaisedIssues(issues ->
                 assertThat(issues)
@@ -627,6 +473,7 @@ class SonarLintPluginFunctionalTest {
             );
         }
 
+        @CanIgnoreReturnValue
         @SuppressWarnings("java:S5841")
         public Assertions assertRulesAreNotRaised(String... rules) {
             return assertRaisedIssues(issues ->
@@ -636,7 +483,17 @@ class SonarLintPluginFunctionalTest {
             );
         }
 
+        @CanIgnoreReturnValue
         public Assertions assertRaisedIssues(Consumer<Collection<Issue>> issuesVerifier) {
+            if (includeLanguageByDefault) {
+                for (var rule : writtenRuleExamples) {
+                    project.forBuildFile(build -> build.line(
+                        "sonarLint.languages.include('%s')",
+                        build.escapeString(getSonarRuleLanguage(rule))
+                    ));
+                }
+            }
+
             buildResult.get();
             var issues = parseSonarLintIssues();
             issuesVerifier.accept(issues);
@@ -683,37 +540,11 @@ class SonarLintPluginFunctionalTest {
     }
 
     String writeRuleExample(String rule, Consumer<RuleExampleParams.RuleExampleParamsBuilder> configurer) {
-        var paramsBuilder = RuleExampleParams.builder();
-        configurer.accept(paramsBuilder);
-        var params = paramsBuilder.build();
-
-        var lang = getRuleLanguage(rule);
-
-        String relativeFilePath;
-        if (params.getRelativeFilePath() != null) {
-            relativeFilePath = params.getRelativeFilePath();
-        } else {
-            relativeFilePath = capitalize(rule.replace(":", ""));
-            if (params.getFileExtension() != null) {
-                relativeFilePath += "." + params.getFileExtension();
-            } else if (lang.equals("docker")) {
-                relativeFilePath += "/Dockerfile";
-            } else {
-                relativeFilePath += "." + getRuleDefaultFileExtension(rule);
-            }
-        }
-        relativeFilePath = params.getSrcDir() + "/pkg/" + relativeFilePath;
-
-        var ruleExampleSource = RULE_EXAMPLES.get(rule);
-        if (ruleExampleSource == null) {
-            throw new AssertionError("No rule example for `" + rule + "`");
-        }
-
-        project.writeTextFile(relativeFilePath, ruleExampleSource);
+        var relativeFilePath = writeSonarRuleExample(project.getProjectDir(), rule, configurer);
 
         project.forBuildFile(build -> build.line(
             "tasks.sonarlintMain.source('%s')",
-            build.escapeString(params.getSrcDir())
+            substringBeforeLast(relativeFilePath, "/")
         ));
 
         project.forBuildFile(build -> build.line(
@@ -722,52 +553,6 @@ class SonarLintPluginFunctionalTest {
         ));
 
         return relativeFilePath;
-    }
-
-    @Value
-    @Builder
-    private static class RuleExampleParams {
-
-        @Default
-        String srcDir = "src/main/resources";
-
-        @Nullable
-        String fileExtension;
-
-        @Nullable
-        String relativeFilePath;
-
-    }
-
-
-    private static final Map<String, String> RULE_LANGUAGE_DEFAULT_EXTENSION = ImmutableMap.<String, String>builder()
-        .put("Web", "html")
-        .put("azureresourcemanager", "bicep")
-        .put("cloudformation", "yml")
-        .put("css", "css")
-        //.put("docker", "dockerfile")
-        .put("java", "java")
-        .put("javascript", "js")
-        .put("kotlin", "kt")
-        .put("kubernetes", "yml")
-        .put("scala", "scala")
-        //.put("secrets", "???")
-        .put("terraform", "tf")
-        .put("typescript", "ts")
-        .put("xml", "xml")
-        .build();
-
-    private static String getRuleDefaultFileExtension(String rule) {
-        var lang = getRuleLanguage(rule);
-        var extension = RULE_LANGUAGE_DEFAULT_EXTENSION.get(lang);
-        if (extension == null) {
-            throw new AssertionError("No file extension is configured for the rule `" + rule + "`");
-        }
-        return extension;
-    }
-
-    private static String getRuleLanguage(String rule) {
-        return substringBefore(rule, ":");
     }
 
 }
