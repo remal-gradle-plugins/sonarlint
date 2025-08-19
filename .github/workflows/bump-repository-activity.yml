@@ -8,10 +8,28 @@ on:
     - main
     paths:
     - '.github/workflows/bump-repository-activity.yml'
-  workflow_dispatch: { }
+  workflow_dispatch:
+    inputs:
+      dryRun:
+        required: true
+        default: 'false'
+        description: Set to 'true' to enable dry run
+        type: choice
+        options:
+        - 'true'
+        - 'false'
+      maxInactivityDays:
+        required: true
+        default: 14
+        description: Max inactivity days. If there are no commits during this duration, a new commit will be created.
+        type: number
 
-env:
-  PUSH_BACK_TOKEN: ${{secrets.PUSH_BACK_TOKEN}}
+permissions:
+  contents: write
+
+defaults:
+  run:
+    shell: bash
 
 jobs:
   bump-repository-activity:
@@ -45,9 +63,9 @@ jobs:
         fi
 
     - name: Bump repository activity
-      if: ${{env.PUSH_BACK_TOKEN && fromJSON(steps.decision.outputs.enough) == true}}
+      if: ${{fromJSON(steps.decision.outputs.enough) == true}}
       uses: remal-github-actions/bump-repository-activity@v1
       with:
-        githubToken: ${{env.PUSH_BACK_TOKEN}}
+        dryRun: ${{inputs.dryRun}}
         bumperFile: 'repository-activity.bumper'
         commitMessage: '[push-back] Bump repository activity'
