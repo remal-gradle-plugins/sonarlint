@@ -17,6 +17,9 @@ includes:
 excludes:
 - '.github/workflows/template-cleanup.*'
 - '.github/template-cleanup/**'
+- '.github/*-template-cleanup/**'
+- '.github/template-*-cleanup/**'
+- '.github/*-template-*-cleanup/**'
 modifiable-sections-exclusions:
 - '.yarn/plugins/**'
 - '.yarn/releases/**'
