@@ -66,6 +66,6 @@ jobs:
       if: ${{fromJSON(steps.decision.outputs.enough) == true}}
       uses: remal-github-actions/bump-repository-activity@v1
       with:
-        dryRun: ${{inputs.dryRun}}
+        dryRun: ${{inputs.dryRun || 'false'}}
         bumperFile: 'repository-activity.bumper'
         commitMessage: '[push-back] Bump repository activity'

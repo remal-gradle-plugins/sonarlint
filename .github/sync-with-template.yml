@@ -16,6 +16,9 @@ includes:
 - '.yarn*'
 excludes:
 - '.github/workflows/template-cleanup.*'
+- '.github/workflows/*-template-cleanup.*'
+- '.github/workflows/template-*-cleanup.*'
+- '.github/workflows/*-template-*-cleanup.*'
 - '.github/template-cleanup/**'
 - '.github/*-template-cleanup/**'
 - '.github/template-*-cleanup/**'
