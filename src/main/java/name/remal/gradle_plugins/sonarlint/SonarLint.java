@@ -10,7 +10,7 @@ import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static java.util.stream.Collectors.toUnmodifiableList;
-import static name.remal.gradle_plugins.sonarlint.internal.SonarLintLanguageIncludes.getLanguageIncludes;
+import static name.remal.gradle_plugins.sonarlint.internal.SonarLintLanguageIncludes.getAllLanguageIncludes;
 import static name.remal.gradle_plugins.toolkit.ClosureUtils.configureWith;
 import static name.remal.gradle_plugins.toolkit.FileTreeElementUtils.createFileTreeElement;
 import static name.remal.gradle_plugins.toolkit.FileUtils.normalizeFile;
@@ -126,7 +126,7 @@ public abstract class SonarLint
         sources = sources.matching(patternSet);
 
         sources = sources.matching(filter -> {
-            var languageIncludes = getLanguageIncludes(getSettings().getSonarProperties().get());
+            var languageIncludes = getAllLanguageIncludes(getSettings().getSonarProperties().get());
             getLanguages().getLanguagesToProcess().forEach(lang -> {
                 var includes = languageIncludes.get(lang);
                 filter.include(includes);

@@ -334,11 +334,11 @@ generateSources.forMainSourceSet.java {
         addStaticImport("lombok.AccessLevel", "PRIVATE")
 
         addImport("java.util.List")
-        addImport("javax.annotation.Nullable")
         addImport("lombok.Getter")
         addImport("lombok.RequiredArgsConstructor")
         addImport("org.jetbrains.annotations.ApiStatus")
         addImport("org.jetbrains.annotations.Unmodifiable")
+        addImport("org.jspecify.annotations.Nullable")
 
         line("@ApiStatus.Internal")
         line("@Getter")

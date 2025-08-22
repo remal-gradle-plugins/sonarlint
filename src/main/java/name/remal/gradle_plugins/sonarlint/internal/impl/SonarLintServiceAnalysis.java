@@ -1,11 +1,12 @@
 package name.remal.gradle_plugins.sonarlint.internal.impl;
 
+import static com.google.common.base.Predicates.alwaysFalse;
 import static com.google.common.collect.ImmutableMap.toImmutableMap;
 import static com.google.common.collect.ImmutableSet.toImmutableSet;
 import static java.nio.file.Files.createDirectories;
 import static java.util.Map.Entry;
 import static java.util.stream.Collectors.toUnmodifiableList;
-import static name.remal.gradle_plugins.sonarlint.internal.SonarLintLanguageIncludes.getLanguageRelativePathPredicates;
+import static name.remal.gradle_plugins.sonarlint.internal.SonarLintLanguageIncludes.getAllLanguageRelativePathPredicates;
 import static name.remal.gradle_plugins.sonarlint.internal.impl.SimpleProgressMonitor.SIMPLE_PROGRESS_MONITOR;
 import static name.remal.gradle_plugins.toolkit.LazyValue.lazyValue;
 
@@ -192,10 +193,6 @@ public class SonarLintServiceAnalysis
 
     //#region Utils
 
-    @SuppressWarnings("UnnecessaryLambda")
-    private static final Predicate<String> ALWAYS_FALSE_RELATIVE_PATH_PREDICATE = __ -> false;
-
-
     private final Object frontendScanMutex = new Object[0];
 
     @SneakyThrows
@@ -205,8 +202,8 @@ public class SonarLintServiceAnalysis
         Map<String, String> sonarProperties,
         Callable<T> action
     ) {
-        var frontendRelativePathPredicate = ALWAYS_FALSE_RELATIVE_PATH_PREDICATE;
-        for (var entry : getLanguageRelativePathPredicates(sonarProperties).entrySet()) {
+        Predicate<String> frontendRelativePathPredicate = alwaysFalse();
+        for (var entry : getAllLanguageRelativePathPredicates(sonarProperties).entrySet()) {
             if (enabledLanguages.contains(entry.getKey())
                 && entry.getKey().getType() == SonarLintLanguageType.FRONTEND
             ) {

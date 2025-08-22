@@ -10,14 +10,14 @@ import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.Charset;
 import java.util.Optional;
-import javax.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
 import name.remal.gradle_plugins.sonarlint.internal.SourceFile;
+import org.jspecify.annotations.Nullable;
 import org.sonarsource.sonarlint.core.analysis.api.ClientInputFile;
 
 @RequiredArgsConstructor
 @SuppressWarnings({"deprecation", "RedundantSuppression"})
-class SimpleClientInputFile implements ClientInputFile {
+public class SimpleClientInputFile implements ClientInputFile {
 
     private final SourceFile sourceFile;
 

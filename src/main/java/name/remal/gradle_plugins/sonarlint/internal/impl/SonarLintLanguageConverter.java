@@ -7,7 +7,7 @@ import name.remal.gradle_plugins.sonarlint.SonarLintLanguage;
 import org.sonarsource.sonarlint.core.commons.api.SonarLanguage;
 
 @NoArgsConstructor(access = PRIVATE)
-abstract class SonarLintLanguageConverter {
+public abstract class SonarLintLanguageConverter {
 
     public static SonarLanguage convertSonarLintLanguage(String languageName) {
         for (var sonarLang : SonarLanguage.values()) {

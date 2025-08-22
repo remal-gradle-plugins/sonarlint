@@ -6,19 +6,19 @@ import static name.remal.gradle_plugins.toolkit.ObjectUtils.doNotInline;
 import static name.remal.gradle_plugins.toolkit.ObjectUtils.isNotEmpty;
 
 import com.google.common.annotations.VisibleForTesting;
+import java.io.Serializable;
 import java.util.Optional;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.function.Consumer;
-import javax.annotation.Nullable;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.experimental.FieldDefaults;
 import name.remal.gradle_plugins.toolkit.HtmlToTextUtils;
 import name.remal.gradle_plugins.toolkit.ObjectUtils;
+import org.jspecify.annotations.Nullable;
 
 public class PropertiesDocumentation implements Documentation {
 
@@ -89,26 +89,25 @@ public class PropertiesDocumentation implements Documentation {
     @NoArgsConstructor
     @Builder
     @AllArgsConstructor(access = PRIVATE)
-    @FieldDefaults(level = PRIVATE)
-    public static class PropertyDocumentation {
+    public static class PropertyDocumentation implements Serializable {
 
         @Nullable
-        String name;
+        private String name;
 
         @Nullable
-        String category;
+        private String category;
 
         @Nullable
-        String description;
+        private String description;
 
         @Nullable
-        String type;
+        private String type;
 
         @Nullable
-        String currentValue;
+        private String currentValue;
 
         @Nullable
-        String defaultValue;
+        private String defaultValue;
 
     }
 

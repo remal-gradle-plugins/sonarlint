@@ -5,7 +5,6 @@ import static name.remal.gradle_plugins.sonarlint.SonarLintConstants.MIN_SUPPORT
 import com.google.common.reflect.TypeToken;
 import com.google.errorprone.annotations.OverridingMethodsMustInvokeSuper;
 import java.lang.reflect.ParameterizedType;
-import javax.annotation.Nullable;
 import javax.inject.Inject;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.JavaVersion;
@@ -20,6 +19,7 @@ import org.gradle.api.tasks.Nested;
 import org.gradle.work.InputChanges;
 import org.gradle.workers.WorkQueue;
 import org.gradle.workers.WorkerExecutor;
+import org.jspecify.annotations.Nullable;
 
 @CacheableTask
 public abstract class AbstractSonarLintTask<

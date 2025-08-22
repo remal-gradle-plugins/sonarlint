@@ -9,12 +9,12 @@ import com.tisonkun.os.core.OS;
 import com.tisonkun.os.core.SystemPropertyOperationProvider;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import javax.annotation.Nullable;
 import javax.inject.Inject;
 import lombok.CustomLog;
 import lombok.NoArgsConstructor;
 import org.gradle.api.file.ProjectLayout;
 import org.gradle.api.provider.ProviderFactory;
+import org.jspecify.annotations.Nullable;
 
 @CustomLog
 @NoArgsConstructor(access = PUBLIC, onConstructor_ = {@Inject})

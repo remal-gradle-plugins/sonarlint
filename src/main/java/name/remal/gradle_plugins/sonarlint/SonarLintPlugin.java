@@ -7,7 +7,8 @@ import static name.remal.gradle_plugins.sonarlint.DependencyWithBrokenVersion.ge
 import static name.remal.gradle_plugins.sonarlint.ResolvedNonReproducibleSonarDependencies.areResolvedNonReproducibleSonarDependenciesRegistered;
 import static name.remal.gradle_plugins.sonarlint.ResolvedNonReproducibleSonarDependencies.getResolvedNonReproducibleSonarDependency;
 import static name.remal.gradle_plugins.sonarlint.SonarDependencies.SONARLINT_CORE_DEPENDENCIES;
-import static name.remal.gradle_plugins.sonarlint.SonarDependencies.SONARLINT_CORE_EXCLUSIONS;
+import static name.remal.gradle_plugins.sonarlint.SonarDependencies.SONARLINT_CORE_LIBRARIES_EXCLUSIONS;
+import static name.remal.gradle_plugins.sonarlint.SonarDependencies.SONARLINT_CORE_LOGGING_ALL_EXCLUSIONS;
 import static name.remal.gradle_plugins.sonarlint.SonarJavascriptPluginInfo.SONAR_JAVASCRIPT_PLUGIN_DEPENDENCY;
 import static name.remal.gradle_plugins.toolkit.AttributeContainerUtils.javaRuntimeLibrary;
 import static name.remal.gradle_plugins.toolkit.GradleManagedObjectsUtils.copyManagedProperties;
@@ -22,7 +23,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.BooleanSupplier;
-import javax.annotation.Nullable;
 import javax.inject.Inject;
 import lombok.CustomLog;
 import name.remal.gradle_plugins.sonarlint.SonarJavascriptPluginInfo.EmbeddedNodeJsPlatform;
@@ -48,6 +48,7 @@ import org.gradle.api.tasks.compile.JavaCompile;
 import org.gradle.jvm.toolchain.JavaCompiler;
 import org.gradle.jvm.toolchain.JavaInstallationMetadata;
 import org.gradle.jvm.toolchain.JavaLanguageVersion;
+import org.jspecify.annotations.Nullable;
 
 @CustomLog
 public abstract class SonarLintPlugin implements Plugin<Project> {
@@ -106,7 +107,8 @@ public abstract class SonarLintPlugin implements Plugin<Project> {
             configuration.attributes(javaRuntimeLibrary(getObjects()));
         }
 
-        SONARLINT_CORE_EXCLUSIONS.forEach(configuration::exclude);
+        SONARLINT_CORE_LIBRARIES_EXCLUSIONS.forEach(configuration::exclude);
+        SONARLINT_CORE_LOGGING_ALL_EXCLUSIONS.forEach(configuration::exclude);
 
         if (areFixedVersionForBrokenDependenciesRegistered()) {
             configuration.getResolutionStrategy().eachDependency(details -> {

@@ -2,13 +2,13 @@ package name.remal.gradle_plugins.sonarlint;
 
 import static lombok.AccessLevel.PRIVATE;
 
-import javax.annotation.Nullable;
 import lombok.Builder;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.Value;
 import lombok.With;
 import org.jetbrains.annotations.ApiStatus;
+import org.jspecify.annotations.Nullable;
 
 @ApiStatus.Internal
 @Value

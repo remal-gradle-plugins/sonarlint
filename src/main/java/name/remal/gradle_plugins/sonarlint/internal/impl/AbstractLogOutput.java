@@ -4,6 +4,7 @@ import static java.util.Collections.newSetFromMap;
 import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.joining;
 import static org.sonarsource.sonarlint.core.commons.log.LogOutput.Level.DEBUG;
+import static org.sonarsource.sonarlint.core.commons.log.LogOutput.Level.ERROR;
 import static org.sonarsource.sonarlint.core.commons.log.LogOutput.Level.OFF;
 import static org.sonarsource.sonarlint.core.commons.log.LogOutput.Level.TRACE;
 import static org.sonarsource.sonarlint.core.commons.log.LogOutput.Level.WARN;
@@ -15,12 +16,12 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
-import javax.annotation.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.sonarsource.sonarlint.core.commons.log.LogOutput;
 
 abstract class AbstractLogOutput implements LogOutput {
 
-    protected abstract void logImpl(String formattedMessage, Level level);
+    protected abstract void logImpl(String formattedMessage, org.slf4j.event.Level slf4jLevel);
 
 
     private final Set<String> loggedMessages = newSetFromMap(new ConcurrentHashMap<>());
@@ -82,7 +83,22 @@ abstract class AbstractLogOutput implements LogOutput {
             }
         }
 
-        logImpl(message, level);
+        final org.slf4j.event.Level slf4jLevel;
+        if (level == OFF) {
+            return;
+        } else if (level == ERROR) {
+            slf4jLevel = org.slf4j.event.Level.ERROR;
+        } else if (level == WARN) {
+            slf4jLevel = org.slf4j.event.Level.WARN;
+        } else if (level == DEBUG) {
+            slf4jLevel = org.slf4j.event.Level.DEBUG;
+        } else if (level == TRACE) {
+            slf4jLevel = org.slf4j.event.Level.TRACE;
+        } else {
+            slf4jLevel = org.slf4j.event.Level.INFO;
+        }
+
+        logImpl(message, slf4jLevel);
     }
 
     @Override

@@ -11,6 +11,7 @@ import static name.remal.gradle_plugins.toolkit.ObjectUtils.doNotInline;
 import static name.remal.gradle_plugins.toolkit.ObjectUtils.isNotEmpty;
 
 import com.google.common.annotations.VisibleForTesting;
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Objects;
@@ -18,15 +19,14 @@ import java.util.Optional;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.function.Consumer;
-import javax.annotation.Nullable;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.experimental.FieldDefaults;
 import name.remal.gradle_plugins.toolkit.HtmlToTextUtils;
 import name.remal.gradle_plugins.toolkit.ObjectUtils;
+import org.jspecify.annotations.Nullable;
 
 public class RulesDocumentation implements Documentation {
 
@@ -131,17 +131,16 @@ public class RulesDocumentation implements Documentation {
     @NoArgsConstructor
     @Builder
     @AllArgsConstructor(access = PRIVATE)
-    @FieldDefaults(level = PRIVATE)
-    public static class RuleDoc {
+    public static class RuleDoc implements Serializable {
 
         @Nullable
-        String name;
+        private String name;
 
         @Nullable
-        RuleStatus status;
+        private RuleStatus status;
 
         @Nullable
-        String language;
+        private String language;
 
         private final SortedMap<String, RuleParamDoc> params = new TreeMap<>();
 
@@ -157,22 +156,21 @@ public class RulesDocumentation implements Documentation {
     @NoArgsConstructor
     @Builder
     @AllArgsConstructor(access = PRIVATE)
-    @FieldDefaults(level = PRIVATE)
-    public static class RuleParamDoc {
+    public static class RuleParamDoc implements Serializable {
 
         @Nullable
-        String description;
+        private String description;
 
         @Nullable
-        String type;
+        private String type;
 
         @Nullable
-        String currentValue;
+        private String currentValue;
 
         @Nullable
-        String defaultValue;
+        private String defaultValue;
 
-        final Collection<String> possibleValues = new LinkedHashSet<>();
+        private final Collection<String> possibleValues = new LinkedHashSet<>();
 
         public void setPossibleValues(@Nullable Collection<String> possibleValues) {
             this.possibleValues.clear();

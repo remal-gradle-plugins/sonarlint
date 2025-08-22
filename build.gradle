@@ -54,6 +54,16 @@ allprojects {
 
 apply plugin: 'name.remal.toolkit.build-logic'
 
+Closure<String> getDependencyVersion = { Configuration conf, String notation ->
+    String version = conf.dependencies.withType(ModuleDependency).collect()
+        .find { "${it.group}:${it.name}" == notation }
+        ?.version
+    if (version == null) {
+        throw new IllegalStateException("Dependency $notation can't be found in depepdencies of $conf")
+    }
+    return version
+}
+
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 apply plugin: 'java-gradle-plugin'
@@ -64,6 +74,9 @@ SourceSet componentTestSourceSet = testSourceSets.create('componentTest')
 
 dependencies {
     classesRelocation 'com.tisonkun.os:os-detector-core:0.6.0'
+
+    //compileOnly 'org.mapstruct:mapstruct:1.6.3'
+    //annotationProcessor "org.mapstruct:mapstruct-processor:${getDependencyVersion(configurations.compileOnly, 'org.mapstruct:mapstruct')}"
 }
 
 gradlePlugin {
@@ -179,13 +192,7 @@ dependencies {
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-List<Map<String, String>> sonarLintCoreExclusions = [
-    [group: 'org.slf4j'],
-    [group: 'org.apache.logging.log4j'],
-    [group: 'log4j'],
-    [group: 'ch.qos.logback'],
-    [group: 'org.springframework', module: 'spring-jcl'],
-
+List<Map<String, String>> sonarLintCoreLibrariesExclusions = [
     [group: 'org.apache.httpcomponents.client5'],
     [group: 'org.apache.httpcomponents.core5'],
     [group: 'org.sonarsource.sonarlint.core', module: 'sonarlint-server-connection'],
@@ -196,19 +203,60 @@ List<Map<String, String>> sonarLintCoreExclusions = [
     [group: 'org.sonarsource.git.blame'],
 ]
 
-sonarCoreArtifactsConf.dependencies.withType(ModuleDependency).all { ModuleDependency dep ->
-    sonarLintCoreExclusions.forEach { exclude it }
+List<Map<String, String>> sonarLintCoreLoggingImplExclusions = [
+    [group: 'org.slf4j', module: 'slf4j-simple'],
+    [group: 'org.slf4j', module: 'slf4j-nop'],
+    [group: 'ch.qos.logback'],
+    [group: 'org.apache.logging.log4j', module: 'log4j-core'],
+    [group: 'org.apache.logging.log4j', module: 'log4j-slf4j-impl'],
+    [group: 'log4j'],
+]
 
-    configurations.optional.dependencies.add(project.dependencies.create("${dep.group}:${dep.name}:${dep.version}") {
-        sonarLintCoreExclusions.forEach { exclude it }
+List<Map<String, String>> sonarLintCoreLoggingAllExclusions = sonarLintCoreLoggingImplExclusions + [
+    [group: 'org.slf4j'],
+    [group: 'org.apache.logging.log4j'],
+    [group: 'org.springframework', module: 'spring-jcl'],
+]
+
+List<Map<String, String>> allSonarLintCoreExclusions = sonarLintCoreLibrariesExclusions + sonarLintCoreLoggingAllExclusions
+
+; [
+    sonarLintCoreLibrariesExclusions,
+    sonarLintCoreLoggingImplExclusions,
+    sonarLintCoreLoggingAllExclusions,
+    allSonarLintCoreExclusions,
+].forEach { List<Map<String, String>> exclusions ->
+    Set<Map<String, String>> seen = new LinkedHashSet<>()
+    exclusions.removeIf { !seen.add(it) }
+
+    exclusions.collect().forEach { exclusion ->
+        if ((exclusion.module ?: '').isEmpty()) {
+            exclusions.removeIf { it.group == exclusion.group && !(it.module ?: '').isEmpty() }
+        }
+    }
+
+    Collections.sort(exclusions, Comparator.comparing { "${it.group ?: ''}:${it.module ?: ''}" })
+}
+
+
+allSonarArtifactsConf.dependencies.withType(ModuleDependency).all { ModuleDependency dep ->
+    allSonarLintCoreExclusions.forEach { dep.exclude(it) }
+}
+
+sonarCoreArtifactsConf.dependencies.withType(ModuleDependency).all { ModuleDependency dep ->
+    allSonarLintCoreExclusions.forEach { dep.exclude it }
+
+    configurations.optional.dependencies.add(project.dependencies.create("${dep.group}:${dep.name}:${dep.version}") { ModuleDependency innerDep ->
+        allSonarLintCoreExclusions.forEach { innerDep.exclude it }
     })
 }
 
 sonarPluginArtifactsConf.dependencies.withType(ModuleDependency).all { ModuleDependency dep ->
-    sonarLintCoreExclusions.forEach { exclude it }
+    allSonarLintCoreExclusions.forEach { dep.exclude it }
 
-    configurations.compileOnly.dependencies.add(project.dependencies.create("${dep.group}:${dep.name}:${dep.version}") {
+    configurations.compileOnly.dependencies.add(project.dependencies.create("${dep.group}:${dep.name}:${dep.version}") { ModuleDependency innerDep ->
         transitive = false
+        allSonarLintCoreExclusions.forEach { innerDep.exclude it }
     })
 }
 
@@ -280,11 +328,29 @@ apply from: 'build-languages.gradle'
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+Configuration sonarCoreTransitiveWithoutExclusionsConf = configurations.create('sonarCoreTransitiveWithoutExclusions') { Configuration conf ->
+    sonarCoreArtifactsConf.dependencies.withType(ModuleDependency).all { ModuleDependency dep ->
+        conf.dependencies.add(project.dependencies.create("${dep.group}:${dep.name}:${dep.version}"))
+    }
+}
+
+Property<String> sonarCoreSlf4jVersion = objects.property(String).value(provider {
+    return sonarCoreTransitiveWithoutExclusionsConf
+        .resolvedConfiguration
+        .lenientConfiguration
+        .allModuleDependencies
+        .find { "${it.moduleGroup}:${it.moduleName}" == 'org.slf4j:slf4j-api' }
+        ?.moduleVersion
+}).with { it.finalizeValueOnRead(); it }
+
 generateSources.forMainSourceSet.java { Task task ->
-    inputs.files(allSonarArtifactsConf).withPropertyName(allSonarArtifactsConf.name + 'Conf').optional()
-    inputs.files(sonarCoreArtifactsConf).withPropertyName(sonarCoreArtifactsConf.name + 'Conf').optional()
-    inputs.files(sonarPluginArtifactsConf).withPropertyName(sonarPluginArtifactsConf.name + 'Conf').optional()
-    inputs.property('sonarLintCoreExclusions', sonarLintCoreExclusions).optional(true)
+    inputs.files(allSonarArtifactsConf).withPropertyName(allSonarArtifactsConf.name).optional(false)
+    inputs.files(sonarCoreArtifactsConf).withPropertyName(sonarCoreArtifactsConf.name).optional(false)
+    inputs.files(sonarPluginArtifactsConf).withPropertyName(sonarPluginArtifactsConf.name).optional(true)
+    inputs.property('sonarCoreSlf4jVersion', sonarCoreSlf4jVersion).optional(false)
+    inputs.property('sonarLintCoreLibrariesExclusions', sonarLintCoreLibrariesExclusions).optional(true)
+    inputs.property('sonarLintCoreLoggingImplExclusions', sonarLintCoreLoggingImplExclusions).optional(true)
+    inputs.property('sonarLintCoreLoggingAllExclusions', sonarLintCoreLoggingAllExclusions).optional(true)
 
     classFile(project.calculateBaseJavaPackage(), 'SonarDependencies') {
         addImport("com.google.common.collect.ImmutableMap")
@@ -324,28 +390,37 @@ generateSources.forMainSourceSet.java { Task task ->
             line(");")
 
             line()
-            line("@Unmodifiable")
-            line("List<Map<String, String>> SONARLINT_CORE_EXCLUSIONS = List.of(")
-            indent {
-                sonarLintCoreExclusions.eachWithIndex { exclusion, exclusionIndex ->
-                    StringBuilder string = new StringBuilder()
-                    string.append('ImmutableMap.of(')
-                    exclusion.entrySet().eachWithIndex { entry, entryIndex ->
-                        if (entryIndex > 0) {
-                            string.append(', ')
+            line("String SONARLINT_CORE_SLF4J_VERSION = \"${escapeString(sonarCoreSlf4jVersion.get())}\";")
+
+            [
+                'SONARLINT_CORE_LIBRARIES_EXCLUSIONS': sonarLintCoreLibrariesExclusions,
+                'SONARLINT_CORE_LOGGING_IMPL_EXCLUSIONS': sonarLintCoreLoggingImplExclusions,
+                'SONARLINT_CORE_LOGGING_ALL_EXCLUSIONS': sonarLintCoreLoggingAllExclusions,
+            ].forEach { field, exclusions ->
+                line()
+                line("@Unmodifiable")
+                line("List<@Unmodifiable Map<String, String>> $field = List.of(")
+                indent {
+                    exclusions.eachWithIndex { exclusion, exclusionIndex ->
+                        StringBuilder string = new StringBuilder()
+                        string.append('ImmutableMap.of(')
+                        exclusion.entrySet().eachWithIndex { entry, entryIndex ->
+                            if (entryIndex > 0) {
+                                string.append(', ')
+                            }
+
+                            string.append("\"${escapeString(entry.key.toString())}\", \"${escapeString(entry.value.toString())}\"")
                         }
+                        string.append(')')
 
-                        string.append("\"${escapeString(entry.key.toString())}\", \"${escapeString(entry.value.toString())}\"")
+                        if (exclusionIndex < exclusions.size() - 1) {
+                            string.append(',')
+                        }
+                        line(string)
                     }
-                    string.append(')')
-
-                    if (exclusionIndex < sonarLintCoreExclusions.size() - 1) {
-                        string.append(',')
-                    }
-                    line(string)
                 }
+                line(");")
             }
-            line(");")
         }
     }
 
@@ -354,8 +429,8 @@ generateSources.forMainSourceSet.java { Task task ->
 
         addImport("com.google.common.collect.ImmutableMap")
         addImport("java.util.Map")
-        addImport("javax.annotation.Nullable")
         addImport("lombok.NoArgsConstructor")
+        addImport("org.jspecify.annotations.Nullable")
 
         line("@NoArgsConstructor(access = PRIVATE)")
         block("abstract class ${simpleName}") {
@@ -392,8 +467,8 @@ generateSources.forMainSourceSet.java { Task task ->
 
         addImport("com.google.common.collect.ImmutableMap")
         addImport("java.util.Map")
-        addImport("javax.annotation.Nullable")
         addImport("lombok.NoArgsConstructor")
+        addImport("org.jspecify.annotations.Nullable")
 
         line("@NoArgsConstructor(access = PRIVATE)")
         block("abstract class ${simpleName}") {

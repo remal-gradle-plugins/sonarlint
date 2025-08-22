@@ -2,14 +2,14 @@ package name.remal.gradle_plugins.sonarlint.internal.impl;
 
 import static lombok.AccessLevel.PRIVATE;
 
-import javax.annotation.Nullable;
 import lombok.CustomLog;
 import lombok.NoArgsConstructor;
+import org.jspecify.annotations.Nullable;
 import org.sonarsource.sonarlint.core.commons.progress.ProgressMonitor;
 
 @CustomLog
 @NoArgsConstructor(access = PRIVATE)
-class SimpleProgressMonitor implements ProgressMonitor {
+public class SimpleProgressMonitor implements ProgressMonitor {
 
     public static final SimpleProgressMonitor SIMPLE_PROGRESS_MONITOR = new SimpleProgressMonitor();
 

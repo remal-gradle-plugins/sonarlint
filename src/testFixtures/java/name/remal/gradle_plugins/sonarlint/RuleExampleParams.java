@@ -2,9 +2,9 @@ package name.remal.gradle_plugins.sonarlint;
 
 import static lombok.Builder.Default;
 
-import javax.annotation.Nullable;
 import lombok.Builder;
 import lombok.Value;
+import org.jspecify.annotations.Nullable;
 
 @Value
 @Builder
