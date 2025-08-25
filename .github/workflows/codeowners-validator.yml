@@ -73,8 +73,7 @@ jobs:
         REPO_JSON=$(curl -s "${{github.api_url}}/repos/${{github.repository}}" -H "Authorization: token ${{env.VALIDATION_TOKEN}}")
         OWNER_TYPE=$(echo $REPO_JSON | jq -r '.owner.type')
         OWNER_TYPE=$(echo "$OWNER_TYPE" | tr '[:upper:]' '[:lower:]')
-        echo "Owner type: $OWNER_TYPE"
-        echo "::set-output name=owner-type::$OWNER_TYPE"
+        echo "owner-type=$OWNER_TYPE" | tee -a $GITHUB_OUTPUT
 
     - name: Basic CODEOWNERS validation
       if: ${{steps.owner-type.outputs.owner-type != 'organization'}}
