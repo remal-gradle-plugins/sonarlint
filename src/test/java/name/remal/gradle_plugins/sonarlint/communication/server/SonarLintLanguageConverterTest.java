@@ -1,4 +1,4 @@
-package name.remal.gradle_plugins.sonarlint.internal.impl;
+package name.remal.gradle_plugins.sonarlint.communication.server;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;

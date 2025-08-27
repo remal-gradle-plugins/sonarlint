@@ -1,9 +1,7 @@
 package name.remal.gradle_plugins.sonarlint.communication.server;
 
-import static java.nio.file.Files.createTempDirectory;
 import static lombok.AccessLevel.PRIVATE;
 import static name.remal.gradle_plugins.sonarlint.communication.utils.RegistryFactory.createRegistryOnAvailablePort;
-import static name.remal.gradle_plugins.toolkit.PathUtils.tryToDeleteRecursively;
 
 import java.net.InetSocketAddress;
 import java.util.concurrent.Phaser;
@@ -11,11 +9,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.experimental.SuperBuilder;
-import name.remal.gradle_plugins.sonarlint.communication.server.api.SonarLintAnalyze;
+import name.remal.gradle_plugins.sonarlint.communication.server.api.SonarLintAnalyzer;
 import name.remal.gradle_plugins.sonarlint.communication.server.api.SonarLintHelp;
 import name.remal.gradle_plugins.sonarlint.communication.server.api.SonarLintLifecycle;
-import name.remal.gradle_plugins.sonarlint.communication.shared.ImmutableSonarLintParams;
-import name.remal.gradle_plugins.sonarlint.communication.shared.SonarLintServerParams;
 import name.remal.gradle_plugins.toolkit.ClosablesContainer;
 import org.jspecify.annotations.Nullable;
 
@@ -37,41 +33,22 @@ public class SonarLintServer implements SonarLintLifecycleDelegate {
             stop();
         }
 
-        var tempDir = createTempDirectory(SonarLintServer.class.getName() + '-');
-        closeables.registerCloseable(() -> {
-            if (!tryToDeleteRecursively(tempDir)) {
-                // ignore failures
-            }
-        });
-
         var registry = closeables.registerCloseable(createRegistryOnAvailablePort(
             params.getLoopbackAddress()
         ));
         socketAddress.set(registry.getSocketAddress());
 
+        registry.bind(SonarLintLifecycle.class, new SonarLintLifecycleDefault(this));
+
+
         var sonarLintParams = ImmutableSonarLintParams.builder()
             .from(params)
             .build();
+        var shared = closeables.registerCloseable(new SonarLintSharedCode(sonarLintParams));
 
-        registry.bind(SonarLintAnalyze.class, closeables.registerCloseable(
-            SonarLintAnalyzeImpl.builder()
-                .params(sonarLintParams)
-                .tempDir(tempDir)
-                .build()
-        ));
+        registry.bind(SonarLintAnalyzer.class, new SonarLintAnalyzerDefault(shared));
 
-        registry.bind(SonarLintHelp.class, closeables.registerCloseable(
-            SonarLintHelpImpl.builder()
-                .params(sonarLintParams)
-                .tempDir(tempDir)
-                .build()
-        ));
-
-        registry.bind(SonarLintLifecycle.class,
-            SonarLintLifecycleImpl.builder()
-                .delegate(this)
-                .build()
-        );
+        registry.bind(SonarLintHelp.class, new SonarLintHelpDefault(shared));
     }
 
     public synchronized InetSocketAddress getSocketAddress() {

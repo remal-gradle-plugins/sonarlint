@@ -11,8 +11,10 @@ import javax.inject.Inject;
 import lombok.CustomLog;
 import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;
-import name.remal.gradle_plugins.sonarlint.internal.impl.SonarLintServiceAnalysis;
-import name.remal.gradle_plugins.sonarlint.internal.impl.SonarLintServiceAnalysisParams;
+import name.remal.gradle_plugins.sonarlint.communication.server.ImmutableSonarLintParams;
+import name.remal.gradle_plugins.sonarlint.communication.server.SonarLintAnalyzerDefault;
+import name.remal.gradle_plugins.sonarlint.communication.server.SonarLintSharedCode;
+import name.remal.gradle_plugins.sonarlint.communication.server.api.ImmutableSonarLintAnalyzeParams;
 import name.remal.gradle_plugins.toolkit.issues.CheckstyleHtmlIssuesRenderer;
 import name.remal.gradle_plugins.toolkit.issues.CheckstyleXmlIssuesRenderer;
 import name.remal.gradle_plugins.toolkit.issues.TextIssuesRenderer;
@@ -20,30 +22,26 @@ import name.remal.gradle_plugins.toolkit.issues.TextIssuesRenderer;
 @CustomLog
 @NoArgsConstructor(access = PUBLIC, onConstructor_ = {@Inject})
 abstract class SonarLintAnalyzeWorkAction
-    implements AbstractSonarLintWorkAction<SonarLintAnalyzeWorkActionParams> {
+    implements AbstractSonarLintTaskWorkAction<SonarLintAnalyzeWorkActionParams> {
 
     @Override
     @SneakyThrows
-    @SuppressWarnings("ResultOfMethodCallIgnored")
     public void execute() {
         var params = getParameters();
 
         var xmlReportLocation = params.getXmlReportLocation().getAsFile().getOrNull();
         if (xmlReportLocation != null) {
-            tryToDeleteRecursively(xmlReportLocation.toPath());
+            if (!tryToDeleteRecursively(xmlReportLocation.toPath())) {
+                // ignore failures
+            }
         }
 
         var htmlReportLocation = params.getHtmlReportLocation().getAsFile().getOrNull();
         if (htmlReportLocation != null) {
-            tryToDeleteRecursively(htmlReportLocation.toPath());
+            if (!tryToDeleteRecursively(htmlReportLocation.toPath())) {
+                // ignore failures
+            }
         }
-
-        var serviceParams = SonarLintServiceAnalysisParams.builder()
-            .pluginFiles(params.getPluginFiles().getFiles())
-            .languagesToProcess(params.getLanguagesToProcess().get())
-            .sonarUserHome(params.getHomeDirectory().get().getAsFile())
-            .workDir(params.getWorkDirectory().get().getAsFile())
-            .build();
 
         var enabledRules = params.getEnabledRules().get();
         var disabledRules = new LinkedHashSet<>(params.getDisabledRules().get());
@@ -51,15 +49,23 @@ abstract class SonarLintAnalyzeWorkAction
             .filter(not(enabledRules::contains))
             .forEach(disabledRules::add);
 
-        try (var service = new SonarLintServiceAnalysis(serviceParams)) {
+        var sonarLintParams = ImmutableSonarLintParams.builder()
+            .pluginFiles(params.getPluginFiles())
+            .enabledPluginLanguages(params.getLanguagesToProcess().get())
+            .build();
+        try (var shared = new SonarLintSharedCode(sonarLintParams)) {
+            var service = new SonarLintAnalyzerDefault(shared);
             var issues = service.analyze(
-                params.getRootDirectory().get().getAsFile().toPath(),
-                params.getSourceFiles().get(),
-                params.getSonarProperties().get(),
-                true,
-                enabledRules,
-                disabledRules,
-                params.getRulesProperties().get()
+                ImmutableSonarLintAnalyzeParams.builder()
+                    .repositoryRoot(params.getRootDirectory().get().getAsFile())
+                    .moduleId(params.getModuleId().get())
+                    .sourceFiles(params.getSourceFiles().get())
+                    .sonarProperties(params.getSonarProperties().get())
+                    .enabledRulesConfig(enabledRules)
+                    .disabledRulesConfig(disabledRules)
+                    .rulesPropertiesConfig(params.getRulesProperties().get())
+                    .build(),
+                null
             );
 
             if (xmlReportLocation != null) {

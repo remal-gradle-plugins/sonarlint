@@ -2,9 +2,6 @@ package name.remal.gradle_plugins.sonarlint;
 
 import static name.remal.gradle_plugins.sonarlint.SonarLintConstants.MIN_SUPPORTED_SONAR_RUNTIME_JAVA_VERSION;
 
-import com.google.common.reflect.TypeToken;
-import com.google.errorprone.annotations.OverridingMethodsMustInvokeSuper;
-import java.lang.reflect.ParameterizedType;
 import javax.inject.Inject;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.JavaVersion;
@@ -14,18 +11,13 @@ import org.gradle.api.provider.ProviderFactory;
 import org.gradle.api.tasks.CacheableTask;
 import org.gradle.api.tasks.Classpath;
 import org.gradle.api.tasks.InputFiles;
-import org.gradle.api.tasks.Internal;
 import org.gradle.api.tasks.Nested;
-import org.gradle.work.InputChanges;
 import org.gradle.workers.WorkQueue;
 import org.gradle.workers.WorkerExecutor;
-import org.jspecify.annotations.Nullable;
 
 @CacheableTask
-public abstract class AbstractSonarLintTask<
-    WorkActionParams extends AbstractSonarLintWorkActionParams,
-    WorkAction extends AbstractSonarLintWorkAction<WorkActionParams>
-    > extends DefaultTask {
+public abstract class AbstractSonarLintTask
+    extends DefaultTask {
 
     @InputFiles
     @Classpath
@@ -42,28 +34,6 @@ public abstract class AbstractSonarLintTask<
     @Nested
     protected abstract SonarLintLanguagesSettings getLanguages();
 
-
-    @OverridingMethodsMustInvokeSuper
-    void configureWorkActionParams(WorkActionParams workActionParams, @Nullable InputChanges inputChanges) {
-        workActionParams.getPluginFiles().from(getPluginFiles());
-
-        workActionParams.getLanguagesToProcess().set(getLanguages().getLanguagesToProcess());
-    }
-
-
-    @Internal
-    @SuppressWarnings("unchecked")
-    protected Class<WorkAction> getWorkActionClass() {
-        var typeToken = (TypeToken<? extends AbstractSonarLintTask<?, ?>>) TypeToken.of(this.getClass());
-        var superTypeToken = typeToken.getSupertype(AbstractSonarLintTask.class);
-        var type = superTypeToken.getType();
-        if (type instanceof ParameterizedType) {
-            var parameterizedType = (ParameterizedType) type;
-            return (Class<WorkAction>) TypeToken.of(parameterizedType.getActualTypeArguments()[1]).getRawType();
-        } else {
-            throw new AssertionError("Not a ParameterizedType: " + type);
-        }
-    }
 
     protected final WorkQueue createWorkQueue() {
         var forkOptions = getSettings().getFork();

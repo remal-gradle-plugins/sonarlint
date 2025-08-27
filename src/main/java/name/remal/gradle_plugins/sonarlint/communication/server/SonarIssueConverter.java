@@ -1,4 +1,4 @@
-package name.remal.gradle_plugins.sonarlint.internal.impl;
+package name.remal.gradle_plugins.sonarlint.communication.server;
 
 import static com.google.common.base.CaseFormat.UPPER_CAMEL;
 import static com.google.common.base.CaseFormat.UPPER_UNDERSCORE;
@@ -24,7 +24,7 @@ import org.sonar.api.server.rule.RulesDefinition.Rule;
 import org.sonarsource.sonarlint.core.analysis.api.ClientInputFile;
 
 @RequiredArgsConstructor
-public class SonarIssueConverter {
+class SonarIssueConverter {
 
     private final Map<RuleKey, RulesDefinition.Rule> allRules;
 

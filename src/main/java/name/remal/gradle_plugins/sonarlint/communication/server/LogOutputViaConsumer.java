@@ -1,10 +1,10 @@
-package name.remal.gradle_plugins.sonarlint.internal.impl;
+package name.remal.gradle_plugins.sonarlint.communication.server;
 
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 
 @RequiredArgsConstructor
-public class LogOutputViaConsumer extends AbstractLogOutput {
+class LogOutputViaConsumer extends AbstractLogOutput {
 
     private final LogMessageConsumer consumer;
 

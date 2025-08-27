@@ -54,16 +54,6 @@ allprojects {
 
 apply plugin: 'name.remal.toolkit.build-logic'
 
-Closure<String> getDependencyVersion = { Configuration conf, String notation ->
-    String version = conf.dependencies.withType(ModuleDependency).collect()
-        .find { "${it.group}:${it.name}" == notation }
-        ?.version
-    if (version == null) {
-        throw new IllegalStateException("Dependency $notation can't be found in depepdencies of $conf")
-    }
-    return version
-}
-
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 apply plugin: 'java-gradle-plugin'
@@ -74,9 +64,6 @@ SourceSet componentTestSourceSet = testSourceSets.create('componentTest')
 
 dependencies {
     classesRelocation 'com.tisonkun.os:os-detector-core:0.6.0'
-
-    //compileOnly 'org.mapstruct:mapstruct:1.6.3'
-    //annotationProcessor "org.mapstruct:mapstruct-processor:${getDependencyVersion(configurations.compileOnly, 'org.mapstruct:mapstruct')}"
 }
 
 gradlePlugin {

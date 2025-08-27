@@ -9,13 +9,11 @@ import org.gradle.api.provider.MapProperty;
 import org.gradle.api.provider.Property;
 import org.gradle.api.provider.SetProperty;
 
-interface SonarLintAnalyzeWorkActionParams extends AbstractSonarLintWorkActionParams {
-
-    DirectoryProperty getHomeDirectory();
-
-    DirectoryProperty getWorkDirectory();
+interface SonarLintAnalyzeWorkActionParams extends AbstractSonarLintTaskWorkActionParams {
 
     DirectoryProperty getRootDirectory();
+
+    Property<String> getModuleId();
 
 
     ListProperty<SourceFile> getSourceFiles();

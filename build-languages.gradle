@@ -428,16 +428,16 @@ generateSources.forMainSourceSet.java {
     }
 }
 
-generateSources.forSourceSet(sourceSets.componentTest).java {
+generateSources.forSourceSet(sourceSets.testFixtures).java {
     inputs.property('knownSonarProperties', knownSonarProperties).optional(true)
     inputs.property('unknownSonarProperties', unknownSonarProperties).optional(true)
 
-    classFile(project.calculateBaseJavaPackage() + ".internal.impl", 'SonarPropertiesInfo') {
+    classFile(project.calculateBaseJavaPackage(), 'SonarPropertiesInfo') {
         addImport("com.google.common.collect.ImmutableSet")
         addImport("java.util.Set")
         addImport("org.jetbrains.annotations.Unmodifiable")
 
-        block("interface ${simpleName}") {
+        block("public interface ${simpleName}") {
             line("@Unmodifiable")
             line("Set<String> KNOWN_SONAR_PROPERTIES = ImmutableSet.of(")
             indent {

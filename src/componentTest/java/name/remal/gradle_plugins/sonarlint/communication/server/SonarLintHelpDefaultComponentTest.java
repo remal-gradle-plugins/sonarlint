@@ -1,34 +1,22 @@
-package name.remal.gradle_plugins.sonarlint.internal.impl;
+package name.remal.gradle_plugins.sonarlint.communication.server;
 
-import static name.remal.gradle_plugins.sonarlint.internal.impl.SonarPropertiesInfo.KNOWN_SONAR_PROPERTIES;
-import static name.remal.gradle_plugins.sonarlint.internal.impl.SonarPropertiesInfo.UNKNOWN_SONAR_PROPERTIES;
+import static name.remal.gradle_plugins.sonarlint.SonarPropertiesInfo.KNOWN_SONAR_PROPERTIES;
+import static name.remal.gradle_plugins.sonarlint.SonarPropertiesInfo.UNKNOWN_SONAR_PROPERTIES;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import name.remal.gradle_plugins.sonarlint.RuleExamples.ConfiguredSonarExampleRulesProvider;
 import name.remal.gradle_plugins.sonarlint.SonarLintLanguage;
 import org.assertj.core.api.AutoCloseableSoftAssertions;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ArgumentsSource;
 
-class SonarLintServiceHelpComponentTest extends AbstractSonarLintServiceComponentTest {
+class SonarLintHelpDefaultComponentTest extends AbstractSonarLintComponentTest<SonarLintHelpDefault> {
 
-    private static SonarLintServiceHelp service;
-
-    @BeforeAll
-    static void beforeAll() {
-        var params = configureParamsBuilderBase(SonarLintServiceHelpParams.builder())
-            .build();
-
-        service = new SonarLintServiceHelp(params);
-    }
-
-    @AfterAll
-    static void afterAll() {
-        service.close();
+    @Override
+    protected SonarLintHelpDefault createInstance(SonarLintSharedCode shared) {
+        return new SonarLintHelpDefault(shared);
     }
 
 
@@ -36,8 +24,8 @@ class SonarLintServiceHelpComponentTest extends AbstractSonarLintServiceComponen
     class PropertiesDocumentation {
 
         @Test
-        void sonarLintLanguagesUseKnownProperties() {
-            var knownProperties = service.collectPropertiesDocumentation().getProperties().keySet();
+        void sonarLintLanguagesUseKnownProperties() throws Exception {
+            var knownProperties = instance.getPropertiesDocumentation().getProperties().keySet();
             assertThat(knownProperties).as("Known properties")
                 .isNotEmpty();
 
@@ -63,7 +51,7 @@ class SonarLintServiceHelpComponentTest extends AbstractSonarLintServiceComponen
         @Test
         @SuppressWarnings({"java:S3415", "java:S5841"})
         void knownSonarPropertiesAreStillUnknown() {
-            var knownProperties = service.collectPropertiesDocumentationWithoutEnrichment().getProperties().keySet();
+            var knownProperties = instance.getPropertiesDocumentationWithoutEnrichment().getProperties().keySet();
             assertThat(KNOWN_SONAR_PROPERTIES)
                 .doesNotContainAnyElementsOf(knownProperties);
         }
@@ -71,7 +59,7 @@ class SonarLintServiceHelpComponentTest extends AbstractSonarLintServiceComponen
         @Test
         @SuppressWarnings({"java:S3415", "java:S5841"})
         void unknownSonarPropertiesAreStillUnknown() {
-            var knownProperties = service.collectPropertiesDocumentationWithoutEnrichment().getProperties().keySet();
+            var knownProperties = instance.getPropertiesDocumentationWithoutEnrichment().getProperties().keySet();
             assertThat(UNKNOWN_SONAR_PROPERTIES)
                 .doesNotContainAnyElementsOf(knownProperties);
         }
@@ -84,8 +72,8 @@ class SonarLintServiceHelpComponentTest extends AbstractSonarLintServiceComponen
 
         @ParameterizedTest
         @ArgumentsSource(ConfiguredSonarExampleRulesProvider.class)
-        void knownRulesAreDocumented(String rule) {
-            var rulesDoc = service.collectRulesDocumentation();
+        void knownRulesAreDocumented(String rule) throws Exception {
+            var rulesDoc = instance.getRulesDocumentation();
             assertThat(rulesDoc.getRules())
                 .extractingByKey(rule).as("%s documentation", rule)
                 .isNotNull();

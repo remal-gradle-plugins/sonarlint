@@ -33,8 +33,8 @@ import lombok.Singular;
 import lombok.SneakyThrows;
 import name.remal.gradle_plugins.sonarlint.SonarLintLanguage;
 import name.remal.gradle_plugins.sonarlint.communication.client.api.SonarLintServerRuntimeInfo;
+import name.remal.gradle_plugins.sonarlint.communication.server.ImmutableSonarLintServerParams;
 import name.remal.gradle_plugins.sonarlint.communication.server.SonarLintServerMain;
-import name.remal.gradle_plugins.sonarlint.communication.shared.ImmutableSonarLintServerParams;
 import name.remal.gradle_plugins.sonarlint.communication.utils.ServerRegistryFacade;
 import name.remal.gradle_plugins.toolkit.ClosablesContainer;
 import name.remal.gradle_plugins.toolkit.UriUtils;
@@ -101,6 +101,7 @@ public class SonarLintClient {
     }
 
     @SneakyThrows
+    @SuppressWarnings("java:S5443")
     private void startServer(ServerRegistryFacade serverRuntimeInfoRegistry) {
         var serverParams = ImmutableSonarLintServerParams.builder()
             .loopbackAddress(loopbackAddress)

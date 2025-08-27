@@ -6,37 +6,34 @@ import static com.google.common.collect.ImmutableSet.toImmutableSet;
 import static java.util.Map.Entry;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toUnmodifiableList;
+import static name.remal.gradle_plugins.sonarlint.communication.server.SimpleProgressMonitor.SIMPLE_PROGRESS_MONITOR;
+import static name.remal.gradle_plugins.sonarlint.communication.server.SonarLintSharedCode.withThreadLogger;
 import static name.remal.gradle_plugins.sonarlint.internal.SonarLintLanguageIncludes.getLanguageRelativePathPredicate;
-import static name.remal.gradle_plugins.sonarlint.internal.impl.SimpleProgressMonitor.SIMPLE_PROGRESS_MONITOR;
 import static name.remal.gradle_plugins.toolkit.ObjectUtils.isNotEmpty;
 
 import com.google.common.annotations.VisibleForTesting;
-import java.io.File;
 import java.rmi.RemoteException;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
+import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
-import lombok.experimental.SuperBuilder;
 import name.remal.gradle_plugins.sonarlint.SonarLintLanguage;
 import name.remal.gradle_plugins.sonarlint.SonarLintLanguageType;
-import name.remal.gradle_plugins.sonarlint.communication.server.api.SonarLintAnalyze;
+import name.remal.gradle_plugins.sonarlint.communication.server.api.SonarLintAnalyzeParams;
+import name.remal.gradle_plugins.sonarlint.communication.server.api.SonarLintAnalyzer;
 import name.remal.gradle_plugins.sonarlint.communication.server.api.SonarLintLogSink;
 import name.remal.gradle_plugins.sonarlint.internal.SourceFile;
-import name.remal.gradle_plugins.sonarlint.internal.impl.LogMessageConsumer;
-import name.remal.gradle_plugins.sonarlint.internal.impl.SimpleClientInputFile;
-import name.remal.gradle_plugins.sonarlint.internal.impl.SonarIssueConverter;
-import name.remal.gradle_plugins.sonarlint.internal.impl.SonarLintLanguageConverter;
 import name.remal.gradle_plugins.toolkit.ObjectUtils;
 import name.remal.gradle_plugins.toolkit.issues.Issue;
 import org.jetbrains.annotations.Unmodifiable;
+import org.jspecify.annotations.Nullable;
 import org.sonar.api.rule.RuleKey;
 import org.sonar.api.server.rule.RulesDefinition.Rule;
 import org.sonarsource.sonarlint.core.analysis.api.ActiveRule;
@@ -44,22 +41,27 @@ import org.sonarsource.sonarlint.core.analysis.api.AnalysisConfiguration;
 import org.sonarsource.sonarlint.core.analysis.api.ClientInputFile;
 import org.sonarsource.sonarlint.core.analysis.api.ClientModuleInfo;
 
-@SuperBuilder
-class SonarLintAnalyzeImpl extends SonarLintSharedCode implements SonarLintAnalyze {
+@RequiredArgsConstructor
+public class SonarLintAnalyzerDefault implements SonarLintAnalyzer {
+
+    private final SonarLintSharedCode shared;
+
 
     @Override
     public Collection<Issue> analyze(
-        File repositoryRoot,
-        String moduleId,
-        Collection<SourceFile> sourceFiles,
-        Set<SonarLintLanguage> enabledLanguages,
-        Map<String, String> sonarProperties,
-        boolean enableRulesActivatedByDefault,
-        Set<String> enabledRulesConfig,
-        Set<String> disabledRulesConfig,
-        Map<String, Map<String, String>> rulesPropertiesConfig,
-        SonarLintLogSink logSink
+        SonarLintAnalyzeParams params,
+        @Nullable SonarLintLogSink logSink
     ) throws RemoteException {
+        var repositoryRoot = params.getRepositoryRoot();
+        var moduleId = params.getModuleId();
+        var sourceFiles = params.getSourceFiles();
+        var enabledLanguages = params.getEnabledLanguages();
+        var sonarProperties = params.getSonarProperties();
+        var enableRulesActivatedByDefault = params.isEnableRulesActivatedByDefault();
+        var enabledRulesConfig = params.getEnabledRulesConfig();
+        var disabledRulesConfig = params.getDisabledRulesConfig();
+        var rulesPropertiesConfig = params.getRulesPropertiesConfig();
+
         if (sourceFiles.isEmpty()
             || enabledLanguages.isEmpty()
             || (!enableRulesActivatedByDefault && enabledRulesConfig.isEmpty())
@@ -78,13 +80,12 @@ class SonarLintAnalyzeImpl extends SonarLintSharedCode implements SonarLintAnaly
             return List.of();
         }
 
-        LogMessageConsumer logMessageConsumer = (level, message) -> {
-            logSink.onMessage(SonarLintAnalyzeImpl.class.getName(), level, message);
+        LogMessageConsumer logMessageConsumer = logSink == null ? null : (level, message) -> {
+            logSink.onMessage(SonarLintAnalyzerDefault.class.getName(), level, message);
         };
         return withThreadLogger(logMessageConsumer, () ->
             withSingleThreadedFirstFrontendScan(enabledLanguages, sourceFiles, sonarProperties, () -> {
                 var inputFiles = sourceFiles.stream()
-                    .filter(Objects::nonNull)
                     .map(SimpleClientInputFile::new)
                     .map(ClientInputFile.class::cast)
                     .collect(toUnmodifiableList());
@@ -97,7 +98,7 @@ class SonarLintAnalyzeImpl extends SonarLintSharedCode implements SonarLintAnaly
                     .build();
 
                 Collection<Issue> issues = new LinkedHashSet<>();
-                var issueConverter = new SonarIssueConverter(getAllRules());
+                var issueConverter = new SonarIssueConverter(shared.getAllRules());
                 Consumer<org.sonarsource.sonarlint.core.analysis.api.Issue> issueListener = sonarIssue -> {
                     synchronized (issues) {
                         var issue = issueConverter.convert(sonarIssue);
@@ -107,7 +108,7 @@ class SonarLintAnalyzeImpl extends SonarLintSharedCode implements SonarLintAnaly
                     }
                 };
 
-                var moduleRegistry = getAnalysisContainer().getModuleRegistry();
+                var moduleRegistry = shared.getAnalysisContainer().getModuleRegistry();
 
                 var clientFileSystem = new SimpleClientModuleFileSystem(inputFiles);
                 var moduleInfo = new ClientModuleInfo(moduleId, clientFileSystem);
@@ -185,42 +186,40 @@ class SonarLintAnalyzeImpl extends SonarLintSharedCode implements SonarLintAnaly
         Set<String> enabledRulesConfig,
         Set<String> disabledRulesConfig
     ) {
-        return withThreadLogger(null, () -> {
-            var enabledLanguageIds = enabledLanguages.stream()
-                .map(SonarLintLanguageConverter::convertSonarLintLanguage)
-                .flatMap(lang -> Stream.of(lang.name(), lang.getSonarLanguageKey()))
-                .map(String::toLowerCase)
-                .collect(toImmutableSet());
+        var enabledLanguageIds = enabledLanguages.stream()
+            .map(SonarLintLanguageConverter::convertSonarLintLanguage)
+            .flatMap(lang -> Stream.of(lang.name(), lang.getSonarLanguageKey()))
+            .map(String::toLowerCase)
+            .collect(toImmutableSet());
 
-            var enabledRules = getRulesKeys(enabledRulesConfig);
-            var disabledRules = getRulesKeys(disabledRulesConfig);
+        var enabledRules = getRulesKeys(enabledRulesConfig);
+        var disabledRules = getRulesKeys(disabledRulesConfig);
 
-            return getAllRules().entrySet().stream()
-                .filter(entry -> {
-                    var ruleKey = entry.getKey();
-                    var rule = entry.getValue();
+        return shared.getAllRules().entrySet().stream()
+            .filter(entry -> {
+                var ruleKey = entry.getKey();
+                var rule = entry.getValue();
 
-                    var ruleLanguage = rule.repository().language();
-                    if (!enabledLanguageIds.contains(ruleLanguage.toLowerCase())) {
-                        return false;
-                    }
+                var ruleLanguage = rule.repository().language();
+                if (!enabledLanguageIds.contains(ruleLanguage.toLowerCase())) {
+                    return false;
+                }
 
-                    if (disabledRules.contains(ruleKey)) {
-                        return false;
-                    }
+                if (disabledRules.contains(ruleKey)) {
+                    return false;
+                }
 
-                    if (enableRulesActivatedByDefault && rule.activatedByDefault()) {
-                        return true;
-                    }
+                if (enableRulesActivatedByDefault && rule.activatedByDefault()) {
+                    return true;
+                }
 
-                    return enabledRules.contains(ruleKey);
-                })
-                .collect(toImmutableMap(
-                    Entry::getKey,
-                    Entry::getValue,
-                    (oldRule, rule) -> rule
-                ));
-        });
+                return enabledRules.contains(ruleKey);
+            })
+            .collect(toImmutableMap(
+                Entry::getKey,
+                Entry::getValue,
+                (oldRule, rule) -> rule
+            ));
     }
 
     @Unmodifiable

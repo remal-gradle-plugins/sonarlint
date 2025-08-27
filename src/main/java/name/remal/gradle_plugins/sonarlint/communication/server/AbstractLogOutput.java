@@ -1,4 +1,4 @@
-package name.remal.gradle_plugins.sonarlint.internal.impl;
+package name.remal.gradle_plugins.sonarlint.communication.server;
 
 import static java.util.Collections.newSetFromMap;
 import static java.util.function.Predicate.not;
