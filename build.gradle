@@ -64,6 +64,8 @@ SourceSet componentTestSourceSet = testSourceSets.create('componentTest')
 
 dependencies {
     classesRelocation 'com.tisonkun.os:os-detector-core:0.6.0'
+
+    componentTestImplementation 'org.junit.platform:junit-platform-launcher'
 }
 
 gradlePlugin {
