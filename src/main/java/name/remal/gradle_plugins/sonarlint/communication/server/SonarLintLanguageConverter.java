@@ -1,4 +1,4 @@
-package name.remal.gradle_plugins.sonarlint.internal.impl;
+package name.remal.gradle_plugins.sonarlint.communication.server;
 
 import static lombok.AccessLevel.PRIVATE;
 
@@ -7,7 +7,7 @@ import name.remal.gradle_plugins.sonarlint.SonarLintLanguage;
 import org.sonarsource.sonarlint.core.commons.api.SonarLanguage;
 
 @NoArgsConstructor(access = PRIVATE)
-public abstract class SonarLintLanguageConverter {
+abstract class SonarLintLanguageConverter {
 
     public static SonarLanguage convertSonarLintLanguage(String languageName) {
         for (var sonarLang : SonarLanguage.values()) {

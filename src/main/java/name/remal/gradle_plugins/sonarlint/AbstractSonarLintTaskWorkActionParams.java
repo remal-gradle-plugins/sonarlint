@@ -4,10 +4,9 @@ import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.provider.SetProperty;
 import org.gradle.workers.WorkParameters;
 
-interface AbstractSonarLintWorkActionParams extends WorkParameters {
+interface AbstractSonarLintTaskWorkActionParams extends WorkParameters {
 
     ConfigurableFileCollection getPluginFiles();
-
 
     SetProperty<SonarLintLanguage> getLanguagesToProcess();
 

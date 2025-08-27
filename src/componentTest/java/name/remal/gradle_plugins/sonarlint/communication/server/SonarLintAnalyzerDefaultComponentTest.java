@@ -1,49 +1,27 @@
-package name.remal.gradle_plugins.sonarlint.internal.impl;
+package name.remal.gradle_plugins.sonarlint.communication.server;
 
-import static java.nio.file.Files.createTempDirectory;
 import static name.remal.gradle_plugins.sonarlint.RuleExamples.writeSonarRuleExample;
-import static name.remal.gradle_plugins.toolkit.LazyProxy.asLazyProxy;
-import static name.remal.gradle_plugins.toolkit.PathUtils.tryToDeleteRecursively;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.io.CleanupMode.ON_SUCCESS;
 
 import java.io.File;
-import java.nio.file.Path;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import name.remal.gradle_plugins.sonarlint.RuleExamples.ConfiguredSonarExampleRulesWithDistinctLanguageProvider;
 import name.remal.gradle_plugins.sonarlint.SonarLintLanguage;
+import name.remal.gradle_plugins.sonarlint.communication.server.api.ImmutableSonarLintAnalyzeParams;
 import name.remal.gradle_plugins.sonarlint.internal.SourceFile;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ArgumentsSource;
 import org.junit.jupiter.params.provider.EnumSource;
 
-@SuppressWarnings("java:S2187")
-class SonarLintServiceAnalysisComponentTest extends AbstractSonarLintServiceComponentTest {
+class SonarLintAnalyzerDefaultComponentTest extends AbstractSonarLintComponentTest<SonarLintAnalyzerDefault> {
 
-    private static final Path tempPath = asLazyProxy(Path.class, () -> createTempDirectory("sonarlint-test-"));
-
-    private static SonarLintServiceAnalysis service;
-
-    @BeforeAll
-    static void beforeAll() {
-        var params = configureParamsBuilderBase(SonarLintServiceAnalysisParams.builder())
-            .sonarUserHome(tempPath.resolve("sonar-user").toFile())
-            .workDir(tempPath.resolve("sonar-work").toFile())
-            .build();
-
-        service = new SonarLintServiceAnalysis(params);
-    }
-
-    @AfterAll
-    @SuppressWarnings("ResultOfMethodCallIgnored")
-    static void afterAll() {
-        service.close();
-        tryToDeleteRecursively(tempPath);
+    @Override
+    protected SonarLintAnalyzerDefault createInstance(SonarLintSharedCode shared) {
+        return new SonarLintAnalyzerDefault(shared);
     }
 
 
@@ -51,22 +29,24 @@ class SonarLintServiceAnalysisComponentTest extends AbstractSonarLintServiceComp
     @ArgumentsSource(ConfiguredSonarExampleRulesWithDistinctLanguageProvider.class)
     void analyze(
         String rule,
-        @TempDir(cleanup = ON_SUCCESS) File projectDir
-    ) {
+        @TempDir(cleanup = ON_SUCCESS) File projectDir,
+        TestInfo testInfo
+    ) throws Exception {
         var relativeFilePath = writeSonarRuleExample(projectDir, rule);
         var sourceFiles = List.of(SourceFile.builder()
             .file(new File(projectDir, relativeFilePath))
             .relativePath(relativeFilePath)
             .build()
         );
-        var issues = service.analyze(
-            projectDir.toPath(),
-            sourceFiles,
-            Map.of(),
-            false,
-            Set.of(rule),
-            Set.of(),
-            Map.of()
+        var issues = instance.analyze(
+            ImmutableSonarLintAnalyzeParams.builder()
+                .repositoryRoot(projectDir)
+                .moduleId(testInfo.getDisplayName())
+                .sourceFiles(sourceFiles)
+                .enableRulesActivatedByDefault(false)
+                .enabledRulesConfig(Set.of(rule))
+                .build(),
+            null
         );
         assertThat(issues)
             .extracting("rule")
@@ -83,7 +63,7 @@ class SonarLintServiceAnalysisComponentTest extends AbstractSonarLintServiceComp
     @ParameterizedTest
     @EnumSource(SonarLintLanguage.class)
     void enabledRulesForSonarLintLanguage(SonarLintLanguage language) {
-        var enabledRules = service.getEnabledRules(
+        var enabledRules = instance.getEnabledRules(
             Set.of(language),
             true,
             Set.of(),

@@ -29,7 +29,6 @@ import static org.gradle.api.tasks.PathSensitivity.RELATIVE;
 import static org.gradle.language.base.plugins.LifecycleBasePlugin.VERIFICATION_GROUP;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.errorprone.annotations.OverridingMethodsMustInvokeSuper;
 import groovy.lang.Closure;
 import groovy.lang.DelegatesTo;
 import java.io.File;
@@ -86,7 +85,7 @@ import org.w3c.dom.Element;
 
 @CacheableTask
 public abstract class SonarLint
-    extends AbstractSonarLintTask<SonarLintAnalyzeWorkActionParams, SonarLintAnalyzeWorkAction>
+    extends AbstractSonarLintTask
     implements PatternFilterable, VerificationTask, Reporting<SonarLintReports> {
 
     private static final String SONAR_LIST_PROPERTY_DELIMITER = ",";
@@ -356,6 +355,13 @@ public abstract class SonarLint
 
     //#region Hidden properties
 
+    @Input
+    protected abstract Property<String> getModuleId();
+
+    {
+        getModuleId().set(getProject().getProjectDir().getAbsolutePath());
+    }
+
     @InputFiles
     @org.gradle.api.tasks.Optional
     @PathSensitive(RELATIVE)
@@ -371,53 +377,44 @@ public abstract class SonarLint
     @TaskAction
     public final void execute(@Nullable InputChanges inputChanges) {
         var workQueue = createWorkQueue();
-        workQueue.submit(getWorkActionClass(), params ->
-            configureWorkActionParams(params, inputChanges)
-        );
-    }
-
-    @Override
-    @OverridingMethodsMustInvokeSuper
-    @SuppressWarnings("java:S2259")
-    void configureWorkActionParams(
-        SonarLintAnalyzeWorkActionParams workActionParams,
-        @Nullable InputChanges inputChanges
-    ) {
-        super.configureWorkActionParams(workActionParams, inputChanges);
-
-        workActionParams.getHomeDirectory().set(new File(getTemporaryDir(), "home"));
-        workActionParams.getWorkDirectory().set(new File(getTemporaryDir(), "work"));
-        workActionParams.getRootDirectory().set(getRootDir());
+        workQueue.submit(SonarLintAnalyzeWorkAction.class, params -> {
+            params.getPluginFiles().from(getPluginFiles());
+            params.getLanguagesToProcess().set(getLanguages().getLanguagesToProcess());
 
 
-        var sourceFiles = collectSourceFiles(inputChanges);
-        workActionParams.getSourceFiles().set(sourceFiles);
+            params.getRootDirectory().set(getRootDir());
+            params.getModuleId().set(getModuleId());
 
 
-        var settings = getSettings();
-
-        Map<String, @Nullable String> sonarProperties = new LinkedHashMap<>();
-        addJavaProperties(sonarProperties);
-        sonarProperties.putAll(settings.getSonarProperties().get());
-        addRuleByPathIgnoreProperties(sonarProperties);
-        sonarProperties.keySet().removeIf(Objects::isNull);
-        sonarProperties.values().removeIf(Objects::isNull);
-
-        var automaticallyDisabledRules = new LinkedHashMap<String, String>();
-        disableRulesConflictingWithLombok(automaticallyDisabledRules);
-        disableRulesFromCheckstyleConfig(automaticallyDisabledRules);
-
-        workActionParams.getSonarProperties().set(sonarProperties);
-        workActionParams.getEnabledRules().set(settings.getRules().getEnabled());
-        workActionParams.getDisabledRules().set(settings.getRules().getDisabled());
-        workActionParams.getAutomaticallyDisabledRules().set(automaticallyDisabledRules);
-        workActionParams.getRulesProperties().set(settings.getRules().getProperties());
+            var sourceFiles = collectSourceFiles(inputChanges);
+            params.getSourceFiles().set(sourceFiles);
 
 
-        workActionParams.getIsIgnoreFailures().set(getIgnoreFailures());
-        workActionParams.getWithDescription().set(settings.getLogging().getWithDescription());
-        workActionParams.getXmlReportLocation().fileProvider(getSonarLintReportFile(SonarLintReports::getXml));
-        workActionParams.getHtmlReportLocation().fileProvider(getSonarLintReportFile(SonarLintReports::getHtml));
+            var settings = getSettings();
+
+            Map<String, @Nullable String> sonarProperties = new LinkedHashMap<>();
+            addJavaProperties(sonarProperties);
+            sonarProperties.putAll(settings.getSonarProperties().get());
+            addRuleByPathIgnoreProperties(sonarProperties);
+            sonarProperties.keySet().removeIf(Objects::isNull);
+            sonarProperties.values().removeIf(Objects::isNull);
+
+            var automaticallyDisabledRules = new LinkedHashMap<String, String>();
+            disableRulesConflictingWithLombok(automaticallyDisabledRules);
+            disableRulesFromCheckstyleConfig(automaticallyDisabledRules);
+
+            params.getSonarProperties().set(sonarProperties);
+            params.getEnabledRules().set(settings.getRules().getEnabled());
+            params.getDisabledRules().set(settings.getRules().getDisabled());
+            params.getAutomaticallyDisabledRules().set(automaticallyDisabledRules);
+            params.getRulesProperties().set(settings.getRules().getProperties());
+
+
+            params.getIsIgnoreFailures().set(getIgnoreFailures());
+            params.getWithDescription().set(settings.getLogging().getWithDescription());
+            params.getXmlReportLocation().fileProvider(getSonarLintReportFile(SonarLintReports::getXml));
+            params.getHtmlReportLocation().fileProvider(getSonarLintReportFile(SonarLintReports::getHtml));
+        });
     }
 
     @SuppressWarnings("java:S3776")

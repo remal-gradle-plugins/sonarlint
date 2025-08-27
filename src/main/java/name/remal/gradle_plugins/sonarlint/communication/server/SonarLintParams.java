@@ -1,4 +1,4 @@
-package name.remal.gradle_plugins.sonarlint.communication.shared;
+package name.remal.gradle_plugins.sonarlint.communication.server;
 
 import java.io.File;
 import java.io.Serializable;

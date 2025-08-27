@@ -1,4 +1,4 @@
-package name.remal.gradle_plugins.sonarlint.internal.impl;
+package name.remal.gradle_plugins.sonarlint.communication.server;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.Files.newInputStream;
@@ -17,7 +17,7 @@ import org.sonarsource.sonarlint.core.analysis.api.ClientInputFile;
 
 @RequiredArgsConstructor
 @SuppressWarnings({"deprecation", "RedundantSuppression"})
-public class SimpleClientInputFile implements ClientInputFile {
+class SimpleClientInputFile implements ClientInputFile {
 
     private final SourceFile sourceFile;
 
@@ -33,6 +33,7 @@ public class SimpleClientInputFile implements ClientInputFile {
 
     @Nullable
     @Override
+    @SuppressWarnings("java:S2259")
     public Charset getCharset() {
         return Optional.ofNullable(sourceFile.getEncoding())
             .map(Charset::forName)

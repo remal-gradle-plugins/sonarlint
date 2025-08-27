@@ -9,7 +9,6 @@ import java.nio.file.Paths;
 import java.util.Objects;
 import lombok.SneakyThrows;
 import name.remal.gradle_plugins.sonarlint.communication.client.api.SonarLintServerRuntimeInfo;
-import name.remal.gradle_plugins.sonarlint.communication.shared.SonarLintServerParams;
 
 public class SonarLintServerMain {
 
@@ -17,7 +16,12 @@ public class SonarLintServerMain {
     public static void main(String[] args) {
         var serverParamsFile = Paths.get(args[0]);
         var serverParams = deserializeFrom(readAllBytes(serverParamsFile), SonarLintServerParams.class);
+        setupLogging(serverParams);
         startServer(serverParams);
+    }
+
+    private static void setupLogging(SonarLintServerParams serverParams) {
+        System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", serverParams.getDefaultLogLevel().toString());
     }
 
     @SneakyThrows

@@ -1,4 +1,4 @@
-package name.remal.gradle_plugins.sonarlint.internal.impl;
+package name.remal.gradle_plugins.sonarlint.communication.server;
 
 import static lombok.AccessLevel.PRIVATE;
 
@@ -7,7 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @NoArgsConstructor(access = PRIVATE)
-public class LogOutputViaSlf4j extends AbstractLogOutput {
+class LogOutputViaSlf4j extends AbstractLogOutput {
 
     public static final LogOutputViaSlf4j LOG_OUTPUT_VIA_SLF4J = new LogOutputViaSlf4j();
 
