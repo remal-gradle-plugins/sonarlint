@@ -4,9 +4,11 @@ import static java.lang.String.format;
 import static java.net.InetAddress.getLoopbackAddress;
 import static java.nio.file.Files.createTempFile;
 import static java.nio.file.Files.write;
+import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.stream.Collectors.toUnmodifiableList;
 import static lombok.AccessLevel.NONE;
+import static name.remal.gradle_plugins.sonarlint.communication.utils.RegistryFactory.connectToRegistry;
 import static name.remal.gradle_plugins.sonarlint.communication.utils.RegistryFactory.createRegistryOnAvailablePort;
 import static name.remal.gradle_plugins.toolkit.JavaSerializationUtils.serializeToBytes;
 import static name.remal.gradle_plugins.toolkit.PathUtils.tryToDeleteRecursively;
@@ -35,6 +37,9 @@ import name.remal.gradle_plugins.sonarlint.SonarLintLanguage;
 import name.remal.gradle_plugins.sonarlint.communication.client.api.SonarLintServerRuntimeInfo;
 import name.remal.gradle_plugins.sonarlint.communication.server.ImmutableSonarLintServerParams;
 import name.remal.gradle_plugins.sonarlint.communication.server.SonarLintServerMain;
+import name.remal.gradle_plugins.sonarlint.communication.server.api.SonarLintAnalyzer;
+import name.remal.gradle_plugins.sonarlint.communication.server.api.SonarLintHelp;
+import name.remal.gradle_plugins.sonarlint.communication.server.api.SonarLintLifecycle;
 import name.remal.gradle_plugins.sonarlint.communication.utils.ServerRegistryFacade;
 import name.remal.gradle_plugins.toolkit.ClosablesContainer;
 import name.remal.gradle_plugins.toolkit.UriUtils;
@@ -64,8 +69,11 @@ public class SonarLintClient {
 
     private final InetAddress loopbackAddress = getLoopbackAddress();
     private final AtomicReference<@Nullable InetSocketAddress> serverRegistrySocketAddress = new AtomicReference<>();
-    private final CountDownLatch startSignal = new CountDownLatch(1);
+    private final CountDownLatch serverStartedSignal = new CountDownLatch(1);
     private static final Duration startTimeout = Duration.ofSeconds(5);
+    private final AtomicReference<@Nullable SonarLintAnalyzer> analyzer = new AtomicReference<>();
+    private final AtomicReference<@Nullable SonarLintHelp> help = new AtomicReference<>();
+    private final AtomicReference<@Nullable SonarLintLifecycle> lifecycle = new AtomicReference<>();
 
     @SneakyThrows
     public void start() {
@@ -76,23 +84,25 @@ public class SonarLintClient {
         var serverRuntimeInfoRegistry = startServerRuntimeInfoEndpoint();
         startServer(serverRuntimeInfoRegistry);
 
-        if (!startSignal.await(startTimeout.toMillis(), MILLISECONDS)) {
+        if (!serverStartedSignal.await(startTimeout.toMillis(), MILLISECONDS)) {
             throw new SonarLintClientException(format(
                 "SonarLint server couldn't start within %s",
                 startTimeout
             ));
         }
+
+        var serverRegistry = connectToRegistry(requireNonNull(serverRegistrySocketAddress.get()));
+        analyzer.set(serverRegistry.lookup(SonarLintAnalyzer.class));
+        help.set(serverRegistry.lookup(SonarLintHelp.class));
+        lifecycle.set(serverRegistry.lookup(SonarLintLifecycle.class));
     }
 
     private ServerRegistryFacade startServerRuntimeInfoEndpoint() {
         var serverRuntimeInfo = new SonarLintServerRuntimeInfo() {
             @Override
-            public void reportServerRegistrySocketAddress(
-                InetSocketAddress socketAddress
-            ) throws RemoteException {
+            public void reportServerRegistrySocketAddress(InetSocketAddress socketAddress) throws RemoteException {
                 serverRegistrySocketAddress.set(socketAddress);
-                closeables.registerCloseable(() -> serverRegistrySocketAddress.set(null));
-                startSignal.countDown();
+                serverStartedSignal.countDown();
             }
         };
         var registry = closeables.registerCloseable(createRegistryOnAvailablePort(loopbackAddress));
@@ -154,10 +164,39 @@ public class SonarLintClient {
     }
 
 
+    public SonarLintAnalyzer getAnalyzer() {
+        var analyzer = this.analyzer.get();
+        if (analyzer == null) {
+            throw new IllegalStateException("Not started");
+        }
+        return analyzer;
+    }
+
+    public SonarLintHelp getHelp() {
+        var help = this.help.get();
+        if (help == null) {
+            throw new IllegalStateException("Not started");
+        }
+        return help;
+    }
+
+    public SonarLintLifecycle getLifecycle() {
+        var lifecycle = this.lifecycle.get();
+        if (lifecycle == null) {
+            throw new IllegalStateException("Not started");
+        }
+        return lifecycle;
+    }
+
+
     @Getter(NONE)
     private final ClosablesContainer closeables = new ClosablesContainer();
 
     public void stop() {
+        serverRegistrySocketAddress.set(null);
+        analyzer.set(null);
+        help.set(null);
+        lifecycle.set(null);
         closeables.close();
     }
 
