@@ -16,7 +16,22 @@ public class LogOutputViaSlf4j extends AbstractLogOutput {
 
     @Override
     protected void logImpl(String formattedMessage, org.slf4j.event.Level slf4jLevel) {
-        logger.atLevel(slf4jLevel).log(formattedMessage);
+        switch (slf4jLevel) {
+            case ERROR:
+                logger.error(formattedMessage);
+                break;
+            case WARN:
+                logger.warn(formattedMessage);
+                break;
+            case DEBUG:
+                logger.debug(formattedMessage);
+                break;
+            case TRACE:
+                logger.trace(formattedMessage);
+                break;
+            default:
+                logger.info(formattedMessage);
+        }
     }
 
 }
