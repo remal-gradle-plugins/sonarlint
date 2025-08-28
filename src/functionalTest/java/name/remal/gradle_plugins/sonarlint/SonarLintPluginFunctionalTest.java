@@ -180,6 +180,46 @@ class SonarLintPluginFunctionalTest {
 
 
         @Nested
+        class Fork {
+
+            @Nested
+            class Analyze {
+
+                @Test
+                void analyzeWithForkEnabled() {
+                    project.getBuildFile().line("sonarLint.fork.enabled = true");
+                    new RulePerLanguage().java();
+                }
+
+                @Test
+                void analyzeWithForkDisabled() {
+                    project.getBuildFile().line("sonarLint.fork.enabled = false");
+                    new RulePerLanguage().java();
+                }
+
+            }
+
+            @Nested
+            class Help {
+
+                @Test
+                void sonarLintPropertiesWithForkEnabled() {
+                    project.getBuildFile().line("sonarLint.fork.enabled = true");
+                    new HelpTasks().sonarLintProperties();
+                }
+
+                @Test
+                void sonarLintPropertiesWithForkDisabled() {
+                    project.getBuildFile().line("sonarLint.fork.enabled = false");
+                    new HelpTasks().sonarLintProperties();
+                }
+
+            }
+
+        }
+
+
+        @Nested
         class Logging {
 
             @Test

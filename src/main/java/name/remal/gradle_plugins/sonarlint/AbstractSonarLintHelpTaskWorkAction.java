@@ -2,10 +2,10 @@ package name.remal.gradle_plugins.sonarlint;
 
 import com.google.errorprone.annotations.ForOverride;
 import lombok.SneakyThrows;
-import name.remal.gradle_plugins.sonarlint.communication.server.ImmutableSonarLintParams;
-import name.remal.gradle_plugins.sonarlint.communication.server.SonarLintHelpDefault;
-import name.remal.gradle_plugins.sonarlint.communication.server.SonarLintSharedCode;
-import name.remal.gradle_plugins.sonarlint.communication.server.api.SonarLintHelp;
+import name.remal.gradle_plugins.sonarlint.internal.server.ImmutableSonarLintParams;
+import name.remal.gradle_plugins.sonarlint.internal.server.SonarLintHelpDefault;
+import name.remal.gradle_plugins.sonarlint.internal.server.SonarLintSharedCode;
+import name.remal.gradle_plugins.sonarlint.internal.server.api.SonarLintHelp;
 
 abstract class AbstractSonarLintHelpTaskWorkAction
     implements AbstractSonarLintTaskWorkAction<SonarLintHelpWorkActionParams> {

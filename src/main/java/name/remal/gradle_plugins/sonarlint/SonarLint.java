@@ -11,9 +11,13 @@ import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static java.util.stream.Collectors.toUnmodifiableList;
 import static name.remal.gradle_plugins.sonarlint.internal.SonarLintLanguageIncludes.getAllLanguageIncludes;
+import static name.remal.gradle_plugins.sonarlint.internal.utils.LoggingUtils.logAtLevel;
+import static name.remal.gradle_plugins.sonarlint.internal.utils.RemoteObjectUtils.exportObject;
+import static name.remal.gradle_plugins.sonarlint.internal.utils.RemoteObjectUtils.unexportObject;
 import static name.remal.gradle_plugins.toolkit.ClosureUtils.configureWith;
 import static name.remal.gradle_plugins.toolkit.FileTreeElementUtils.createFileTreeElement;
 import static name.remal.gradle_plugins.toolkit.FileUtils.normalizeFile;
+import static name.remal.gradle_plugins.toolkit.LateInit.lateInit;
 import static name.remal.gradle_plugins.toolkit.LayoutUtils.getCodeFormattingPathsFor;
 import static name.remal.gradle_plugins.toolkit.LayoutUtils.getRootDirOf;
 import static name.remal.gradle_plugins.toolkit.LazyValue.lazyValue;
@@ -32,6 +36,7 @@ import com.google.common.collect.ImmutableMap;
 import groovy.lang.Closure;
 import groovy.lang.DelegatesTo;
 import java.io.File;
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -41,10 +46,16 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.StreamSupport;
 import lombok.Getter;
+import name.remal.gradle_plugins.sonarlint.SonarLintAnalyzeWorkAction.SonarLintAnalyzerFactory;
 import name.remal.gradle_plugins.sonarlint.internal.SourceFile;
+import name.remal.gradle_plugins.sonarlint.internal.client.ImmutableSonarLintClientParams;
+import name.remal.gradle_plugins.sonarlint.internal.server.api.SonarLintLogSink;
+import name.remal.gradle_plugins.toolkit.CloseablesContainer;
 import name.remal.gradle_plugins.toolkit.EditorConfig;
+import name.remal.gradle_plugins.toolkit.LateInit;
 import name.remal.gradle_plugins.toolkit.LazyValue;
 import name.remal.gradle_plugins.toolkit.ObjectUtils;
 import name.remal.gradle_plugins.toolkit.PathIsOutOfRootPathException;
@@ -60,6 +71,7 @@ import org.gradle.api.provider.Property;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.reporting.Report;
 import org.gradle.api.reporting.Reporting;
+import org.gradle.api.services.ServiceReference;
 import org.gradle.api.specs.Spec;
 import org.gradle.api.tasks.CacheableTask;
 import org.gradle.api.tasks.IgnoreEmptyDirectories;
@@ -359,7 +371,7 @@ public abstract class SonarLint
     protected abstract Property<String> getModuleId();
 
     {
-        getModuleId().set(getProject().getProjectDir().getAbsolutePath());
+        getModuleId().value(getProject().getProjectDir().getAbsolutePath()).finalizeValueOnRead();
     }
 
     @InputFiles
@@ -373,48 +385,93 @@ public abstract class SonarLint
 
     //#endregion
 
+    @ServiceReference
+    abstract Property<SonarLintBuildService> getBuildService();
+
+    private void configureWorkActionParams(
+        @Nullable InputChanges inputChanges,
+        SonarLintAnalyzeWorkActionParams params
+    ) {
+        params.getPluginFiles().from(getPluginFiles());
+        params.getLanguagesToProcess().set(getLanguages().getLanguagesToProcess());
+
+
+        params.getRootDirectory().set(getRootDir());
+        params.getModuleId().set(getModuleId());
+
+
+        var sourceFiles = collectSourceFiles(inputChanges);
+        params.getSourceFiles().set(sourceFiles);
+
+
+        var settings = getSettings();
+
+        Map<String, @Nullable String> sonarProperties = new LinkedHashMap<>();
+        addJavaProperties(sonarProperties);
+        sonarProperties.putAll(settings.getSonarProperties().get());
+        addRuleByPathIgnoreProperties(sonarProperties);
+        sonarProperties.keySet().removeIf(Objects::isNull);
+        sonarProperties.values().removeIf(Objects::isNull);
+
+        var automaticallyDisabledRules = new LinkedHashMap<String, String>();
+        disableRulesConflictingWithLombok(automaticallyDisabledRules);
+        disableRulesFromCheckstyleConfig(automaticallyDisabledRules);
+
+        params.getSonarProperties().set(sonarProperties);
+        params.getEnabledRules().set(settings.getRules().getEnabled());
+        params.getDisabledRules().set(settings.getRules().getDisabled());
+        params.getAutomaticallyDisabledRules().set(automaticallyDisabledRules);
+        params.getRulesProperties().set(settings.getRules().getProperties());
+
+
+        params.getIsIgnoreFailures().set(getIgnoreFailures());
+        params.getWithDescription().set(settings.getLogging().getWithDescription());
+        params.getXmlReportLocation().fileProvider(getSonarLintReportFile(SonarLintReports::getXml));
+    }
 
     @TaskAction
     public final void execute(@Nullable InputChanges inputChanges) {
-        var workQueue = createWorkQueue();
-        workQueue.submit(SonarLintAnalyzeWorkAction.class, params -> {
-            params.getPluginFiles().from(getPluginFiles());
-            params.getLanguagesToProcess().set(getLanguages().getLanguagesToProcess());
+        if (getIsForkEnabled().getOrElse(false)) {
+            var workActionParams = getObjects().newInstance(SonarLintAnalyzeWorkActionParams.class);
+            configureWorkActionParams(inputChanges, workActionParams);
+
+            LateInit<InetAddress> clientBindAddress = lateInit();
+            SonarLintAnalyzerFactory analyzerFactory = (sonarLintParams, closeables) -> {
+                var forkOptions = getSettings().getFork();
+                var clientParams = ImmutableSonarLintClientParams.builder()
+                    .from(sonarLintParams)
+                    .javaExecutable(forkOptions.getJavaLauncher().get().getExecutablePath().getAsFile())
+                    .coreClasspath(getCoreClasspath())
+                    .addAllCoreClasspath(getCoreLoggingClasspath())
+                    .maxHeapSize(forkOptions.getMaxHeapSize().getOrNull())
+                    .build();
+                var buildService = getBuildService().get();
+                clientBindAddress.set(buildService.getClientBindAddress(clientParams));
+                return buildService.getAnalyzer(clientParams);
+            };
 
 
-            params.getRootDirectory().set(getRootDir());
-            params.getModuleId().set(getModuleId());
+            try (var closeables = new CloseablesContainer()) {
+                Supplier<SonarLintLogSink> logSinkSupplier = () -> {
+                    SonarLintLogSink logSink = (level, message) -> {
+                        var logger = getLogger();
+                        logAtLevel(logger, level, message);
+                    };
+                    var bindAddress = clientBindAddress.get();
+                    var logSinkStub = exportObject(logSink, bindAddress, 0);
+                    closeables.registerCloseable(() -> unexportObject(logSink));
+                    return logSinkStub;
+                };
 
+                SonarLintAnalyzeWorkAction.executeForParams(workActionParams, analyzerFactory, logSinkSupplier);
+            }
 
-            var sourceFiles = collectSourceFiles(inputChanges);
-            params.getSourceFiles().set(sourceFiles);
-
-
-            var settings = getSettings();
-
-            Map<String, @Nullable String> sonarProperties = new LinkedHashMap<>();
-            addJavaProperties(sonarProperties);
-            sonarProperties.putAll(settings.getSonarProperties().get());
-            addRuleByPathIgnoreProperties(sonarProperties);
-            sonarProperties.keySet().removeIf(Objects::isNull);
-            sonarProperties.values().removeIf(Objects::isNull);
-
-            var automaticallyDisabledRules = new LinkedHashMap<String, String>();
-            disableRulesConflictingWithLombok(automaticallyDisabledRules);
-            disableRulesFromCheckstyleConfig(automaticallyDisabledRules);
-
-            params.getSonarProperties().set(sonarProperties);
-            params.getEnabledRules().set(settings.getRules().getEnabled());
-            params.getDisabledRules().set(settings.getRules().getDisabled());
-            params.getAutomaticallyDisabledRules().set(automaticallyDisabledRules);
-            params.getRulesProperties().set(settings.getRules().getProperties());
-
-
-            params.getIsIgnoreFailures().set(getIgnoreFailures());
-            params.getWithDescription().set(settings.getLogging().getWithDescription());
-            params.getXmlReportLocation().fileProvider(getSonarLintReportFile(SonarLintReports::getXml));
-            params.getHtmlReportLocation().fileProvider(getSonarLintReportFile(SonarLintReports::getHtml));
-        });
+        } else {
+            var workQueue = createWorkQueue();
+            workQueue.submit(SonarLintAnalyzeWorkAction.class, params ->
+                configureWorkActionParams(inputChanges, params)
+            );
+        }
     }
 
     @SuppressWarnings("java:S3776")
