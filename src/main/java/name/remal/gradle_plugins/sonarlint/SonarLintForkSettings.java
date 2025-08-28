@@ -1,8 +1,7 @@
 package name.remal.gradle_plugins.sonarlint;
 
-import static name.remal.gradle_plugins.build_time_constants.api.BuildTimeConstants.getStringProperty;
 import static name.remal.gradle_plugins.sonarlint.SonarLintConstants.MIN_SUPPORTED_SONAR_RUNTIME_JAVA_VERSION;
-import static name.remal.gradle_plugins.toolkit.InTestFlags.isInTest;
+import static name.remal.gradle_plugins.toolkit.DebugUtils.isDebugEnabled;
 import static name.remal.gradle_plugins.toolkit.JavaLauncherUtils.getJavaLauncherProviderFor;
 
 import javax.inject.Inject;
@@ -20,13 +19,15 @@ public abstract class SonarLintForkSettings {
     public abstract Property<Boolean> getEnabled();
 
     {
-        boolean isEnabledByDefault = true;
+        boolean isEnabledByDefault = !isDebugEnabled();
+        /*
         if (isInTest()) {
             isEnabledByDefault = false;
         }
         if (getStringProperty("project.version").endsWith("-SNAPSHOT")) {
             isEnabledByDefault = false;
         }
+        */
         getEnabled().convention(isEnabledByDefault);
     }
 

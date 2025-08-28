@@ -3,21 +3,27 @@ package name.remal.gradle_plugins.sonarlint;
 import static java.lang.String.format;
 import static java.util.function.Predicate.not;
 import static lombok.AccessLevel.PUBLIC;
-import static name.remal.gradle_plugins.toolkit.PathUtils.tryToDeleteRecursively;
+import static name.remal.gradle_plugins.toolkit.PathUtils.tryToDeleteRecursivelyIgnoringFailure;
 import static name.remal.gradle_plugins.toolkit.VerificationExceptionUtils.newVerificationException;
 
 import java.util.LinkedHashSet;
+import java.util.function.Supplier;
 import javax.inject.Inject;
 import lombok.CustomLog;
 import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;
-import name.remal.gradle_plugins.sonarlint.communication.server.ImmutableSonarLintParams;
-import name.remal.gradle_plugins.sonarlint.communication.server.SonarLintAnalyzerDefault;
-import name.remal.gradle_plugins.sonarlint.communication.server.SonarLintSharedCode;
-import name.remal.gradle_plugins.sonarlint.communication.server.api.ImmutableSonarLintAnalyzeParams;
+import name.remal.gradle_plugins.sonarlint.internal.server.ImmutableSonarLintParams;
+import name.remal.gradle_plugins.sonarlint.internal.server.SonarLintAnalyzerDefault;
+import name.remal.gradle_plugins.sonarlint.internal.server.SonarLintParams;
+import name.remal.gradle_plugins.sonarlint.internal.server.SonarLintSharedCode;
+import name.remal.gradle_plugins.sonarlint.internal.server.api.ImmutableSonarLintAnalyzeParams;
+import name.remal.gradle_plugins.sonarlint.internal.server.api.SonarLintAnalyzer;
+import name.remal.gradle_plugins.sonarlint.internal.server.api.SonarLintLogSink;
+import name.remal.gradle_plugins.toolkit.CloseablesContainer;
 import name.remal.gradle_plugins.toolkit.issues.CheckstyleHtmlIssuesRenderer;
 import name.remal.gradle_plugins.toolkit.issues.CheckstyleXmlIssuesRenderer;
 import name.remal.gradle_plugins.toolkit.issues.TextIssuesRenderer;
+import org.jspecify.annotations.Nullable;
 
 @CustomLog
 @NoArgsConstructor(access = PUBLIC, onConstructor_ = {@Inject})
@@ -25,22 +31,37 @@ abstract class SonarLintAnalyzeWorkAction
     implements AbstractSonarLintTaskWorkAction<SonarLintAnalyzeWorkActionParams> {
 
     @Override
-    @SneakyThrows
     public void execute() {
         var params = getParameters();
+        SonarLintAnalyzerFactory analyzerFactory = (sonarLintParams, closeables) -> {
+            var shared = closeables.registerCloseable(
+                new SonarLintSharedCode(sonarLintParams)
+            );
+            return new SonarLintAnalyzerDefault(shared);
+        };
+        executeForParams(params, analyzerFactory, null);
+    }
 
+
+    @FunctionalInterface
+    public interface SonarLintAnalyzerFactory {
+        SonarLintAnalyzer getAnalyzer(SonarLintParams sonarLintParams, CloseablesContainer closeables);
+    }
+
+    @SneakyThrows
+    public static void executeForParams(
+        SonarLintAnalyzeWorkActionParams params,
+        SonarLintAnalyzerFactory analyzerFactory,
+        @Nullable Supplier<SonarLintLogSink> logSinkSupplier
+    ) {
         var xmlReportLocation = params.getXmlReportLocation().getAsFile().getOrNull();
         if (xmlReportLocation != null) {
-            if (!tryToDeleteRecursively(xmlReportLocation.toPath())) {
-                // ignore failures
-            }
+            tryToDeleteRecursivelyIgnoringFailure(xmlReportLocation.toPath());
         }
 
         var htmlReportLocation = params.getHtmlReportLocation().getAsFile().getOrNull();
         if (htmlReportLocation != null) {
-            if (!tryToDeleteRecursively(htmlReportLocation.toPath())) {
-                // ignore failures
-            }
+            tryToDeleteRecursivelyIgnoringFailure(htmlReportLocation.toPath());
         }
 
         var enabledRules = params.getEnabledRules().get();
@@ -49,24 +70,24 @@ abstract class SonarLintAnalyzeWorkAction
             .filter(not(enabledRules::contains))
             .forEach(disabledRules::add);
 
-        var sonarLintParams = ImmutableSonarLintParams.builder()
-            .pluginFiles(params.getPluginFiles())
-            .enabledPluginLanguages(params.getLanguagesToProcess().get())
-            .build();
-        try (var shared = new SonarLintSharedCode(sonarLintParams)) {
-            var service = new SonarLintAnalyzerDefault(shared);
-            var issues = service.analyze(
-                ImmutableSonarLintAnalyzeParams.builder()
-                    .repositoryRoot(params.getRootDirectory().get().getAsFile())
-                    .moduleId(params.getModuleId().get())
-                    .sourceFiles(params.getSourceFiles().get())
-                    .sonarProperties(params.getSonarProperties().get())
-                    .enabledRulesConfig(enabledRules)
-                    .disabledRulesConfig(disabledRules)
-                    .rulesPropertiesConfig(params.getRulesProperties().get())
-                    .build(),
-                null
-            );
+        try (var closeables = new CloseablesContainer()) {
+            var sonarLintParams = ImmutableSonarLintParams.builder()
+                .pluginFiles(params.getPluginFiles())
+                .build();
+            var analyzer = analyzerFactory.getAnalyzer(sonarLintParams, closeables);
+
+            var analyzeParams = ImmutableSonarLintAnalyzeParams.builder()
+                .repositoryRoot(params.getRootDirectory().get().getAsFile())
+                .moduleId(params.getModuleId().get())
+                .sourceFiles(params.getSourceFiles().get())
+                .enabledLanguages(params.getLanguagesToProcess().get())
+                .sonarProperties(params.getSonarProperties().get())
+                .enabledRulesConfig(enabledRules)
+                .disabledRulesConfig(disabledRules)
+                .rulesPropertiesConfig(params.getRulesProperties().get())
+                .build();
+            var logSink = logSinkSupplier != null ? logSinkSupplier.get() : null;
+            var issues = analyzer.analyze(analyzeParams, logSink);
 
             if (xmlReportLocation != null) {
                 new CheckstyleXmlIssuesRenderer().renderIssuesToFile(issues, xmlReportLocation);

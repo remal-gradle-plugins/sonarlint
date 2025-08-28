@@ -5,7 +5,7 @@ import static lombok.AccessLevel.PUBLIC;
 import javax.inject.Inject;
 import lombok.CustomLog;
 import lombok.NoArgsConstructor;
-import name.remal.gradle_plugins.sonarlint.communication.server.api.SonarLintHelp;
+import name.remal.gradle_plugins.sonarlint.internal.server.api.SonarLintHelp;
 
 @CustomLog
 @NoArgsConstructor(access = PUBLIC, onConstructor_ = {@Inject})
