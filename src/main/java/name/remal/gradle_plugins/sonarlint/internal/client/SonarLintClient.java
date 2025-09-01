@@ -31,7 +31,6 @@ import java.rmi.RemoteException;
 import java.security.CodeSource;
 import java.security.ProtectionDomain;
 import java.time.Duration;
-import java.time.Instant;
 import java.time.LocalTime;
 import java.util.Collection;
 import java.util.List;
@@ -83,7 +82,7 @@ public class SonarLintClient
     private void changeState(SonarLintClientState state) {
         logAtLevel(logger, logLevel, format(
             "%s: Changing state to %s from %s",
-            Instant.now(),
+            LocalTime.now(),
             state,
             this.state
         ));
@@ -129,7 +128,7 @@ public class SonarLintClient
             try {
                 throw new SonarLintClientException(format(
                     "SonarLint server couldn't start within %s."
-                        + " Local time: %s"
+                        + " Local time: %s."
                         + " Server output:%n%s",
                     startTimeout,
                     LocalTime.now(),
@@ -153,7 +152,7 @@ public class SonarLintClient
                     try {
                         throw new SonarLintClientException(format(
                             "An exception occurred while calling for an RMI stub of %s."
-                                + " Local time: %s"
+                                + " Local time: %s."
                                 + " Server output:%n%s",
                             interfaceClass,
                             LocalTime.now(),
@@ -219,7 +218,7 @@ public class SonarLintClient
             try {
                 throw new SonarLintClientException(format(
                     "SonarLint server couldn't start within %s."
-                        + " Local time: %s"
+                        + " Local time: %s."
                         + " Server output:%n%s",
                     startTimeout,
                     LocalTime.now(),

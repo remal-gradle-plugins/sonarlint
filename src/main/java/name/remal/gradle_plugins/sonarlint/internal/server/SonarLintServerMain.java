@@ -66,6 +66,8 @@ public class SonarLintServerMain {
 
     @SneakyThrows
     private static void startServer(SonarLintServerParams serverParams) {
+        var logger = LoggerFactory.getLogger(SonarLintServerMain.class);
+
         var serverRuntimeInfo = connectToRegistry(
             SonarLintClient.class.getSimpleName(),
             serverParams.getServerRuntimeInfoSocketAddress()
@@ -73,19 +75,24 @@ public class SonarLintServerMain {
             .lookup(SonarLintServerRuntimeInfo.class);
 
         try (var server = new SonarLintServer(serverParams)) {
+            logger.info("Starting {}", SonarLintServer.class.getSimpleName());
             server.start();
+
 
             monitorParentProcessExit(serverParams, server::close);
 
-            LoggerFactory.getLogger(SonarLintServerMain.class).info(
+            logger.info(
                 "Reporting {} RMI registry socket address back to the client: {}",
                 SonarLintServer.class.getSimpleName(),
                 server.getSocketAddress()
             );
             serverRuntimeInfo.reportServerRegistrySocketAddress(server.getSocketAddress());
 
+            logger.info("Join {}", SonarLintServer.class.getSimpleName());
             server.join();
         }
+
+        logger.info("Exiting");
     }
 
     private static void monitorParentProcessExit(SonarLintServerParams serverParams, Runnable onExit) {

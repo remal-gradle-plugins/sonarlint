@@ -6,6 +6,7 @@ import static name.remal.gradle_plugins.sonarlint.internal.server.SonarLintServe
 import static name.remal.gradle_plugins.sonarlint.internal.utils.RegistryFactory.createRegistryOnAvailablePort;
 
 import java.net.InetSocketAddress;
+import java.time.LocalTime;
 import java.util.concurrent.Phaser;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
@@ -19,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @RequiredArgsConstructor
+@SuppressWarnings("JavaTimeDefaultTimeZone")
 public class SonarLintServer
     extends AbstractCloseablesContainer
     implements AutoCloseable {
@@ -32,7 +34,7 @@ public class SonarLintServer
     private volatile SonarLintServerState state = SERVER_CREATED;
 
     private void changeState(SonarLintServerState state) {
-        logger.debug("Changing state to {} from {}", state, this.state);
+        logger.debug("{}: Changing state to {} from {}", LocalTime.now(), state, this.state);
         this.state = state;
     }
 
