@@ -32,6 +32,7 @@ import java.security.CodeSource;
 import java.security.ProtectionDomain;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -126,8 +127,11 @@ public class SonarLintClient
         } catch (Exception e) {
             try {
                 throw new SonarLintClientException(format(
-                    "SonarLint server couldn't start within %s. Server output:%n%s",
+                    "SonarLint server couldn't start within %s."
+                        + " Local time: %s"
+                        + " Server output:%n%s",
                     startTimeout,
+                    LocalTime.now(),
                     state.getServerProcess().readOutput()
                 ));
             } finally {
@@ -147,9 +151,11 @@ public class SonarLintClient
                 ) {
                     try {
                         throw new SonarLintClientException(format(
-                            "An exception occurred while calling for an RIM stub of %s"
+                            "An exception occurred while calling for an RMI stub of %s."
+                                + " Local time: %s"
                                 + " Server output:%n%s",
                             interfaceClass,
+                            LocalTime.now(),
                             state.getServerProcess().readOutput()
                         ));
                     } finally {
@@ -173,6 +179,7 @@ public class SonarLintClient
 
 
     @SneakyThrows
+    @SuppressWarnings("java:S2259")
     private synchronized void start() {
         if (state instanceof Created) {
             // proceed to the logic
@@ -210,8 +217,11 @@ public class SonarLintClient
         if (!startingState.getStartedSignal().await(startTimeout.toMillis(), MILLISECONDS)) {
             try {
                 throw new SonarLintClientException(format(
-                    "SonarLint server couldn't start within %s. Server output:%n%s",
+                    "SonarLint server couldn't start within %s."
+                        + " Local time: %s"
+                        + " Server output:%n%s",
                     startTimeout,
+                    LocalTime.now(),
                     serverProcess.readOutput()
                 ));
             } finally {
@@ -220,6 +230,7 @@ public class SonarLintClient
         }
     }
 
+    @SuppressWarnings("java:S2259")
     private void processServerRegistrySocketAddress(InetSocketAddress socketAddress) {
         if (state instanceof Starting) {
             // proceed to the logic

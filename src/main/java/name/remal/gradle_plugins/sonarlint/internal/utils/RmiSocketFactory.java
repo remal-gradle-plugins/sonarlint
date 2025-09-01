@@ -26,14 +26,16 @@ class RmiSocketFactory implements RMIClientSocketFactory, RMIServerSocketFactory
 
     @Override
     public Socket createSocket(String host, int port) throws IOException {
-        lastUsedPort = port;
-        return new Socket(getBindAddr(), port);
+        var clientSocket = new Socket(getBindAddr(), port);
+        lastUsedPort = clientSocket.getPort();
+        return clientSocket;
     }
 
     @Override
     public ServerSocket createServerSocket(int port) throws IOException {
-        lastUsedPort = port;
-        return new ServerSocket(port, 0, getBindAddr());
+        var serverSocket = new ServerSocket(port, 0, getBindAddr());
+        lastUsedPort = serverSocket.getLocalPort();
+        return serverSocket;
     }
 
 }
