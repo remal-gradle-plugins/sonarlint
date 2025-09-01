@@ -69,7 +69,6 @@ dependencies {
 }
 
 buildTimeConstants.properties([
-    'java-runtime.min-version': provider { project.property('java-runtime.min-version')?.toString() ?: '' },
     'gradle-api.min-version': provider { project.property('gradle-api.min-version')?.toString() ?: '' },
 ])
 
@@ -336,6 +335,13 @@ Property<String> sonarCoreSlf4jVersion = objects.property(String).value(provider
         .find { "${it.moduleGroup}:${it.moduleName}" == 'org.slf4j:slf4j-api' }
         ?.moduleVersion
 }).with { it.finalizeValueOnRead(); it }
+
+; [
+    'org.slf4j:slf4j-simple',
+    'org.slf4j:jul-to-slf4j',
+].forEach { notation ->
+    configurations.compileOnly.dependencies.addLater(provider { dependencies.create("$notation:${sonarCoreSlf4jVersion.get()}") })
+}
 
 generateSources.forMainSourceSet.java { Task task ->
     inputs.files(allSonarArtifactsConf).withPropertyName(allSonarArtifactsConf.name).optional(false)

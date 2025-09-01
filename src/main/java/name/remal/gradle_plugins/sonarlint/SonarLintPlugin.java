@@ -89,6 +89,10 @@ public abstract class SonarLintPlugin implements Plugin<Project> {
                     "org.slf4j:slf4j-simple:%s",
                     SONARLINT_CORE_SLF4J_VERSION
                 )));
+                deps.add(getDependencies().create(format(
+                    "org.slf4j:jul-to-slf4j:%s",
+                    SONARLINT_CORE_SLF4J_VERSION
+                )));
 
                 var springVersion = coreConf.get()
                     .getResolvedConfiguration()
