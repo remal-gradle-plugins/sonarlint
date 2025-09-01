@@ -90,9 +90,9 @@ public class SonarLintServerMain {
 
             logger.info("Join {}", SonarLintServer.class.getSimpleName());
             server.join();
-        }
 
-        logger.info("Exiting");
+            logger.warn("Exiting");
+        }
     }
 
     private static void monitorParentProcessExit(SonarLintServerParams serverParams, Runnable onExit) {

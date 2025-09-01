@@ -60,11 +60,11 @@ public abstract class LoggingUtils {
     public static <T> T withLoggedCalls(Class<T> interfaceClass, T object) {
         return withWrappedCalls(interfaceClass, object, realMethod -> {
             var logger = LoggerFactory.getLogger(interfaceClass);
-            logger.debug("Calling {}", realMethod);
+            logger.warn("Calling {}", realMethod);
 
             try {
                 var result = realMethod.call();
-                logger.debug("Successfully called {}", realMethod);
+                logger.warn("Successfully called {}", realMethod);
                 return result;
 
             } catch (Throwable exception) {
