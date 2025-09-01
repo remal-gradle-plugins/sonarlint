@@ -339,7 +339,7 @@ public class SonarLintClient
                 .map(className -> {
                     try {
                         return Class.forName(className);
-                    } catch (ClassNotFoundException e) {
+                    } catch (ClassNotFoundException ignored) {
                         return null;
                     }
                 })
