@@ -35,7 +35,9 @@ import java.time.Duration;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Stream;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
@@ -51,6 +53,7 @@ import name.remal.gradle_plugins.sonarlint.internal.server.api.SonarLintHelp;
 import name.remal.gradle_plugins.sonarlint.internal.utils.ServerRegistryFacade;
 import name.remal.gradle_plugins.toolkit.AbstractCloseablesContainer;
 import name.remal.gradle_plugins.toolkit.UriUtils;
+import name.remal.gradle_plugins.toolkit.reflection.ReflectionUtils;
 import org.gradle.util.GradleVersion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -328,8 +331,14 @@ public class SonarLintClient
                 throw new AssertionError("Remove this code, as we are no longer support Gradle 8.0");
             }
 
-            var instrumentedClass = Class.forName("org.gradle.internal.classpath.Instrumented");
-            classpath.add(getClassJarFile(instrumentedClass));
+            Stream.of(
+                    "org.gradle.internal.classpath.Instrumented",
+                    "org.codehaus.groovy.runtime.callsite.CallSite"
+                )
+                .map(ReflectionUtils::tryLoadClass)
+                .filter(Objects::nonNull)
+                .map(SonarLintClient::getClassJarFile)
+                .forEach(classpath::add);
         }
 
         return classpath;
