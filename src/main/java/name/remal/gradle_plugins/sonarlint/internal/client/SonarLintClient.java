@@ -58,6 +58,7 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
 
 @RequiredArgsConstructor
+@SuppressWarnings("JavaTimeDefaultTimeZone")
 public class SonarLintClient
     extends AbstractCloseablesContainer
     implements AutoCloseable {
