@@ -14,13 +14,11 @@ import static name.remal.gradle_plugins.sonarlint.internal.utils.RegistryFactory
 import static name.remal.gradle_plugins.sonarlint.internal.utils.RegistryFactory.createRegistryOnAvailablePort;
 import static name.remal.gradle_plugins.sonarlint.internal.utils.SimpleLoggingEventBuilder.newLoggingEvent;
 import static name.remal.gradle_plugins.toolkit.DebugUtils.isDebugEnabled;
-import static name.remal.gradle_plugins.toolkit.InTestFlags.isInTest;
 import static name.remal.gradle_plugins.toolkit.JavaSerializationUtils.serializeToBytes;
 import static name.remal.gradle_plugins.toolkit.LazyProxy.asLazyProxy;
 import static name.remal.gradle_plugins.toolkit.PathUtils.tryToDeleteRecursivelyIgnoringFailure;
 import static name.remal.gradle_plugins.toolkit.ThrowableUtils.unwrapException;
 import static org.slf4j.event.Level.DEBUG;
-import static org.slf4j.event.Level.WARN;
 
 import java.io.File;
 import java.net.InetAddress;
@@ -80,9 +78,8 @@ public class SonarLintClient
     private volatile SonarLintClientState state = CLIENT_CREATED;
 
     private void changeState(SonarLintClientState state) {
-        newLoggingEvent(DEBUG, isInTest() ? WARN : null).message(
-            "%s: Changing state to %s from %s",
-            LocalTime.now(),
+        newLoggingEvent(DEBUG).message(
+            "Changing state to %s from %s",
             state,
             this.state
         ).log(logger);
@@ -247,7 +244,7 @@ public class SonarLintClient
             ));
         }
 
-        newLoggingEvent(DEBUG, isInTest() ? WARN : null).message(
+        newLoggingEvent(DEBUG).message(
             "Reported server socket address: %s",
             socketAddress
         ).log(logger);

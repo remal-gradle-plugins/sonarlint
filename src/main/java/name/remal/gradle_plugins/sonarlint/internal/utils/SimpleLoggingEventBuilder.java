@@ -17,8 +17,18 @@ import org.slf4j.event.Level;
 @NoArgsConstructor(access = PRIVATE)
 public class SimpleLoggingEventBuilder {
 
+    private static final boolean REWRITE_LOGGING_LEVEL_FOR_TESTS = false;
+    private static final Level MIN_LOGGING_LEVEL_FOR_TESTS = Level.WARN;
+
+
     @CheckReturnValue
     public static MessageBuilder newLoggingEvent(Level level) {
+        if (REWRITE_LOGGING_LEVEL_FOR_TESTS
+            && MIN_LOGGING_LEVEL_FOR_TESTS.toInt() > level.toInt()
+        ) {
+            level = MIN_LOGGING_LEVEL_FOR_TESTS;
+        }
+
         return new Impl(level);
     }
 

@@ -4,9 +4,10 @@ import static java.lang.String.format;
 import static name.remal.gradle_plugins.sonarlint.internal.server.SonarLintServerState.Created.SERVER_CREATED;
 import static name.remal.gradle_plugins.sonarlint.internal.server.SonarLintServerState.Stopped.SERVER_STOPPED;
 import static name.remal.gradle_plugins.sonarlint.internal.utils.RegistryFactory.createRegistryOnAvailablePort;
+import static name.remal.gradle_plugins.sonarlint.internal.utils.SimpleLoggingEventBuilder.newLoggingEvent;
+import static org.slf4j.event.Level.DEBUG;
 
 import java.net.InetSocketAddress;
-import java.time.LocalTime;
 import java.util.concurrent.Phaser;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
@@ -34,7 +35,11 @@ public class SonarLintServer
     private volatile SonarLintServerState state = SERVER_CREATED;
 
     private void changeState(SonarLintServerState state) {
-        logger.debug("{}: Changing state to {} from {}", LocalTime.now(), state, this.state);
+        newLoggingEvent(DEBUG).message(
+            "Changing state to %s from %s",
+            state,
+            this.state
+        ).log(logger);
         this.state = state;
     }
 

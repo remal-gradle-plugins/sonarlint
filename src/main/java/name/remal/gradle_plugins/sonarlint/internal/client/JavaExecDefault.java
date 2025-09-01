@@ -14,8 +14,12 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import lombok.SneakyThrows;
 import lombok.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class JavaExecDefault implements JavaExec {
+
+    private static final Logger logger = LoggerFactory.getLogger(JavaExecDefault.class);
 
     @Override
     @SneakyThrows
@@ -78,6 +82,8 @@ public class JavaExecDefault implements JavaExec {
                 processBuilder.environment().put(envName, value);
             }
         });
+
+        processBuilder.environment().forEach((key, value) -> logger.warn("env: {}={}", key, value));
 
         var process = processBuilder.start();
 
