@@ -35,6 +35,12 @@ public class SonarLintServerMain {
 
     private static void setupLogging(SonarLintServerParams serverParams) {
         System.setProperty(
+            "sun.rmi.dgc.logLevel",
+            "trace"
+        );
+
+
+        System.setProperty(
             "org.slf4j.simpleLogger.defaultLogLevel",
             serverParams.getDefaultLogLevel().name()
         );
@@ -53,6 +59,7 @@ public class SonarLintServerMain {
             ),
             serverParams.getDefaultLogLevel().name()
         );
+
 
         System.setProperty(
             "org.slf4j.simpleLogger.showDateTime",
