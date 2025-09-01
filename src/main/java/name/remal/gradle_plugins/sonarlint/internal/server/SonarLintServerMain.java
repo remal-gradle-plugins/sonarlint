@@ -89,10 +89,8 @@ public class SonarLintServerMain {
         invokeStaticMethod(
             System.class,
             "setProperty",
-            String.class,
-            name,
-            String.class,
-            stringValue
+            String.class, name,
+            String.class, stringValue
         );
     }
 
