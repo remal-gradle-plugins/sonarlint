@@ -16,6 +16,7 @@ import name.remal.gradle_plugins.sonarlint.SonarLintPlugin;
 import name.remal.gradle_plugins.sonarlint.internal.client.SonarLintClient;
 import name.remal.gradle_plugins.sonarlint.internal.client.api.SonarLintServerRuntimeInfo;
 import org.slf4j.LoggerFactory;
+import org.slf4j.bridge.SLF4JBridgeHandler;
 import org.slf4j.event.Level;
 
 public class SonarLintServerMain {
@@ -34,8 +35,19 @@ public class SonarLintServerMain {
     }
 
     private static void setupLogging(SonarLintServerParams serverParams) {
+        SLF4JBridgeHandler.removeHandlersForRootLogger();
+        SLF4JBridgeHandler.install();
+
+
         System.setProperty(
             "sun.rmi.dgc.logLevel",
+            "trace"
+        );
+        System.setProperty(
+            format(
+                "org.slf4j.simpleLogger.log.%s",
+                "sun.rmi"
+            ),
             "trace"
         );
 
