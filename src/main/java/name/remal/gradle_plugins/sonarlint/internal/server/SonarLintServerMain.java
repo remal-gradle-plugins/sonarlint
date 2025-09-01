@@ -88,7 +88,7 @@ public class SonarLintServerMain {
             );
             serverRuntimeInfo.reportServerRegistrySocketAddress(server.getSocketAddress());
 
-            logger.info("Join {}", SonarLintServer.class.getSimpleName());
+            logger.info("{} - join", SonarLintServer.class.getSimpleName());
             server.join();
 
             logger.warn("Exiting");
