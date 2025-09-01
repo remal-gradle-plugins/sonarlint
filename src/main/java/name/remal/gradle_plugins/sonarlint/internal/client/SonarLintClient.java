@@ -53,7 +53,6 @@ import name.remal.gradle_plugins.sonarlint.internal.server.api.SonarLintHelp;
 import name.remal.gradle_plugins.sonarlint.internal.utils.ServerRegistryFacade;
 import name.remal.gradle_plugins.toolkit.AbstractCloseablesContainer;
 import name.remal.gradle_plugins.toolkit.UriUtils;
-import name.remal.gradle_plugins.toolkit.reflection.ReflectionUtils;
 import org.gradle.util.GradleVersion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -328,14 +327,20 @@ public class SonarLintClient
             var minSupportedVersion = GradleVersion.version(getStringProperty("gradle-api.min-version"));
             var requiredVersion = GradleVersion.version("8.1");
             if (minSupportedVersion.compareTo(requiredVersion) >= 0) {
-                throw new AssertionError("Remove this code, as we are no longer support Gradle 8.0");
+                throw new AssertionError("Remove this code, as Gradle <=8.0 is no longer supported");
             }
 
             Stream.of(
                     "org.gradle.internal.classpath.Instrumented",
                     "org.codehaus.groovy.runtime.callsite.CallSite"
                 )
-                .map(ReflectionUtils::tryLoadClass)
+                .map(className -> {
+                    try {
+                        return Class.forName(className);
+                    } catch (ClassNotFoundException e) {
+                        return null;
+                    }
+                })
                 .filter(Objects::nonNull)
                 .map(SonarLintClient::getClassJarFile)
                 .forEach(classpath::add);
