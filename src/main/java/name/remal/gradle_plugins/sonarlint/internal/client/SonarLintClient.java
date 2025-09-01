@@ -142,7 +142,9 @@ public class SonarLintClient
             } catch (Throwable exception) {
                 exception = unwrapException(exception);
 
-                if (exception instanceof NotBoundException) {
+                if (exception instanceof RemoteException
+                    || exception instanceof NotBoundException
+                ) {
                     try {
                         throw new SonarLintClientException(format(
                             "An exception occurred while calling for an RIM stub of %s"
