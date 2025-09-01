@@ -6,7 +6,9 @@ import static lombok.AccessLevel.PUBLIC;
 import static name.remal.gradle_plugins.toolkit.PathUtils.tryToDeleteRecursivelyIgnoringFailure;
 import static name.remal.gradle_plugins.toolkit.VerificationExceptionUtils.newVerificationException;
 
+import java.util.Collection;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.function.Supplier;
 import javax.inject.Inject;
 import lombok.CustomLog;
@@ -22,6 +24,7 @@ import name.remal.gradle_plugins.sonarlint.internal.server.api.SonarLintLogSink;
 import name.remal.gradle_plugins.toolkit.CloseablesContainer;
 import name.remal.gradle_plugins.toolkit.issues.CheckstyleHtmlIssuesRenderer;
 import name.remal.gradle_plugins.toolkit.issues.CheckstyleXmlIssuesRenderer;
+import name.remal.gradle_plugins.toolkit.issues.Issue;
 import name.remal.gradle_plugins.toolkit.issues.TextIssuesRenderer;
 import org.jspecify.annotations.Nullable;
 
@@ -70,46 +73,53 @@ abstract class SonarLintAnalyzeWorkAction
             .filter(not(enabledRules::contains))
             .forEach(disabledRules::add);
 
-        try (var closeables = new CloseablesContainer()) {
-            var sonarLintParams = ImmutableSonarLintParams.builder()
-                .pluginFiles(params.getPluginFiles())
-                .build();
-            var analyzer = analyzerFactory.getAnalyzer(sonarLintParams, closeables);
+        final Collection<Issue> issues;
+        var sourceFiles = params.getSourceFiles().get();
+        if (sourceFiles.isEmpty()) {
+            issues = List.of();
 
-            var analyzeParams = ImmutableSonarLintAnalyzeParams.builder()
-                .repositoryRoot(params.getRootDirectory().get().getAsFile())
-                .moduleId(params.getModuleId().get())
-                .sourceFiles(params.getSourceFiles().get())
-                .enabledLanguages(params.getLanguagesToProcess().get())
-                .sonarProperties(params.getSonarProperties().get())
-                .enabledRulesConfig(enabledRules)
-                .disabledRulesConfig(disabledRules)
-                .rulesPropertiesConfig(params.getRulesProperties().get())
-                .build();
-            var logSink = logSinkSupplier != null ? logSinkSupplier.get() : null;
-            var issues = analyzer.analyze(analyzeParams, logSink);
+        } else {
+            try (var closeables = new CloseablesContainer()) {
+                var sonarLintParams = ImmutableSonarLintParams.builder()
+                    .pluginFiles(params.getPluginFiles())
+                    .build();
+                var analyzer = analyzerFactory.getAnalyzer(sonarLintParams, closeables);
 
-            if (xmlReportLocation != null) {
-                new CheckstyleXmlIssuesRenderer().renderIssuesToFile(issues, xmlReportLocation);
+                var analyzeParams = ImmutableSonarLintAnalyzeParams.builder()
+                    .repositoryRoot(params.getRootDirectory().get().getAsFile())
+                    .moduleId(params.getModuleId().get())
+                    .sourceFiles(sourceFiles)
+                    .enabledLanguages(params.getLanguagesToProcess().get())
+                    .sonarProperties(params.getSonarProperties().get())
+                    .enabledRulesConfig(enabledRules)
+                    .disabledRulesConfig(disabledRules)
+                    .rulesPropertiesConfig(params.getRulesProperties().get())
+                    .build();
+                var logSink = logSinkSupplier != null ? logSinkSupplier.get() : null;
+                issues = analyzer.analyze(analyzeParams, logSink);
             }
+        }
 
-            if (htmlReportLocation != null) {
-                new CheckstyleHtmlIssuesRenderer("SonarLint").renderIssuesToFile(issues, htmlReportLocation);
-            }
+        if (xmlReportLocation != null) {
+            new CheckstyleXmlIssuesRenderer().renderIssuesToFile(issues, xmlReportLocation);
+        }
 
-            if (!issues.isEmpty()) {
-                logger.error(
-                    new TextIssuesRenderer()
-                        .withDescription(params.getWithDescription().getOrElse(true))
-                        .renderIssues(issues)
-                );
+        if (htmlReportLocation != null) {
+            new CheckstyleHtmlIssuesRenderer("SonarLint").renderIssuesToFile(issues, htmlReportLocation);
+        }
 
-                if (!params.getIsIgnoreFailures().get()) {
-                    throw newVerificationException(format(
-                        "SonarLint analysis failed with %d issues",
-                        issues.size()
-                    ));
-                }
+        if (!issues.isEmpty()) {
+            logger.error(
+                new TextIssuesRenderer()
+                    .withDescription(params.getWithDescription().getOrElse(true))
+                    .renderIssues(issues)
+            );
+
+            if (!params.getIsIgnoreFailures().get()) {
+                throw newVerificationException(format(
+                    "SonarLint analysis failed with %d issues",
+                    issues.size()
+                ));
             }
         }
     }

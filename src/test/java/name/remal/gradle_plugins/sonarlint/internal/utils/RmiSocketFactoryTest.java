@@ -3,6 +3,7 @@ package name.remal.gradle_plugins.sonarlint.internal.utils;
 import static name.remal.gradle_plugins.toolkit.JavaSerializationUtils.deserializeFrom;
 import static name.remal.gradle_plugins.toolkit.JavaSerializationUtils.serializeToBytes;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.net.InetAddress;
 import org.junit.jupiter.api.Test;
@@ -18,6 +19,7 @@ class RmiSocketFactoryTest {
         var deserialized = deserializeFrom(bytes, RmiSocketFactory.class);
 
         assertEquals(socketFactory.getBindAddr(), deserialized.getBindAddr());
+        assertNull(deserialized.getLastUsedPort());
     }
 
 }

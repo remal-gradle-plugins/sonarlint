@@ -1,15 +1,14 @@
-package name.remal.gradle_plugins.sonarlint.internal.utils;
+package name.remal.gradle_plugins.sonarlint.internal.server;
 
-import static java.lang.reflect.Proxy.newProxyInstance;
+import static name.remal.gradle_plugins.sonarlint.internal.utils.AopUtils.withWrappedCalls;
 
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import name.remal.gradle_plugins.toolkit.ProxyInvocationHandler;
 import org.jetbrains.annotations.Unmodifiable;
 
-public class UsedThreads {
+class UsedThreads {
 
     private final Map<Thread, Integer> usedThreadsCounter = new ConcurrentHashMap<>();
 
@@ -30,26 +29,15 @@ public class UsedThreads {
 
 
     public <T> T withRegisterThreadEveryCall(Class<T> interfaceClass, T object) {
-        var invocationHandler = new ProxyInvocationHandler();
-        invocationHandler.add(
-            method -> method.getDeclaringClass() != Object.class,
-            (proxy, method, args) -> {
-                var thread = Thread.currentThread();
-                registerThread(thread);
-                try {
-                    return method.invoke(object, args);
-                } finally {
-                    unregisterThread(thread);
-                }
+        return withWrappedCalls(interfaceClass, object, realMethod -> {
+            var thread = Thread.currentThread();
+            registerThread(thread);
+            try {
+                return realMethod.call();
+            } finally {
+                unregisterThread(thread);
             }
-        );
-        return interfaceClass.cast(
-            newProxyInstance(
-                interfaceClass.getClassLoader(),
-                new Class<?>[]{interfaceClass},
-                invocationHandler
-            )
-        );
+        });
     }
 
 }

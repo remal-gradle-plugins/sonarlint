@@ -4,6 +4,7 @@ import static java.lang.String.format;
 import static java.nio.file.Files.createTempFile;
 import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.joining;
+import static name.remal.gradle_plugins.sonarlint.internal.utils.ForkUtils.getEnvironmentVariablesToPropagateToForkedProcess;
 import static name.remal.gradle_plugins.sonarlint.internal.utils.ForkUtils.getSystemsPropertiesToPropagateToForkedProcess;
 import static name.remal.gradle_plugins.toolkit.JacocoJvmArg.parseJacocoJvmArgFromCurrentJvmArgs;
 
@@ -19,7 +20,7 @@ public class JavaExecDefault implements JavaExec {
     @Override
     @SneakyThrows
     @SuppressWarnings("java:S5443")
-    public JavaExecResult execute(JavaExecParams params) {
+    public JavaExecProcess execute(JavaExecParams params) {
         var command = new ArrayList<String>();
         command.add(params.getExecutable().getAbsolutePath());
 
@@ -64,17 +65,27 @@ public class JavaExecDefault implements JavaExec {
 
         command.addAll(params.getArguments());
 
-        var outputFile = createTempFile(getClass().getSimpleName() + "-", ".log").toFile();
-        var process = new ProcessBuilder(command)
-            .redirectOutput(Redirect.appendTo(outputFile))
-            .redirectErrorStream(true)
-            .start();
 
-        return new JavaExecResultDefault(process, outputFile.toPath());
+        var processBuilder = new ProcessBuilder(command)
+            .redirectErrorStream(true);
+
+        var outputFile = createTempFile(getClass().getSimpleName() + "-", ".log").toFile();
+        processBuilder.redirectOutput(Redirect.appendTo(outputFile));
+
+        getEnvironmentVariablesToPropagateToForkedProcess().forEach(envName -> {
+            var value = System.getenv(envName);
+            if (value != null) {
+                processBuilder.environment().put(envName, value);
+            }
+        });
+
+        var process = processBuilder.start();
+
+        return new JavaExecProcessDefault(process, outputFile.toPath());
     }
 
     @Value
-    private static class JavaExecResultDefault implements JavaExecResult {
+    private static class JavaExecProcessDefault implements JavaExecProcess {
         Process process;
         Path outputFile;
     }

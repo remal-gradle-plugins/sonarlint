@@ -1,13 +1,12 @@
 package name.remal.gradle_plugins.sonarlint.internal.utils;
 
 import static java.lang.management.ManagementFactory.getPlatformMBeanServer;
-import static java.lang.reflect.Proxy.newProxyInstance;
 import static lombok.AccessLevel.PRIVATE;
+import static name.remal.gradle_plugins.sonarlint.internal.utils.AopUtils.withWrappedCalls;
 
 import javax.management.ObjectName;
 import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;
-import name.remal.gradle_plugins.toolkit.ProxyInvocationHandler;
 
 @NoArgsConstructor(access = PRIVATE)
 public abstract class JacocoUtils {
@@ -27,24 +26,13 @@ public abstract class JacocoUtils {
     }
 
     public static <T> T withDumpJacocoDataOnEveryCall(Class<T> interfaceClass, T object) {
-        var invocationHandler = new ProxyInvocationHandler();
-        invocationHandler.add(
-            method -> method.getDeclaringClass() != Object.class,
-            (proxy, method, args) -> {
-                try {
-                    return method.invoke(object, args);
-                } finally {
-                    dumpJacocoData();
-                }
+        return withWrappedCalls(interfaceClass, object, realMethod -> {
+            try {
+                return realMethod.call();
+            } finally {
+                dumpJacocoData();
             }
-        );
-        return interfaceClass.cast(
-            newProxyInstance(
-                interfaceClass.getClassLoader(),
-                new Class<?>[]{interfaceClass},
-                invocationHandler
-            )
-        );
+        });
     }
 
 }

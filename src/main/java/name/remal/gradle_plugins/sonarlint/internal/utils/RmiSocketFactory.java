@@ -12,6 +12,7 @@ import java.rmi.server.RMIServerSocketFactory;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
+import org.jspecify.annotations.Nullable;
 
 @RequiredArgsConstructor
 @Getter
@@ -20,13 +21,18 @@ class RmiSocketFactory implements RMIClientSocketFactory, RMIServerSocketFactory
 
     private final InetAddress bindAddr;
 
+    @Nullable
+    private transient volatile Integer lastUsedPort;
+
     @Override
     public Socket createSocket(String host, int port) throws IOException {
+        lastUsedPort = port;
         return new Socket(getBindAddr(), port);
     }
 
     @Override
     public ServerSocket createServerSocket(int port) throws IOException {
+        lastUsedPort = port;
         return new ServerSocket(port, 0, getBindAddr());
     }
 

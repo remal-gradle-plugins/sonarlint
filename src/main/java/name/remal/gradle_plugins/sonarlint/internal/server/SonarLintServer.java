@@ -1,55 +1,85 @@
 package name.remal.gradle_plugins.sonarlint.internal.server;
 
-import static lombok.AccessLevel.PRIVATE;
+import static java.lang.String.format;
+import static name.remal.gradle_plugins.sonarlint.internal.server.SonarLintServerState.Created.SERVER_CREATED;
+import static name.remal.gradle_plugins.sonarlint.internal.server.SonarLintServerState.Stopped.SERVER_STOPPED;
 import static name.remal.gradle_plugins.sonarlint.internal.utils.RegistryFactory.createRegistryOnAvailablePort;
 
 import java.net.InetSocketAddress;
 import java.util.concurrent.Phaser;
-import java.util.concurrent.atomic.AtomicReference;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
-import lombok.experimental.SuperBuilder;
+import name.remal.gradle_plugins.sonarlint.internal.server.SonarLintServerState.Created;
+import name.remal.gradle_plugins.sonarlint.internal.server.SonarLintServerState.Started;
+import name.remal.gradle_plugins.sonarlint.internal.server.SonarLintServerState.Stopped;
 import name.remal.gradle_plugins.sonarlint.internal.server.api.SonarLintAnalyzer;
 import name.remal.gradle_plugins.sonarlint.internal.server.api.SonarLintHelp;
-import name.remal.gradle_plugins.sonarlint.internal.server.api.SonarLintLifecycle;
-import name.remal.gradle_plugins.sonarlint.internal.utils.UsedThreads;
-import name.remal.gradle_plugins.toolkit.CloseablesContainer;
-import org.jspecify.annotations.Nullable;
+import name.remal.gradle_plugins.toolkit.AbstractCloseablesContainer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-@SuperBuilder
-@RequiredArgsConstructor(access = PRIVATE)
-public class SonarLintServer implements SonarLintLifecycleDelegate {
+@RequiredArgsConstructor
+public class SonarLintServer
+    extends AbstractCloseablesContainer
+    implements AutoCloseable {
+
+    private static final Logger logger = LoggerFactory.getLogger(SonarLintServer.class);
+
 
     private final SonarLintServerParams params;
 
 
-    private final AtomicReference<@Nullable InetSocketAddress> socketAddress = new AtomicReference<>();
-    private final CloseablesContainer closeables = new CloseablesContainer();
+    private volatile SonarLintServerState state = SERVER_CREATED;
+
+    private void changeState(SonarLintServerState state) {
+        logger.debug("Changing state to {} from {}", state, this.state);
+        this.state = state;
+    }
+
+
     private final Phaser stopPhaser = new Phaser(1);
 
 
     @SneakyThrows
     public synchronized void start() {
-        if (socketAddress.get() == null) {
-            stop();
+        if (state instanceof Created) {
+            // proceed to the logic
+        } else if (state instanceof Started) {
+            return; // already started
+        } else if (state instanceof Stopped) {
+            throw new IllegalStateException(format(
+                "%s has already stopped",
+                getClass().getSimpleName()
+            ));
+        } else {
+            throw new UnsupportedOperationException(format(
+                "%s unexpected state: %s",
+                getClass().getSimpleName(),
+                state
+            ));
         }
 
-        var registry = closeables.registerCloseable(createRegistryOnAvailablePort(
+
+        logger.info("Starting {} at {}", getClass().getSimpleName(), params.getLoopbackAddress());
+
+
+        registerCloseable(() -> changeState(SERVER_STOPPED));
+
+
+        var registry = registerCloseable(createRegistryOnAvailablePort(
+            getClass().getSimpleName(),
             params.getLoopbackAddress()
         ));
-        socketAddress.set(registry.getSocketAddress());
-
-        registry.bind(SonarLintLifecycle.class, new SonarLintLifecycleDefault(this));
 
 
         var usedThreads = new UsedThreads();
-        closeables.registerCloseable(() -> usedThreads.getUsedThreads().forEach(Thread::interrupt));
+        registerCloseable(() -> usedThreads.getUsedThreads().forEach(Thread::interrupt));
 
 
         var sonarLintParams = ImmutableSonarLintParams.builder()
             .from(params)
             .build();
-        var shared = closeables.registerCloseable(new SonarLintSharedCode(sonarLintParams));
+        var shared = registerCloseable(new SonarLintSharedCode(sonarLintParams));
 
         SonarLintAnalyzer analyzer = new SonarLintAnalyzerDefault(shared);
         analyzer = usedThreads.withRegisterThreadEveryCall(SonarLintAnalyzer.class, analyzer);
@@ -58,35 +88,66 @@ public class SonarLintServer implements SonarLintLifecycleDelegate {
         SonarLintHelp help = new SonarLintHelpDefault(shared);
         help = usedThreads.withRegisterThreadEveryCall(SonarLintHelp.class, help);
         registry.bind(SonarLintHelp.class, help);
+
+
+        changeState(
+            Started.builder()
+                .socketAddress(registry.getSocketAddress())
+                .build()
+        );
     }
 
     public synchronized InetSocketAddress getSocketAddress() {
-        var socketAddress = this.socketAddress.get();
-        if (socketAddress == null) {
-            throw new IllegalStateException("Not started");
+        if (state instanceof Created) {
+            throw new IllegalStateException(format(
+                "%s has NOT started",
+                getClass().getSimpleName()
+            ));
+        } else if (state instanceof Started) {
+            // proceed to the logic
+        } else if (state instanceof Stopped) {
+            throw new IllegalStateException(format(
+                "%s has already stopped",
+                getClass().getSimpleName()
+            ));
+        } else {
+            throw new UnsupportedOperationException(format(
+                "%s unexpected state: %s",
+                getClass().getSimpleName(),
+                state
+            ));
         }
 
-        return socketAddress;
+        var state = (Started) this.state;
+        return state.getSocketAddress();
     }
 
     public void join() {
-        if (socketAddress.get() == null) {
-            throw new IllegalStateException("Not started");
+        if (state instanceof Created) {
+            throw new IllegalStateException(format(
+                "%s has NOT started",
+                getClass().getSimpleName()
+            ));
+        } else if (state instanceof Started) {
+            // proceed to the logic
+        } else if (state instanceof Stopped) {
+            return; // already stopped
+        } else {
+            throw new UnsupportedOperationException(format(
+                "%s unexpected state: %s",
+                getClass().getSimpleName(),
+                state
+            ));
         }
 
         stopPhaser.awaitAdvance(stopPhaser.getPhase());
     }
 
     @Override
-    public synchronized void stop() {
-        if (socketAddress.get() == null) {
-            // not started, do nothing
-            return;
-        }
-
+    public synchronized void close() {
         try {
-            socketAddress.set(null);
-            closeables.close();
+            logger.info("Stopping {}", getClass().getSimpleName());
+            super.close();
 
         } finally {
             stopPhaser.arrive();

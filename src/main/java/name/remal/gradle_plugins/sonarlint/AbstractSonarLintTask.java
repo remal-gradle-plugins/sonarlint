@@ -2,6 +2,7 @@ package name.remal.gradle_plugins.sonarlint;
 
 import static java.lang.String.format;
 import static name.remal.gradle_plugins.sonarlint.SonarLintConstants.MIN_SUPPORTED_SONAR_RUNTIME_JAVA_VERSION;
+import static name.remal.gradle_plugins.sonarlint.internal.utils.ForkUtils.getEnvironmentVariablesToPropagateToForkedProcess;
 import static name.remal.gradle_plugins.sonarlint.internal.utils.ForkUtils.getSystemsPropertiesToPropagateToForkedProcess;
 
 import javax.inject.Inject;
@@ -75,6 +76,13 @@ public abstract class AbstractSonarLintTask
                 var forkOptions = getSettings().getFork();
                 var javaLauncher = forkOptions.getJavaLauncher().get();
                 spec.getForkOptions().setExecutable(javaLauncher.getExecutablePath().getAsFile().getAbsolutePath());
+
+                getEnvironmentVariablesToPropagateToForkedProcess().forEach(envVar -> {
+                    var value = System.getenv(envVar);
+                    if (value != null) {
+                        spec.getForkOptions().environment(envVar, value);
+                    }
+                });
 
                 if (javaLauncher.getMetadata().getLanguageVersion().canCompileOrRun(9)) {
                     spec.getForkOptions().jvmArgs("--add-opens", "java.base/java.lang=ALL-UNNAMED");

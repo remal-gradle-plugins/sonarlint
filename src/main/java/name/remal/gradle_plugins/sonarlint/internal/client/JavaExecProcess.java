@@ -9,7 +9,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Path;
 import lombok.SneakyThrows;
 
-public interface JavaExecResult extends AutoCloseable {
+public interface JavaExecProcess extends AutoCloseable {
 
     Process getProcess();
 

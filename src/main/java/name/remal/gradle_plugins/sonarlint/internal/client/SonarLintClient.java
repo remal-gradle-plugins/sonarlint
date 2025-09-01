@@ -7,12 +7,18 @@ import static java.nio.file.Files.write;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.stream.Collectors.toUnmodifiableList;
+import static name.remal.gradle_plugins.sonarlint.internal.client.SonarLintClientState.Created.CLIENT_CREATED;
+import static name.remal.gradle_plugins.sonarlint.internal.client.SonarLintClientState.Stopped.CLIENT_STOPPED;
+import static name.remal.gradle_plugins.sonarlint.internal.utils.AopUtils.withWrappedCalls;
+import static name.remal.gradle_plugins.sonarlint.internal.utils.LoggingUtils.logAtLevel;
 import static name.remal.gradle_plugins.sonarlint.internal.utils.RegistryFactory.connectToRegistry;
 import static name.remal.gradle_plugins.sonarlint.internal.utils.RegistryFactory.createRegistryOnAvailablePort;
 import static name.remal.gradle_plugins.toolkit.DebugUtils.isDebugEnabled;
+import static name.remal.gradle_plugins.toolkit.InTestFlags.isInTest;
 import static name.remal.gradle_plugins.toolkit.JavaSerializationUtils.serializeToBytes;
 import static name.remal.gradle_plugins.toolkit.LazyProxy.asLazyProxy;
 import static name.remal.gradle_plugins.toolkit.PathUtils.tryToDeleteRecursivelyIgnoringFailure;
+import static name.remal.gradle_plugins.toolkit.ThrowableUtils.unwrapException;
 
 import java.io.File;
 import java.net.InetAddress;
@@ -20,37 +26,46 @@ import java.net.InetSocketAddress;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.rmi.NotBoundException;
+import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.security.CodeSource;
 import java.security.ProtectionDomain;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
+import name.remal.gradle_plugins.sonarlint.internal.client.SonarLintClientState.Created;
+import name.remal.gradle_plugins.sonarlint.internal.client.SonarLintClientState.Started;
+import name.remal.gradle_plugins.sonarlint.internal.client.SonarLintClientState.Starting;
+import name.remal.gradle_plugins.sonarlint.internal.client.SonarLintClientState.Stopped;
 import name.remal.gradle_plugins.sonarlint.internal.client.api.SonarLintServerRuntimeInfo;
 import name.remal.gradle_plugins.sonarlint.internal.server.ImmutableSonarLintServerParams;
 import name.remal.gradle_plugins.sonarlint.internal.server.SonarLintServerMain;
 import name.remal.gradle_plugins.sonarlint.internal.server.api.SonarLintAnalyzer;
 import name.remal.gradle_plugins.sonarlint.internal.server.api.SonarLintHelp;
-import name.remal.gradle_plugins.sonarlint.internal.server.api.SonarLintLifecycle;
-import name.remal.gradle_plugins.sonarlint.internal.utils.ClientRegistryFacade;
 import name.remal.gradle_plugins.sonarlint.internal.utils.ServerRegistryFacade;
 import name.remal.gradle_plugins.toolkit.AbstractCloseablesContainer;
 import name.remal.gradle_plugins.toolkit.UriUtils;
 import org.jetbrains.annotations.Unmodifiable;
-import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
 
 @RequiredArgsConstructor
 public class SonarLintClient
     extends AbstractCloseablesContainer
     implements AutoCloseable {
+
+    private static final Duration startTimeout = isDebugEnabled() ? Duration.ofMinutes(5) : Duration.ofSeconds(10);
+
+    private static final Logger logger = LoggerFactory.getLogger(SonarLintClient.class);
+    private static final Level logLevel = isInTest() ? Level.WARN : Level.DEBUG;
+
 
     private final JavaExec javaExec;
 
@@ -61,89 +76,205 @@ public class SonarLintClient
     }
 
 
+    private volatile SonarLintClientState state = CLIENT_CREATED;
+
+    private void changeState(SonarLintClientState state) {
+        logAtLevel(logger, logLevel, format(
+            "%s: Changing state to %s from %s",
+            Instant.now(),
+            state,
+            this.state
+        ));
+        this.state = state;
+    }
+
+
     @Getter
     private final SonarLintAnalyzer analyzer = asLazyProxy(SonarLintAnalyzer.class, () ->
-        startAndGetServerRegistry().lookup(SonarLintAnalyzer.class)
+        startServerAndLookupApi(SonarLintAnalyzer.class)
     );
 
     @Getter
     private final SonarLintHelp help = asLazyProxy(SonarLintHelp.class, () ->
-        startAndGetServerRegistry().lookup(SonarLintHelp.class)
+        startServerAndLookupApi(SonarLintHelp.class)
     );
 
-    private final AtomicReference<@Nullable ClientRegistryFacade> serverRegistry = new AtomicReference<>();
-
-    private ClientRegistryFacade startAndGetServerRegistry() {
+    @SuppressWarnings("AssignmentToCatchBlockParameter")
+    private <T extends Remote> T startServerAndLookupApi(Class<T> interfaceClass) {
         start();
 
-        var serverRegistry = this.serverRegistry.get();
-        if (serverRegistry == null) {
-            throw new IllegalStateException("Not started");
-        }
-        return serverRegistry;
-    }
-
-
-    public InetAddress getBindAddress() {
-        return loopbackAddress;
-    }
-
-
-    private final InetAddress loopbackAddress = getLoopbackAddress();
-    private final AtomicReference<@Nullable InetSocketAddress> serverRegistrySocketAddress = new AtomicReference<>();
-    private final CountDownLatch serverStartedSignal = new CountDownLatch(1);
-    private static final Duration startTimeout = isDebugEnabled() ? Duration.ofMinutes(5) : Duration.ofSeconds(10);
-    private final AtomicBoolean stopped = new AtomicBoolean();
-
-    @SneakyThrows
-    private synchronized void start() {
-        if (stopped.get()) {
-            throw new IllegalStateException(SonarLintClient.class.getSimpleName() + " has already stopped");
-        }
-        if (serverRegistrySocketAddress.get() != null) {
-            // already started
-            return;
+        if (state instanceof Started) {
+            // proceed to the logic
+        } else if (state instanceof Stopped) {
+            throw new IllegalStateException(format(
+                "%s has already stopped",
+                getClass().getSimpleName()
+            ));
+        } else {
+            throw new UnsupportedOperationException(format(
+                "%s unexpected state: %s",
+                getClass().getSimpleName(),
+                state
+            ));
         }
 
-        var serverRuntimeInfoRegistry = startServerRuntimeInfoEndpoint();
-        var execResult = registerCloseable(startServer(serverRuntimeInfoRegistry));
+        var state = (Started) this.state;
 
-        if (!serverStartedSignal.await(startTimeout.toMillis(), MILLISECONDS)) {
+        T stub;
+        try {
+            stub = state.getServerRegistry().lookup(interfaceClass);
+        } catch (Exception e) {
             try {
                 throw new SonarLintClientException(format(
                     "SonarLint server couldn't start within %s. Server output:%n%s",
                     startTimeout,
-                    execResult.readOutput()
+                    state.getServerProcess().readOutput()
                 ));
             } finally {
                 close();
             }
         }
 
-        var serverRegistry = connectToRegistry(requireNonNull(serverRegistrySocketAddress.get()));
-        this.serverRegistry.set(serverRegistry);
+        stub = withWrappedCalls(interfaceClass, stub, realMethod -> {
+            try {
+                return realMethod.call();
+
+            } catch (Throwable exception) {
+                exception = unwrapException(exception);
+
+                if (exception instanceof NotBoundException) {
+                    try {
+                        throw new SonarLintClientException(format(
+                            "An exception occurred while calling for an RIM stub of %s"
+                                + " Server output:%n%s",
+                            interfaceClass,
+                            state.getServerProcess().readOutput()
+                        ));
+                    } finally {
+                        close();
+                    }
+                }
+
+                throw exception;
+            }
+        });
+
+        return stub;
+    }
+
+
+    private final InetAddress loopbackAddress = getLoopbackAddress();
+
+    public InetAddress getBindAddress() {
+        return loopbackAddress;
+    }
+
+
+    @SneakyThrows
+    private synchronized void start() {
+        if (state instanceof Created) {
+            // proceed to the logic
+        } else if (state instanceof Starting) {
+            return; // already starting
+        } else if (state instanceof Started) {
+            return; // already started
+        } else if (state instanceof Stopped) {
+            throw new IllegalStateException(format(
+                "%s has already stopped",
+                getClass().getSimpleName()
+            ));
+        } else {
+            throw new UnsupportedOperationException(format(
+                "%s unexpected state: %s",
+                getClass().getSimpleName(),
+                state
+            ));
+        }
+
+
+        registerCloseable(() -> changeState(CLIENT_STOPPED));
+
+
+        var startingState = Starting.builder()
+            .build();
+        registerCloseable(() -> startingState.getStartedSignal().countDown());
+
+        changeState(startingState);
+
+        var serverRuntimeInfoRegistry = startServerRuntimeInfoEndpoint();
+        var serverProcess = registerCloseable(startServer(serverRuntimeInfoRegistry));
+        startingState.getServerProcess().set(serverProcess);
+
+        if (!startingState.getStartedSignal().await(startTimeout.toMillis(), MILLISECONDS)) {
+            try {
+                throw new SonarLintClientException(format(
+                    "SonarLint server couldn't start within %s. Server output:%n%s",
+                    startTimeout,
+                    serverProcess.readOutput()
+                ));
+            } finally {
+                close();
+            }
+        }
+    }
+
+    private void processServerRegistrySocketAddress(InetSocketAddress socketAddress) {
+        if (state instanceof Starting) {
+            // proceed to the logic
+        } else if (state instanceof Stopped) {
+            throw new IllegalStateException(format(
+                "%s has already stopped",
+                getClass().getSimpleName()
+            ));
+        } else {
+            throw new UnsupportedOperationException(format(
+                "%s unexpected state: %s",
+                getClass().getSimpleName(),
+                state
+            ));
+        }
+
+        logAtLevel(logger, logLevel, format(
+            "Reported server socket address: %s",
+            socketAddress
+        ));
+
+        var serverRegistry = connectToRegistry(
+            SonarLintServerMain.class.getSimpleName(),
+            socketAddress
+        );
+
+        var startingState = (Starting) state;
+
+        changeState(
+            Started.builder()
+                .serverRegistry(serverRegistry)
+                .serverProcess(requireNonNull(startingState.getServerProcess().get()))
+                .build()
+        );
+
+        startingState.getStartedSignal().countDown();
     }
 
     private ServerRegistryFacade startServerRuntimeInfoEndpoint() {
-        var serverRuntimeInfo = new SonarLintServerRuntimeInfo() {
+        var registry = registerCloseable(createRegistryOnAvailablePort(
+            getClass().getSimpleName(),
+            loopbackAddress
+        ));
+        registry.bind(SonarLintServerRuntimeInfo.class, new SonarLintServerRuntimeInfo() {
             @Override
-            public void reportServerRegistrySocketAddress(InetSocketAddress socketAddress) throws RemoteException {
-                if (stopped.get()) {
-                    throw new IllegalStateException(SonarLintClient.class.getSimpleName() + " has already stopped");
-                }
-
-                serverRegistrySocketAddress.set(socketAddress);
-                serverStartedSignal.countDown();
+            public synchronized void reportServerRegistrySocketAddress(
+                InetSocketAddress socketAddress
+            ) throws RemoteException {
+                SonarLintClient.this.processServerRegistrySocketAddress(socketAddress);
             }
-        };
-        var registry = registerCloseable(createRegistryOnAvailablePort(loopbackAddress));
-        registry.bind(SonarLintServerRuntimeInfo.class, serverRuntimeInfo);
+        });
         return registry;
     }
 
     @SneakyThrows
     @SuppressWarnings("java:S5443")
-    private JavaExecResult startServer(ServerRegistryFacade serverRuntimeInfoRegistry) {
+    private JavaExecProcess startServer(ServerRegistryFacade serverRuntimeInfoRegistry) {
         var serverParams = ImmutableSonarLintServerParams.builder()
             .from(params)
             .loopbackAddress(loopbackAddress)
@@ -191,31 +322,8 @@ public class SonarLintClient
 
 
     @Override
-    @SneakyThrows
     public synchronized void close() {
-        if (!this.stopped.compareAndSet(false, true)) {
-            // already stopped
-            return;
-        }
-
-        try {
-            var serverRegistry = this.serverRegistry.get();
-            if (serverRegistry == null) {
-                // not started
-                return;
-            }
-
-            try {
-                serverRegistry.lookup(SonarLintLifecycle.class).stop();
-            } catch (NotBoundException | RemoteException e) {
-                // do nothing
-            }
-
-        } finally {
-            this.serverRegistrySocketAddress.set(null);
-            this.serverRegistry.set(null);
-            super.close();
-        }
+        super.close();
     }
 
 }

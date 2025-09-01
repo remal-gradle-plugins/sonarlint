@@ -11,6 +11,8 @@ import java.rmi.server.ExportException;
 import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;
 import name.remal.gradle_plugins.sonarlint.internal.server.SonarLintServerException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @NoArgsConstructor(access = PRIVATE)
 public abstract class RegistryFactory {
@@ -22,8 +24,12 @@ public abstract class RegistryFactory {
     );
 
 
+    private static final Logger logger = LoggerFactory.getLogger(RegistryFactory.class);
+
+
     @SneakyThrows
-    public static ServerRegistryFacade createRegistryOnAvailablePort(InetAddress address) {
+    public static ServerRegistryFacade createRegistryOnAvailablePort(String registryName, InetAddress address) {
+        logger.debug("Creating {} RMI registry at {} on any available port", registryName, address);
         var socketFactory = new RmiSocketFactory(address);
 
         for (var attempt = 1; attempt <= REGISTRY_START_ATTEMPTS; attempt++) {
@@ -31,7 +37,9 @@ public abstract class RegistryFactory {
             try {
                 var registry = LocateRegistry.createRegistry(port, socketFactory, socketFactory);
                 var socketAddress = new InetSocketAddress(socketFactory.getBindAddr(), port);
+                logger.info("{} RMI registry created at {}", registryName, socketAddress);
                 return ServerRegistryFacade.builder()
+                    .registryName(registryName)
                     .registry(registry)
                     .socketAddress(socketAddress)
                     .socketFactory(socketFactory)
@@ -49,12 +57,16 @@ public abstract class RegistryFactory {
 
 
     @SneakyThrows
-    public static ClientRegistryFacade connectToRegistry(InetSocketAddress socketAddress) {
+    public static ClientRegistryFacade connectToRegistry(String registryName, InetSocketAddress socketAddress) {
+        logger.debug("Connecting to {} RMI registry at {}", registryName, socketAddress);
         var registry = LocateRegistry.getRegistry(
             socketAddress.getAddress().getHostAddress(),
             socketAddress.getPort()
         );
+
+        logger.info("Connected to {} RMI registry at {}", registryName, socketAddress);
         return ClientRegistryFacade.builder()
+            .registryName(registryName)
             .registry(registry)
             .socketAddress(socketAddress)
             .build();
