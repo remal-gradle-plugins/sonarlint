@@ -12,6 +12,7 @@ import java.io.File;
 import java.lang.ProcessBuilder.Redirect;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.TreeMap;
 import lombok.SneakyThrows;
 import lombok.Value;
 import org.slf4j.Logger;
@@ -83,7 +84,10 @@ public class JavaExecDefault implements JavaExec {
             }
         });
 
-        processBuilder.environment().forEach((key, value) -> logger.warn("env: {}={}", key, value));
+
+        logger.warn("command={}", command);
+        logger.warn("env={}", new TreeMap<>(processBuilder.environment()));
+
 
         var process = processBuilder.start();
 

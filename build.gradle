@@ -70,6 +70,7 @@ dependencies {
 
 buildTimeConstants.properties([
     'gradle-api.min-version': provider { project.property('gradle-api.min-version')?.toString() ?: '' },
+    'basePackageForRelocatedClasses': provider { classesRelocation.basePackageForRelocatedClasses.get() },
 ])
 
 gradlePlugin {

@@ -3,9 +3,9 @@ package name.remal.gradle_plugins.sonarlint.internal.server;
 import static java.lang.String.format;
 import static java.nio.file.Files.readAllBytes;
 import static name.remal.gradle_plugins.build_time_constants.api.BuildTimeConstants.getClassPackageName;
+import static name.remal.gradle_plugins.build_time_constants.api.BuildTimeConstants.getStringProperty;
 import static name.remal.gradle_plugins.sonarlint.internal.utils.JacocoUtils.dumpJacocoData;
 import static name.remal.gradle_plugins.sonarlint.internal.utils.RegistryFactory.connectToRegistry;
-import static name.remal.gradle_plugins.toolkit.InTestFlags.isInTest;
 import static name.remal.gradle_plugins.toolkit.JavaSerializationUtils.deserializeFrom;
 import static name.remal.gradle_plugins.toolkit.SneakyThrowUtils.sneakyThrowsRunnable;
 
@@ -49,12 +49,12 @@ public class SonarLintServerMain {
                 "org.slf4j.simpleLogger.log.%s",
                 getClassPackageName(SonarLintPlugin.class)
             ),
-            isInTest() ? Level.TRACE.name() : Level.DEBUG.name()
+            Level.DEBUG.name()
         );
         System.setProperty(
             format(
-                "org.slf4j.simpleLogger.log.%s.internal._relocated",
-                getClassPackageName(SonarLintPlugin.class)
+                "org.slf4j.simpleLogger.log.%s",
+                getStringProperty("basePackageForRelocatedClasses")
             ),
             serverParams.getDefaultLogLevel().name()
         );
