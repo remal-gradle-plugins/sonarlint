@@ -54,7 +54,7 @@ public class SonarLintServerMain {
         System.setProperty(
             format(
                 "org.slf4j.simpleLogger.log.%s",
-                getStringProperty("basePackageForRelocatedClasses")
+                getStringProperty("classesRelocation.basePackageForRelocatedClasses")
             ),
             serverParams.getDefaultLogLevel().name()
         );

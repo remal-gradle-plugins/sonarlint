@@ -5,7 +5,6 @@ import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.Files.createTempFile;
 import static java.nio.file.Files.newBufferedWriter;
-import static java.nio.file.Files.readString;
 import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.joining;
 import static name.remal.gradle_plugins.sonarlint.internal.utils.ForkUtils.getEnvironmentVariablesToPropagateToForkedProcess;
@@ -19,12 +18,8 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import lombok.SneakyThrows;
 import lombok.Value;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class JavaExecDefault implements JavaExec {
-
-    private static final Logger logger = LoggerFactory.getLogger(JavaExecDefault.class);
 
     @Override
     @SneakyThrows
@@ -82,9 +77,6 @@ public class JavaExecDefault implements JavaExec {
 
                 writer.write(escapeCliArgumentFileLine(allArgs.get(i)));
             }
-        }
-        if (logger.isWarnEnabled()) {
-            logger.warn("cliArgumentFile:\n{}", readString(cliArgumentFile));
         }
 
 

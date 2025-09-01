@@ -293,7 +293,7 @@ public class SonarLintClient
             .serverRuntimeInfoSocketAddress(serverRuntimeInfoRegistry.getSocketAddress())
             .build();
 
-        var serverParamsFile = createTempFile(getClass().getSimpleName() + "-serverParams-", ".bin");
+        var serverParamsFile = createTempFile(getClass().getSimpleName() + "-serverParams-", ".params");
         registerCloseable(() -> tryToDeleteRecursivelyIgnoringFailure(serverParamsFile));
         write(serverParamsFile, serializeToBytes(serverParams));
 

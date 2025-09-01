@@ -3,6 +3,7 @@ package name.remal.gradle_plugins.sonarlint.internal.utils;
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 import static lombok.AccessLevel.PRIVATE;
+import static org.slf4j.event.Level.WARN;
 
 import com.google.errorprone.annotations.CheckReturnValue;
 import com.google.errorprone.annotations.FormatMethod;
@@ -18,7 +19,7 @@ import org.slf4j.event.Level;
 public class SimpleLoggingEventBuilder {
 
     private static final boolean REWRITE_LOGGING_LEVEL_FOR_TESTS = false;
-    private static final Level MIN_LOGGING_LEVEL_FOR_TESTS = Level.WARN;
+    private static final Level MIN_LOGGING_LEVEL_FOR_TESTS = WARN;
 
 
     @CheckReturnValue
