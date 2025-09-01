@@ -332,7 +332,8 @@ public class SonarLintClient
 
             Stream.of(
                     "org.gradle.internal.classpath.Instrumented",
-                    "org.codehaus.groovy.runtime.callsite.CallSite"
+                    "org.codehaus.groovy.runtime.callsite.CallSite",
+                    "org.gradle.api.GradleException"
                 )
                 .map(className -> {
                     try {
