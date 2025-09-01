@@ -31,6 +31,8 @@ public class ServerRegistryFacade extends AbstractRegistryFacade implements Auto
         implementation = withLoggedCalls(interfaceClass, implementation);
         implementation = withDumpJacocoDataOnEveryCall(interfaceClass, implementation);
 
+        keepHardReferenceOnImplementation(implementation);
+
         logger.debug(
             "Exporting an {} RMI stub of {} at {} on any available port",
             registryName,
@@ -65,6 +67,14 @@ public class ServerRegistryFacade extends AbstractRegistryFacade implements Auto
         } finally {
             unexportObject(registry);
         }
+    }
+
+    private void keepHardReferenceOnImplementation(Remote remote) {
+        closeables.registerCloseable(() -> {
+            if (remote instanceof AutoCloseable) {
+                ((AutoCloseable) remote).close();
+            }
+        });
     }
 
 }

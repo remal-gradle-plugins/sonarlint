@@ -40,19 +40,6 @@ public class SonarLintServerMain {
 
 
         System.setProperty(
-            "sun.rmi.dgc.logLevel",
-            "trace"
-        );
-        System.setProperty(
-            format(
-                "org.slf4j.simpleLogger.log.%s",
-                "sun.rmi"
-            ),
-            "trace"
-        );
-
-
-        System.setProperty(
             "org.slf4j.simpleLogger.defaultLogLevel",
             serverParams.getDefaultLogLevel().name()
         );
