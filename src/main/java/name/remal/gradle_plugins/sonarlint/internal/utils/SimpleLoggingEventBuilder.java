@@ -32,22 +32,6 @@ public class SimpleLoggingEventBuilder {
         return new Impl(level);
     }
 
-    @CheckReturnValue
-    public static MessageBuilder newLoggingEvent(Level level, @Nullable Level... minimumLevels) {
-        if (minimumLevels.length == 0) {
-            throw new IllegalArgumentException("minimumLevels can't be empty");
-        }
-        var maxLevel = level;
-        for (var minimumLevel : minimumLevels) {
-            if (minimumLevel != null
-                && maxLevel.toInt() < minimumLevel.toInt()
-            ) {
-                maxLevel = minimumLevel;
-            }
-        }
-        return newLoggingEvent(maxLevel);
-    }
-
 
     public interface MessageBuilder {
         @CheckReturnValue

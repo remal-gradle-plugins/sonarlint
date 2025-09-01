@@ -257,9 +257,9 @@ public abstract class SonarLintPlugin implements Plugin<Project> {
 
 
     private void configureSonarLintTasks(Project project, Provider<SonarLintBuildService> buildService) {
-        var maxSupportedVersion = GradleVersion.version(getStringProperty("gradle-api.min-version")).getBaseVersion();
-        var currentVersion = GradleVersion.current().getBaseVersion();
-        if (maxSupportedVersion.compareTo(currentVersion) >= 0) {
+        var minSupportedVersion = GradleVersion.version(getStringProperty("gradle-api.min-version"));
+        var requiredVersion = GradleVersion.version("8.0");
+        if (minSupportedVersion.compareTo(requiredVersion) >= 0) {
             throw new AssertionError("Use @ServiceReference instead");
         }
 

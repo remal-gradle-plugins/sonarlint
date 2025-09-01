@@ -6,7 +6,7 @@ import static java.nio.file.Files.createTempFile;
 import static java.nio.file.Files.write;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.stream.Collectors.toUnmodifiableList;
+import static name.remal.gradle_plugins.build_time_constants.api.BuildTimeConstants.getStringProperty;
 import static name.remal.gradle_plugins.sonarlint.internal.client.SonarLintClientState.Created.CLIENT_CREATED;
 import static name.remal.gradle_plugins.sonarlint.internal.client.SonarLintClientState.Stopped.CLIENT_STOPPED;
 import static name.remal.gradle_plugins.sonarlint.internal.utils.AopUtils.withWrappedCalls;
@@ -14,6 +14,7 @@ import static name.remal.gradle_plugins.sonarlint.internal.utils.RegistryFactory
 import static name.remal.gradle_plugins.sonarlint.internal.utils.RegistryFactory.createRegistryOnAvailablePort;
 import static name.remal.gradle_plugins.sonarlint.internal.utils.SimpleLoggingEventBuilder.newLoggingEvent;
 import static name.remal.gradle_plugins.toolkit.DebugUtils.isDebugEnabled;
+import static name.remal.gradle_plugins.toolkit.GradleVersionUtils.isCurrentGradleVersionLessThan;
 import static name.remal.gradle_plugins.toolkit.JavaSerializationUtils.serializeToBytes;
 import static name.remal.gradle_plugins.toolkit.LazyProxy.asLazyProxy;
 import static name.remal.gradle_plugins.toolkit.PathUtils.tryToDeleteRecursivelyIgnoringFailure;
@@ -32,10 +33,9 @@ import java.security.CodeSource;
 import java.security.ProtectionDomain;
 import java.time.Duration;
 import java.time.LocalTime;
-import java.util.Collection;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Stream;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
@@ -51,7 +51,7 @@ import name.remal.gradle_plugins.sonarlint.internal.server.api.SonarLintHelp;
 import name.remal.gradle_plugins.sonarlint.internal.utils.ServerRegistryFacade;
 import name.remal.gradle_plugins.toolkit.AbstractCloseablesContainer;
 import name.remal.gradle_plugins.toolkit.UriUtils;
-import org.jetbrains.annotations.Unmodifiable;
+import org.gradle.util.GradleVersion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -307,27 +307,49 @@ public class SonarLintClient
         );
     }
 
-    @Unmodifiable
+    @SneakyThrows
     private List<File> computeClasspath() {
-        var currentJarClass = SonarLintClient.class;
-        var currentJarFile = Optional.ofNullable(currentJarClass.getProtectionDomain())
+        var classpath = new ArrayList<File>();
+
+        classpath.add(getClassJarFile(SonarLintClient.class));
+
+        classpath.addAll(params.getCoreClasspath());
+
+        if (isCurrentGradleVersionLessThan("8.0.9999")) {
+            /*
+             * Configuration cache for Gradle <=8.0 instruments JAR files of plugins instead of applying Java agent.
+             * So, when we use the plugin's JAR in a classpath,
+             * there will be references like org.gradle.internal.classpath.Instrumented there.
+             */
+
+            var minSupportedVersion = GradleVersion.version(getStringProperty("gradle-api.min-version"));
+            var requiredVersion = GradleVersion.version("8.1");
+            if (minSupportedVersion.compareTo(requiredVersion) >= 0) {
+                throw new AssertionError("Remove this code, as we are no longer support Gradle 8.0");
+            }
+
+            var instrumentedClass = Class.forName("org.gradle.internal.classpath.Instrumented");
+            classpath.add(getClassJarFile(instrumentedClass));
+        }
+
+        return classpath;
+    }
+
+    private static File getClassJarFile(Class<?> clazz) {
+        var classJarFile = Optional.ofNullable(clazz.getProtectionDomain())
             .map(ProtectionDomain::getCodeSource)
             .map(CodeSource::getLocation)
             .map(UriUtils::toUri)
             .map(Paths::get)
             .map(Path::toFile)
             .orElse(null);
-        if (currentJarFile == null) {
+        if (classJarFile == null) {
             throw new IllegalStateException(format(
                 "Can't determine JAR file of %s",
-                currentJarClass
+                clazz
             ));
         }
-
-        return Stream.of(List.of(currentJarFile), params.getCoreClasspath())
-            .flatMap(Collection::stream)
-            .distinct()
-            .collect(toUnmodifiableList());
+        return classJarFile;
     }
 
 
