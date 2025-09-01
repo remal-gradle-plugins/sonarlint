@@ -10,15 +10,17 @@ import static java.util.stream.Collectors.toUnmodifiableList;
 import static name.remal.gradle_plugins.sonarlint.internal.client.SonarLintClientState.Created.CLIENT_CREATED;
 import static name.remal.gradle_plugins.sonarlint.internal.client.SonarLintClientState.Stopped.CLIENT_STOPPED;
 import static name.remal.gradle_plugins.sonarlint.internal.utils.AopUtils.withWrappedCalls;
-import static name.remal.gradle_plugins.sonarlint.internal.utils.LoggingUtils.logAtLevel;
 import static name.remal.gradle_plugins.sonarlint.internal.utils.RegistryFactory.connectToRegistry;
 import static name.remal.gradle_plugins.sonarlint.internal.utils.RegistryFactory.createRegistryOnAvailablePort;
+import static name.remal.gradle_plugins.sonarlint.internal.utils.SimpleLoggingEventBuilder.newLoggingEvent;
 import static name.remal.gradle_plugins.toolkit.DebugUtils.isDebugEnabled;
 import static name.remal.gradle_plugins.toolkit.InTestFlags.isInTest;
 import static name.remal.gradle_plugins.toolkit.JavaSerializationUtils.serializeToBytes;
 import static name.remal.gradle_plugins.toolkit.LazyProxy.asLazyProxy;
 import static name.remal.gradle_plugins.toolkit.PathUtils.tryToDeleteRecursivelyIgnoringFailure;
 import static name.remal.gradle_plugins.toolkit.ThrowableUtils.unwrapException;
+import static org.slf4j.event.Level.DEBUG;
+import static org.slf4j.event.Level.WARN;
 
 import java.io.File;
 import java.net.InetAddress;
@@ -54,7 +56,6 @@ import name.remal.gradle_plugins.toolkit.UriUtils;
 import org.jetbrains.annotations.Unmodifiable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.event.Level;
 
 @RequiredArgsConstructor
 @SuppressWarnings("JavaTimeDefaultTimeZone")
@@ -65,7 +66,6 @@ public class SonarLintClient
     private static final Duration startTimeout = isDebugEnabled() ? Duration.ofMinutes(5) : Duration.ofSeconds(10);
 
     private static final Logger logger = LoggerFactory.getLogger(SonarLintClient.class);
-    private static final Level logLevel = isInTest() ? Level.WARN : Level.DEBUG;
 
 
     private final JavaExec javaExec;
@@ -80,12 +80,12 @@ public class SonarLintClient
     private volatile SonarLintClientState state = CLIENT_CREATED;
 
     private void changeState(SonarLintClientState state) {
-        logAtLevel(logger, logLevel, format(
+        newLoggingEvent(DEBUG, isInTest() ? WARN : null).message(
             "%s: Changing state to %s from %s",
             LocalTime.now(),
             state,
             this.state
-        ));
+        ).log(logger);
         this.state = state;
     }
 
@@ -247,10 +247,10 @@ public class SonarLintClient
             ));
         }
 
-        logAtLevel(logger, logLevel, format(
+        newLoggingEvent(DEBUG, isInTest() ? WARN : null).message(
             "Reported server socket address: %s",
             socketAddress
-        ));
+        ).log(logger);
 
         var serverRegistry = connectToRegistry(
             SonarLintServerMain.class.getSimpleName(),

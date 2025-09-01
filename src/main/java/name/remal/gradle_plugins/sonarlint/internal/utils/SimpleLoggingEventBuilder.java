@@ -1,0 +1,140 @@
+package name.remal.gradle_plugins.sonarlint.internal.utils;
+
+import static java.lang.String.format;
+import static java.util.Objects.requireNonNull;
+import static lombok.AccessLevel.PRIVATE;
+
+import com.google.errorprone.annotations.CheckReturnValue;
+import com.google.errorprone.annotations.FormatMethod;
+import com.google.errorprone.annotations.FormatString;
+import lombok.NoArgsConstructor;
+import lombok.RequiredArgsConstructor;
+import lombok.ToString;
+import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.event.Level;
+
+@NoArgsConstructor(access = PRIVATE)
+public class SimpleLoggingEventBuilder {
+
+    @CheckReturnValue
+    public static MessageBuilder newLoggingEvent(Level level) {
+        return new Impl(level);
+    }
+
+    @CheckReturnValue
+    public static MessageBuilder newLoggingEvent(Level level, @Nullable Level... minimumLevels) {
+        if (minimumLevels.length == 0) {
+            throw new IllegalArgumentException("minimumLevels can't be empty");
+        }
+        var maxLevel = level;
+        for (var minimumLevel : minimumLevels) {
+            if (minimumLevel != null
+                && maxLevel.toInt() < minimumLevel.toInt()
+            ) {
+                maxLevel = minimumLevel;
+            }
+        }
+        return newLoggingEvent(maxLevel);
+    }
+
+
+    public interface MessageBuilder {
+        @CheckReturnValue
+        CauseBuilder message(String message);
+
+        @FormatMethod
+        @CheckReturnValue
+        CauseBuilder message(@FormatString String message, @Nullable Object... args);
+    }
+
+    public interface CauseBuilder extends WithLog {
+        @CheckReturnValue
+        WithLog cause(@Nullable Throwable cause);
+    }
+
+    public interface WithLog {
+        void log(Logger logger);
+    }
+
+
+    @RequiredArgsConstructor
+    @ToString
+    private static class Impl
+        implements WithLog, MessageBuilder, CauseBuilder {
+
+        private final Level level;
+
+        @Nullable
+        private String message;
+
+        @Nullable
+        private Throwable cause;
+
+        @Override
+        @SuppressWarnings("java:S3776")
+        public void log(Logger logger) {
+            var level = requireNonNull(this.level, "level");
+            var message = requireNonNull(this.message, "message");
+            switch (level) {
+                case ERROR:
+                    if (cause == null) {
+                        logger.error(message);
+                    } else {
+                        logger.error(message, cause);
+                    }
+                    break;
+                case WARN:
+                    if (cause == null) {
+                        logger.warn(message);
+                    } else {
+                        logger.warn(message, cause);
+                    }
+                    break;
+                case DEBUG:
+                    if (cause == null) {
+                        logger.debug(message);
+                    } else {
+                        logger.debug(message, cause);
+                    }
+                    break;
+                case TRACE:
+                    if (cause == null) {
+                        logger.trace(message);
+                    } else {
+                        logger.trace(message, cause);
+                    }
+                    break;
+                default:
+                    if (cause == null) {
+                        logger.info(message);
+                    } else {
+                        logger.info(message, cause);
+                    }
+            }
+        }
+
+        @Override
+        @CheckReturnValue
+        public Impl message(String message) {
+            this.message = message;
+            return this;
+        }
+
+        @Override
+        @FormatMethod
+        @CheckReturnValue
+        public Impl message(@FormatString String message, @Nullable Object... args) {
+            return message(format(message, args));
+        }
+
+        @Override
+        @CheckReturnValue
+        public Impl cause(@Nullable Throwable cause) {
+            this.cause = cause;
+            return this;
+        }
+
+    }
+
+}

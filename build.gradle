@@ -68,6 +68,11 @@ dependencies {
     componentTestImplementation 'org.junit.platform:junit-platform-launcher'
 }
 
+buildTimeConstants.properties([
+    'java-runtime.min-version': provider { project.property('java-runtime.min-version')?.toString() ?: '' },
+    'gradle-api.min-version': provider { project.property('gradle-api.min-version')?.toString() ?: '' },
+])
+
 gradlePlugin {
     plugins {
         'name.remal.sonarlint' {

@@ -11,9 +11,9 @@ import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static java.util.stream.Collectors.toUnmodifiableList;
 import static name.remal.gradle_plugins.sonarlint.internal.SonarLintLanguageIncludes.getAllLanguageIncludes;
-import static name.remal.gradle_plugins.sonarlint.internal.utils.LoggingUtils.logAtLevel;
 import static name.remal.gradle_plugins.sonarlint.internal.utils.RemoteObjectUtils.exportObject;
 import static name.remal.gradle_plugins.sonarlint.internal.utils.RemoteObjectUtils.unexportObject;
+import static name.remal.gradle_plugins.sonarlint.internal.utils.SimpleLoggingEventBuilder.newLoggingEvent;
 import static name.remal.gradle_plugins.toolkit.ClosureUtils.configureWith;
 import static name.remal.gradle_plugins.toolkit.FileTreeElementUtils.createFileTreeElement;
 import static name.remal.gradle_plugins.toolkit.FileUtils.normalizeFile;
@@ -71,7 +71,6 @@ import org.gradle.api.provider.Property;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.reporting.Report;
 import org.gradle.api.reporting.Reporting;
-import org.gradle.api.services.ServiceReference;
 import org.gradle.api.specs.Spec;
 import org.gradle.api.tasks.CacheableTask;
 import org.gradle.api.tasks.IgnoreEmptyDirectories;
@@ -385,7 +384,8 @@ public abstract class SonarLint
 
     //#endregion
 
-    @ServiceReference
+    @Internal
+    // @ServiceReference can be used from Gradle 8
     abstract Property<SonarLintBuildService> getBuildService();
 
     private void configureWorkActionParams(
@@ -455,7 +455,7 @@ public abstract class SonarLint
                 Supplier<SonarLintLogSink> logSinkSupplier = () -> {
                     SonarLintLogSink logSink = (level, message) -> {
                         var logger = getLogger();
-                        logAtLevel(logger, level, message);
+                        newLoggingEvent(level).message(message).log(logger);
                     };
                     var bindAddress = clientBindAddress.get();
                     var logSinkStub = exportObject(logSink, bindAddress, 0);

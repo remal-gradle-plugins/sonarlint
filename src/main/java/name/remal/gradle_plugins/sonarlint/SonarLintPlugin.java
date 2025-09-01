@@ -4,6 +4,7 @@ import static java.lang.String.format;
 import static java.lang.String.join;
 import static java.lang.System.identityHashCode;
 import static java.util.stream.Collectors.toList;
+import static name.remal.gradle_plugins.build_time_constants.api.BuildTimeConstants.getStringProperty;
 import static name.remal.gradle_plugins.sonarlint.DependencyWithBrokenVersion.areFixedVersionForBrokenDependenciesRegistered;
 import static name.remal.gradle_plugins.sonarlint.DependencyWithBrokenVersion.getFixedVersionForBrokenDependency;
 import static name.remal.gradle_plugins.sonarlint.ResolvedNonReproducibleSonarDependencies.areResolvedNonReproducibleSonarDependenciesRegistered;
@@ -53,6 +54,7 @@ import org.gradle.api.tasks.compile.JavaCompile;
 import org.gradle.jvm.toolchain.JavaCompiler;
 import org.gradle.jvm.toolchain.JavaInstallationMetadata;
 import org.gradle.jvm.toolchain.JavaLanguageVersion;
+import org.gradle.util.GradleVersion;
 import org.jspecify.annotations.Nullable;
 
 @CustomLog
@@ -65,20 +67,6 @@ public abstract class SonarLintPlugin implements Plugin<Project> {
 
     @Override
     public void apply(Project project) {
-        project.getGradle().getSharedServices().registerIfAbsent(
-            join(
-                "|",
-                SonarLintBuildService.class.getName(),
-                String.valueOf(identityHashCode(SonarLintBuildService.class)),
-                Optional.ofNullable(SonarLintBuildService.class.getClassLoader())
-                    .map(System::identityHashCode)
-                    .map(Object::toString)
-                    .orElse("")
-            ),
-            SonarLintBuildService.class,
-            doNothingAction()
-        );
-
         var extension = project.getExtensions().create(SONARLINT_EXTENSION_NAME, SonarLintExtension.class);
 
         var coreConf = project.getConfigurations().register(SONARLINT_CORE_CONFIGURATION_NAME, conf -> {
@@ -138,6 +126,23 @@ public abstract class SonarLintPlugin implements Plugin<Project> {
         });
 
         configureAllSonarLintTasks(project, extension, coreConf, coreLoggingConf, pluginsConf);
+
+        var buildService = project.getGradle().getSharedServices().registerIfAbsent(
+            join(
+                "|",
+                SonarLintBuildService.class.getName(),
+                String.valueOf(identityHashCode(SonarLintBuildService.class)),
+                Optional.ofNullable(SonarLintBuildService.class.getClassLoader())
+                    .map(System::identityHashCode)
+                    .map(Object::toString)
+                    .orElse("")
+            ),
+            SonarLintBuildService.class,
+            doNothingAction()
+        );
+
+        configureSonarLintTasks(project, buildService);
+
 
         project.getPluginManager().withPlugin("java", __ -> configureJvmProject(project, extension));
 
@@ -243,6 +248,20 @@ public abstract class SonarLintPlugin implements Plugin<Project> {
             task.getCoreClasspath().from(coreConf);
             task.getCoreLoggingClasspath().from(coreLoggingConf);
             task.getPluginFiles().from(pluginsConf);
+        });
+    }
+
+
+    private void configureSonarLintTasks(Project project, Provider<SonarLintBuildService> buildService) {
+        var maxSupportedVersion = GradleVersion.version(getStringProperty("gradle-api.min-version")).getBaseVersion();
+        var currentVersion = GradleVersion.current().getBaseVersion();
+        if (maxSupportedVersion.compareTo(currentVersion) >= 0) {
+            throw new AssertionError("Use @ServiceReference instead");
+        }
+
+        project.getTasks().withType(SonarLint.class).configureEach(task -> {
+            task.getBuildService().set(buildService);
+            task.usesService(buildService);
         });
     }
 
