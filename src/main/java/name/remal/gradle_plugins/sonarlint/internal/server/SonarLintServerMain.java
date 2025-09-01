@@ -8,7 +8,6 @@ import static name.remal.gradle_plugins.sonarlint.internal.utils.JacocoUtils.dum
 import static name.remal.gradle_plugins.sonarlint.internal.utils.RegistryFactory.connectToRegistry;
 import static name.remal.gradle_plugins.toolkit.JavaSerializationUtils.deserializeFrom;
 import static name.remal.gradle_plugins.toolkit.SneakyThrowUtils.sneakyThrowsRunnable;
-import static name.remal.gradle_plugins.toolkit.reflection.MethodsInvoker.invokeStaticMethod;
 
 import java.nio.file.Paths;
 import java.util.Objects;
@@ -41,19 +40,19 @@ public class SonarLintServerMain {
         SLF4JBridgeHandler.install();
 
 
-        setSystemProperty(
+        System.setProperty(
             "org.slf4j.simpleLogger.defaultLogLevel",
             serverParams.getDefaultLogLevel().name()
         );
 
-        setSystemProperty(
+        System.setProperty(
             format(
                 "org.slf4j.simpleLogger.log.%s",
                 getClassPackageName(SonarLintPlugin.class)
             ),
             Level.DEBUG.name()
         );
-        setSystemProperty(
+        System.setProperty(
             format(
                 "org.slf4j.simpleLogger.log.%s",
                 getStringProperty("classesRelocation.basePackageForRelocatedClasses")
@@ -62,35 +61,13 @@ public class SonarLintServerMain {
         );
 
 
-        setSystemProperty(
+        System.setProperty(
             "org.slf4j.simpleLogger.showDateTime",
             "true"
         );
-        setSystemProperty(
+        System.setProperty(
             "org.slf4j.simpleLogger.dateTimeFormat",
             "HH:mm:ss.SSS"
-        );
-    }
-
-    /**
-     * Gradle instruments plugins' code for Configuration Cache.
-     * We are not going to use Gradle's classes in the server's classpath,
-     * which means that we need to avoid this instrumentation.
-     * Let's use reflection instead.
-     */
-    private static void setSystemProperty(String name, Object value) {
-        final String stringValue;
-        if (value instanceof Enum<?>) {
-            stringValue = ((Enum<?>) value).name();
-        } else {
-            stringValue = value.toString();
-        }
-
-        invokeStaticMethod(
-            System.class,
-            "setProperty",
-            String.class, name,
-            String.class, stringValue
         );
     }
 
