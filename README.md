@@ -9,13 +9,11 @@
 Usage:
 
 <!--plugin-usage:name.remal.sonarlint-->
-
 ```groovy
 plugins {
-  id 'name.remal.sonarlint' version '6.0.0'
+    id 'name.remal.sonarlint' version '6.0.0'
 }
 ```
-
 <!--/plugin-usage-->
 
 &nbsp;
@@ -52,7 +50,6 @@ For every [`SourceSet`](https://docs.gradle.org/current/javadoc/org/gradle/api/t
 
 Infra languages are excluded by default:
 <!--iterable-property:infraLanguageNames-->
-
 * Azure Resource Manager
 * CloudFormation
 * Docker
@@ -60,7 +57,6 @@ Infra languages are excluded by default:
 * Kubernetes
 * Terraform
 * YAML
-
 <!--/iterable-property-->
 
 Infra code is often stored in the same repository as microservices, but typically outside the `src` directory.
@@ -77,13 +73,11 @@ Also, a single infra language can be included like this: `sonarLint.languages.in
 
 Frontend languages are excluded by default:
 <!--iterable-property:frontendLanguageNames-->
-
 * CSS
 * HTML
 * JSP
 * JavaScript
 * TypeScript
-
 <!--/iterable-property-->
 
 Frontend code is usually built with Node.js, not Gradle.
