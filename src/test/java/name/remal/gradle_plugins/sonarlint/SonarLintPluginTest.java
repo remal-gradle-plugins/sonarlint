@@ -18,6 +18,7 @@ class SonarLintPluginTest {
     @BeforeEach
     void beforeEach() {
         project.getPluginManager().apply(SonarLintPlugin.class);
+        project.getRepositories().mavenCentral();
     }
 
     @Test

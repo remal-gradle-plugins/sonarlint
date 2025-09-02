@@ -1,7 +1,10 @@
 package name.remal.gradle_plugins.sonarlint;
 
 import static java.lang.String.format;
+import static java.lang.String.join;
+import static java.lang.System.identityHashCode;
 import static java.util.stream.Collectors.toList;
+import static name.remal.gradle_plugins.build_time_constants.api.BuildTimeConstants.getStringProperty;
 import static name.remal.gradle_plugins.sonarlint.DependencyWithBrokenVersion.areFixedVersionForBrokenDependenciesRegistered;
 import static name.remal.gradle_plugins.sonarlint.DependencyWithBrokenVersion.getFixedVersionForBrokenDependency;
 import static name.remal.gradle_plugins.sonarlint.ResolvedNonReproducibleSonarDependencies.areResolvedNonReproducibleSonarDependenciesRegistered;
@@ -9,7 +12,9 @@ import static name.remal.gradle_plugins.sonarlint.ResolvedNonReproducibleSonarDe
 import static name.remal.gradle_plugins.sonarlint.SonarDependencies.SONARLINT_CORE_DEPENDENCIES;
 import static name.remal.gradle_plugins.sonarlint.SonarDependencies.SONARLINT_CORE_LIBRARIES_EXCLUSIONS;
 import static name.remal.gradle_plugins.sonarlint.SonarDependencies.SONARLINT_CORE_LOGGING_ALL_EXCLUSIONS;
+import static name.remal.gradle_plugins.sonarlint.SonarDependencies.SONARLINT_CORE_SLF4J_VERSION;
 import static name.remal.gradle_plugins.sonarlint.SonarJavascriptPluginInfo.SONAR_JAVASCRIPT_PLUGIN_DEPENDENCY;
+import static name.remal.gradle_plugins.toolkit.ActionUtils.doNothingAction;
 import static name.remal.gradle_plugins.toolkit.AttributeContainerUtils.javaRuntimeLibrary;
 import static name.remal.gradle_plugins.toolkit.GradleManagedObjectsUtils.copyManagedProperties;
 import static name.remal.gradle_plugins.toolkit.LazyValue.lazyValue;
@@ -33,6 +38,7 @@ import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.ModuleDependency;
+import org.gradle.api.artifacts.ResolvedDependency;
 import org.gradle.api.artifacts.dsl.DependencyHandler;
 import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.file.FileCollection;
@@ -48,6 +54,7 @@ import org.gradle.api.tasks.compile.JavaCompile;
 import org.gradle.jvm.toolchain.JavaCompiler;
 import org.gradle.jvm.toolchain.JavaInstallationMetadata;
 import org.gradle.jvm.toolchain.JavaLanguageVersion;
+import org.gradle.util.GradleVersion;
 import org.jspecify.annotations.Nullable;
 
 @CustomLog
@@ -55,6 +62,7 @@ public abstract class SonarLintPlugin implements Plugin<Project> {
 
     public static final String SONARLINT_EXTENSION_NAME = doNotInline("sonarLint");
     public static final String SONARLINT_CORE_CONFIGURATION_NAME = doNotInline("sonarlintCore");
+    public static final String SONARLINT_CORE_LOGGING_CONFIGURATION_NAME = doNotInline("sonarlintCoreLogging");
     public static final String SONARLINT_PLUGINS_CONFIGURATION_NAME = doNotInline("sonarlintPlugins");
 
     @Override
@@ -62,7 +70,7 @@ public abstract class SonarLintPlugin implements Plugin<Project> {
         var extension = project.getExtensions().create(SONARLINT_EXTENSION_NAME, SonarLintExtension.class);
 
         var coreConf = project.getConfigurations().register(SONARLINT_CORE_CONFIGURATION_NAME, conf -> {
-            configureSonarLintConfiguration(conf);
+            configureSonarLintConfiguration(conf, true);
             conf.setDescription("SonarLint core");
             conf.defaultDependencies(deps -> {
                 SONARLINT_CORE_DEPENDENCIES.stream()
@@ -73,8 +81,39 @@ public abstract class SonarLintPlugin implements Plugin<Project> {
             });
         });
 
+        var coreLoggingConf = project.getConfigurations().register(SONARLINT_CORE_LOGGING_CONFIGURATION_NAME, conf -> {
+            configureSonarLintConfiguration(conf, false);
+            conf.setDescription("SonarLint core logging");
+            conf.defaultDependencies(deps -> {
+                deps.add(getDependencies().create(format(
+                    "org.slf4j:slf4j-simple:%s",
+                    SONARLINT_CORE_SLF4J_VERSION
+                )));
+                deps.add(getDependencies().create(format(
+                    "org.slf4j:jul-to-slf4j:%s",
+                    SONARLINT_CORE_SLF4J_VERSION
+                )));
+
+                var springVersion = coreConf.get()
+                    .getResolvedConfiguration()
+                    .getLenientConfiguration()
+                    .getAllModuleDependencies()
+                    .stream()
+                    .filter(dep ->
+                        "org.springframework:spring-core".equals(dep.getModuleGroup() + ":" + dep.getModuleName())
+                    )
+                    .map(ResolvedDependency::getModuleVersion)
+                    .findAny()
+                    .orElse("");
+                deps.add(getDependencies().create(format(
+                    "org.springframework:spring-jcl:%s",
+                    springVersion
+                )));
+            });
+        });
+
         var pluginsConf = project.getConfigurations().register(SONARLINT_PLUGINS_CONFIGURATION_NAME, conf -> {
-            configureSonarLintConfiguration(conf);
+            configureSonarLintConfiguration(conf, true);
             conf.setDescription("SonarLint plugins");
             conf.getDependencies().withType(ModuleDependency.class).configureEach(dep -> dep.setTransitive(false));
 
@@ -90,7 +129,24 @@ public abstract class SonarLintPlugin implements Plugin<Project> {
             });
         });
 
-        configureAllSonarLintTasks(project, extension, coreConf, pluginsConf);
+        configureAllSonarLintTasks(project, extension, coreConf, coreLoggingConf, pluginsConf);
+
+        var buildService = project.getGradle().getSharedServices().registerIfAbsent(
+            join(
+                "|",
+                SonarLintBuildService.class.getName(),
+                String.valueOf(identityHashCode(SonarLintBuildService.class)),
+                Optional.ofNullable(SonarLintBuildService.class.getClassLoader())
+                    .map(System::identityHashCode)
+                    .map(Object::toString)
+                    .orElse("")
+            ),
+            SonarLintBuildService.class,
+            doNothingAction()
+        );
+
+        configureSonarLintTasks(project, buildService);
+
 
         project.getPluginManager().withPlugin("java", __ -> configureJvmProject(project, extension));
 
@@ -99,7 +155,7 @@ public abstract class SonarLintPlugin implements Plugin<Project> {
     }
 
 
-    private void configureSonarLintConfiguration(Configuration configuration) {
+    private void configureSonarLintConfiguration(Configuration configuration, boolean addExclusions) {
         configuration.setCanBeResolved(true);
         configuration.setVisible(false);
 
@@ -107,8 +163,10 @@ public abstract class SonarLintPlugin implements Plugin<Project> {
             configuration.attributes(javaRuntimeLibrary(getObjects()));
         }
 
-        SONARLINT_CORE_LIBRARIES_EXCLUSIONS.forEach(configuration::exclude);
-        SONARLINT_CORE_LOGGING_ALL_EXCLUSIONS.forEach(configuration::exclude);
+        if (addExclusions) {
+            SONARLINT_CORE_LIBRARIES_EXCLUSIONS.forEach(configuration::exclude);
+            SONARLINT_CORE_LOGGING_ALL_EXCLUSIONS.forEach(configuration::exclude);
+        }
 
         if (areFixedVersionForBrokenDependenciesRegistered()) {
             configuration.getResolutionStrategy().eachDependency(details -> {
@@ -185,13 +243,29 @@ public abstract class SonarLintPlugin implements Plugin<Project> {
         Project project,
         SonarLintExtension extension,
         Provider<Configuration> coreConf,
+        Provider<Configuration> coreLoggingConf,
         Provider<Configuration> pluginsConf
     ) {
         project.getTasks().withType(AbstractSonarLintTask.class).configureEach(task -> {
             copyManagedProperties(SonarLintSettings.class, extension, task.getSettings());
             copyManagedProperties(SonarLintLanguagesSettings.class, extension.getLanguages(), task.getLanguages());
             task.getCoreClasspath().from(coreConf);
+            task.getCoreLoggingClasspath().from(coreLoggingConf);
             task.getPluginFiles().from(pluginsConf);
+        });
+    }
+
+
+    private void configureSonarLintTasks(Project project, Provider<SonarLintBuildService> buildService) {
+        var minSupportedVersion = GradleVersion.version(getStringProperty("gradle-api.min-version"));
+        var requiredVersion = GradleVersion.version("8.0");
+        if (minSupportedVersion.compareTo(requiredVersion) >= 0) {
+            throw new AssertionError("Use @ServiceReference instead");
+        }
+
+        project.getTasks().withType(SonarLint.class).configureEach(task -> {
+            task.getBuildService().set(buildService);
+            task.usesService(buildService);
         });
     }
 

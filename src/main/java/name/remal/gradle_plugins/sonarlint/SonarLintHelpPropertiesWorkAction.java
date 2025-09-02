@@ -5,16 +5,16 @@ import static lombok.AccessLevel.PUBLIC;
 import javax.inject.Inject;
 import lombok.CustomLog;
 import lombok.NoArgsConstructor;
-import name.remal.gradle_plugins.sonarlint.internal.impl.SonarLintServiceHelp;
+import name.remal.gradle_plugins.sonarlint.internal.server.api.SonarLintHelp;
 
 @CustomLog
 @NoArgsConstructor(access = PUBLIC, onConstructor_ = {@Inject})
 abstract class SonarLintHelpPropertiesWorkAction
-    extends AbstractSonarLintHelpWorkAction {
+    extends AbstractSonarLintHelpTaskWorkAction {
 
     @Override
-    protected void executeImpl(SonarLintServiceHelp service) {
-        var propertiesDoc = service.collectPropertiesDocumentation();
+    protected void executeImpl(SonarLintHelp service) throws Throwable {
+        var propertiesDoc = service.getPropertiesDocumentation();
         logger.quiet(propertiesDoc.renderToText());
     }
 

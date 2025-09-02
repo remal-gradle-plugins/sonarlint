@@ -11,9 +11,13 @@ import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static java.util.stream.Collectors.toUnmodifiableList;
 import static name.remal.gradle_plugins.sonarlint.internal.SonarLintLanguageIncludes.getAllLanguageIncludes;
+import static name.remal.gradle_plugins.sonarlint.internal.utils.RemoteObjectUtils.exportObject;
+import static name.remal.gradle_plugins.sonarlint.internal.utils.RemoteObjectUtils.unexportObject;
+import static name.remal.gradle_plugins.sonarlint.internal.utils.SimpleLoggingEventBuilder.newLoggingEvent;
 import static name.remal.gradle_plugins.toolkit.ClosureUtils.configureWith;
 import static name.remal.gradle_plugins.toolkit.FileTreeElementUtils.createFileTreeElement;
 import static name.remal.gradle_plugins.toolkit.FileUtils.normalizeFile;
+import static name.remal.gradle_plugins.toolkit.LateInit.lateInit;
 import static name.remal.gradle_plugins.toolkit.LayoutUtils.getCodeFormattingPathsFor;
 import static name.remal.gradle_plugins.toolkit.LayoutUtils.getRootDirOf;
 import static name.remal.gradle_plugins.toolkit.LazyValue.lazyValue;
@@ -29,10 +33,10 @@ import static org.gradle.api.tasks.PathSensitivity.RELATIVE;
 import static org.gradle.language.base.plugins.LifecycleBasePlugin.VERIFICATION_GROUP;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.errorprone.annotations.OverridingMethodsMustInvokeSuper;
 import groovy.lang.Closure;
 import groovy.lang.DelegatesTo;
 import java.io.File;
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -42,10 +46,16 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.StreamSupport;
 import lombok.Getter;
+import name.remal.gradle_plugins.sonarlint.SonarLintAnalyzeWorkAction.SonarLintAnalyzerFactory;
 import name.remal.gradle_plugins.sonarlint.internal.SourceFile;
+import name.remal.gradle_plugins.sonarlint.internal.client.ImmutableSonarLintClientParams;
+import name.remal.gradle_plugins.sonarlint.internal.server.api.SonarLintLogSink;
+import name.remal.gradle_plugins.toolkit.CloseablesContainer;
 import name.remal.gradle_plugins.toolkit.EditorConfig;
+import name.remal.gradle_plugins.toolkit.LateInit;
 import name.remal.gradle_plugins.toolkit.LazyValue;
 import name.remal.gradle_plugins.toolkit.ObjectUtils;
 import name.remal.gradle_plugins.toolkit.PathIsOutOfRootPathException;
@@ -86,7 +96,7 @@ import org.w3c.dom.Element;
 
 @CacheableTask
 public abstract class SonarLint
-    extends AbstractSonarLintTask<SonarLintAnalyzeWorkActionParams, SonarLintAnalyzeWorkAction>
+    extends AbstractSonarLintTask
     implements PatternFilterable, VerificationTask, Reporting<SonarLintReports> {
 
     private static final String SONAR_LIST_PROPERTY_DELIMITER = ",";
@@ -356,6 +366,13 @@ public abstract class SonarLint
 
     //#region Hidden properties
 
+    @Input
+    protected abstract Property<String> getModuleId();
+
+    {
+        getModuleId().value(getProject().getProjectDir().getAbsolutePath()).finalizeValueOnRead();
+    }
+
     @InputFiles
     @org.gradle.api.tasks.Optional
     @PathSensitive(RELATIVE)
@@ -367,31 +384,24 @@ public abstract class SonarLint
 
     //#endregion
 
+    @Internal
+    // @ServiceReference can be used from Gradle 8
+    abstract Property<SonarLintBuildService> getBuildService();
 
-    @TaskAction
-    public final void execute(@Nullable InputChanges inputChanges) {
-        var workQueue = createWorkQueue();
-        workQueue.submit(getWorkActionClass(), params ->
-            configureWorkActionParams(params, inputChanges)
-        );
-    }
-
-    @Override
-    @OverridingMethodsMustInvokeSuper
-    @SuppressWarnings("java:S2259")
-    void configureWorkActionParams(
-        SonarLintAnalyzeWorkActionParams workActionParams,
-        @Nullable InputChanges inputChanges
+    private void configureWorkActionParams(
+        @Nullable InputChanges inputChanges,
+        SonarLintAnalyzeWorkActionParams params
     ) {
-        super.configureWorkActionParams(workActionParams, inputChanges);
+        params.getPluginFiles().from(getPluginFiles());
+        params.getLanguagesToProcess().set(getLanguages().getLanguagesToProcess());
 
-        workActionParams.getHomeDirectory().set(new File(getTemporaryDir(), "home"));
-        workActionParams.getWorkDirectory().set(new File(getTemporaryDir(), "work"));
-        workActionParams.getRootDirectory().set(getRootDir());
+
+        params.getRootDirectory().set(getRootDir());
+        params.getModuleId().set(getModuleId());
 
 
         var sourceFiles = collectSourceFiles(inputChanges);
-        workActionParams.getSourceFiles().set(sourceFiles);
+        params.getSourceFiles().set(sourceFiles);
 
 
         var settings = getSettings();
@@ -407,17 +417,61 @@ public abstract class SonarLint
         disableRulesConflictingWithLombok(automaticallyDisabledRules);
         disableRulesFromCheckstyleConfig(automaticallyDisabledRules);
 
-        workActionParams.getSonarProperties().set(sonarProperties);
-        workActionParams.getEnabledRules().set(settings.getRules().getEnabled());
-        workActionParams.getDisabledRules().set(settings.getRules().getDisabled());
-        workActionParams.getAutomaticallyDisabledRules().set(automaticallyDisabledRules);
-        workActionParams.getRulesProperties().set(settings.getRules().getProperties());
+        params.getSonarProperties().set(sonarProperties);
+        params.getEnabledRules().set(settings.getRules().getEnabled());
+        params.getDisabledRules().set(settings.getRules().getDisabled());
+        params.getAutomaticallyDisabledRules().set(automaticallyDisabledRules);
+        params.getRulesProperties().set(settings.getRules().getProperties());
 
 
-        workActionParams.getIsIgnoreFailures().set(getIgnoreFailures());
-        workActionParams.getWithDescription().set(settings.getLogging().getWithDescription());
-        workActionParams.getXmlReportLocation().fileProvider(getSonarLintReportFile(SonarLintReports::getXml));
-        workActionParams.getHtmlReportLocation().fileProvider(getSonarLintReportFile(SonarLintReports::getHtml));
+        params.getIsIgnoreFailures().set(getIgnoreFailures());
+        params.getWithDescription().set(settings.getLogging().getWithDescription());
+        params.getXmlReportLocation().fileProvider(getSonarLintReportFile(SonarLintReports::getXml));
+    }
+
+    @TaskAction
+    public final void execute(@Nullable InputChanges inputChanges) {
+        if (getIsForkEnabled().getOrElse(false)) {
+            var workActionParams = getObjects().newInstance(SonarLintAnalyzeWorkActionParams.class);
+            configureWorkActionParams(inputChanges, workActionParams);
+
+            LateInit<InetAddress> clientBindAddress = lateInit();
+            SonarLintAnalyzerFactory analyzerFactory = (sonarLintParams, closeables) -> {
+                var forkOptions = getSettings().getFork();
+                var clientParams = ImmutableSonarLintClientParams.builder()
+                    .from(sonarLintParams)
+                    .javaExecutable(forkOptions.getJavaLauncher().get().getExecutablePath().getAsFile())
+                    .coreClasspath(getCoreClasspath())
+                    .addAllCoreClasspath(getCoreLoggingClasspath())
+                    .maxHeapSize(forkOptions.getMaxHeapSize().getOrNull())
+                    .build();
+                var buildService = getBuildService().get();
+                clientBindAddress.set(buildService.getClientBindAddress(clientParams));
+                return buildService.getAnalyzer(clientParams);
+            };
+
+
+            try (var closeables = new CloseablesContainer()) {
+                Supplier<SonarLintLogSink> logSinkSupplier = () -> {
+                    SonarLintLogSink logSink = (level, message) -> {
+                        var logger = getLogger();
+                        newLoggingEvent(level).message(message).log(logger);
+                    };
+                    var bindAddress = clientBindAddress.get();
+                    var logSinkStub = exportObject(logSink, bindAddress, 0);
+                    closeables.registerCloseable(() -> unexportObject(logSink));
+                    return logSinkStub;
+                };
+
+                SonarLintAnalyzeWorkAction.executeForParams(workActionParams, analyzerFactory, logSinkSupplier);
+            }
+
+        } else {
+            var workQueue = createWorkQueue();
+            workQueue.submit(SonarLintAnalyzeWorkAction.class, params ->
+                configureWorkActionParams(inputChanges, params)
+            );
+        }
     }
 
     @SuppressWarnings("java:S3776")
