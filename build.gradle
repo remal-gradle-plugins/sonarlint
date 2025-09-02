@@ -15,7 +15,7 @@ import org.objectweb.asm.tree.ClassNode
 buildscript {
     String rootGroupId = project.ext.rootGroupId = "name.remal.gradle-plugins.${rootProject.name}"
     String rootArtifactId = project.ext.rootArtifactId = rootProject.name
-    String rootSnapshotVersion = project.ext.rootSnapshotVersion = '6-SNAPSHOT'
+    String rootSnapshotVersion = project.ext.rootSnapshotVersion = '7-SNAPSHOT'
     dependencies {
         //classpath("$rootGroupId:$rootArtifactId:$rootSnapshotVersion") { version { strictly(rootSnapshotVersion) } }
         classpath 'name.remal.gradle-plugins.toolkit:build-logic:0.73.7'
