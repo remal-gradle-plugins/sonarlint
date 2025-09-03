@@ -197,6 +197,7 @@ jobs:
     with:
       workflow-key: gradle-java
       env-json: ${{needs.prepare-env-for-cross-versions-tests.outputs.env-json}}
+      java-gradle-only-once: false
 
   # $$$sync-with-template-modifiable: cross-versions-additional-tests $$$
   # $$$sync-with-template-modifiable-end$$$
