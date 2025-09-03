@@ -6,15 +6,22 @@ on:
       workflow-key:
         type: string
         required: true
-        description: Workflow key
+        description: Workflow key.
       env-json:
         type: string
         required: false
         default: '{}'
-        description: Environment variables encoded as JSON
+        description: Environment variables encoded as JSON.
       matrix:
         type: string
-        description: Matrix definition for remal-github-actions/matrix-versions action
+        description: Matrix definition for remal-github-actions/matrix-versions action.
+      java-gradle-only-once:
+        type: boolean
+        required: false
+        default: true
+        description: >-
+          Set to `true` to add `only: once` to Java and Gradle dependencies
+          for remal-github-actions/matrix-versions action.
 
 defaults:
   run:
@@ -60,6 +67,7 @@ jobs:
             only:
             - lts
             - stable
+            ${{inputs.java-gradle-only-once && '- once' || ''}}
             include:
             - '[${{steps.min-java-version.outputs.value}},)'
           gradle-api:
@@ -68,6 +76,7 @@ jobs:
             - 'https://maven.pkg.github.com/remal-gradle-api/packages'
             only:
             - stable-minors+current-unstable
+            ${{inputs.java-gradle-only-once && '- once' || ''}}
             include:
             - '[${{steps.min-gradle-version.outputs.value}},)'
 
