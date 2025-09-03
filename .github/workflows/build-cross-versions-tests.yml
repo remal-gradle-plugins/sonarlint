@@ -1,0 +1,173 @@
+name: 'build: build-cross-versions-tests'
+
+on:
+  workflow_call:
+    inputs:
+      workflow-key:
+        type: string
+        required: true
+        description: Workflow key
+      env-json:
+        type: string
+        required: false
+        default: '{}'
+        description: Environment variables encoded as JSON
+      matrix:
+        type: string
+        description: Matrix definition for remal-github-actions/matrix-versions action
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  GITHUB_ACTIONS_TOKEN: ${{github.token}}
+  GITHUB_ACTIONS_RUN_ID: ${{github.run_id}}
+  GITHUB_ACTIONS_RUN_ATTEMPT: ${{github.run_attempt}}
+
+jobs:
+  create-matrix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      matrix-includes: ${{steps.matrix-versions.outputs.allMatrixIncludes}}
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v5
+      with:
+        submodules: recursive
+        fetch-depth: 1
+    - name: Read min supported Java version
+      id: min-java-version
+      uses: remal-github-actions/read-property@v1
+      with:
+        file: gradle.properties
+        property: 'java-runtime.min-version'
+    - name: Read min supported Gradle version
+      id: min-gradle-version
+      uses: remal-github-actions/read-property@v1
+      with:
+        file: gradle.properties
+        property: 'gradle-api.min-version'
+    - name: Retrieve matrix versions for testing
+      id: matrix-versions
+      uses: remal-github-actions/matrix-versions@v1
+      with:
+        matrix: |
+          ${{inputs.matrix || ''}}
+          java-runtime:
+            dependency: java
+            only:
+            - lts
+            - stable
+            include:
+            - '[${{steps.min-java-version.outputs.value}},)'
+          gradle-api:
+            dependency: 'maven:name.remal.gradle-api:gradle-api'
+            repositories:
+            - 'https://maven.pkg.github.com/remal-gradle-api/packages'
+            only:
+            - stable-minors+current-unstable
+            include:
+            - '[${{steps.min-gradle-version.outputs.value}},)'
+
+  cross-versions-tests:
+    needs:
+    - create-matrix
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{fromJSON(needs.create-matrix.outputs.matrix-includes)}}
+    concurrency:
+      group: ${{github.workflow}}-cross-versions-tests-${{inputs.workflow-key}}-${{strategy.job-index||'0'}}-${{github.ref}}
+      cancel-in-progress: true
+    env:
+      GITHUB_ACTIONS_JOB: ${{github.job}}
+      GITHUB_ACTIONS_JOB_INDEX: ${{github.job_index||'0'}}
+    steps:
+    - name: Create matrix info
+      id: matrix-info
+      uses: actions/github-script@v7
+      env:
+        MATRIX: ${{toJSON(matrix)}}
+      with:
+        script: |
+          const matrix = JSON.parse(process.env.MATRIX)
+          const token = Object.entries(matrix)
+            .map(([name, value]) => `${name}-${value}`)
+            .join('-')
+          core.info(`token=${token}`)
+          core.setOutput('token', token)
+          const gradleArgs = Object.entries(matrix)
+            .map(([name, value]) => `"-P${name}.version=${value}"`)
+            .join(' ')
+          core.info(`gradle-args=${gradleArgs}`)
+          core.setOutput('gradle-args', gradleArgs)
+    - name: Initialize environment variables
+      uses: actions/github-script@v7
+      env:
+        PARENT_ENV_JSON: ${{inputs.env-json}}
+      with:
+        script: |
+          const parentEnv = JSON.parse(process.env.PARENT_ENV_JSON)
+          for (const [name, value] of Object.entries(parentEnv)) {
+            if (process.env[name] == null) {
+              core.exportVariable(name, value)
+            }
+          }
+          core.exportVariable('DISABLE_COMPILATION', 'true')
+          core.exportVariable('DISABLE_VERIFICATION_EXCEPT_TESTS', 'true')
+    - name: Checkout repository
+      uses: actions/checkout@v5
+      with:
+        submodules: recursive
+        fetch-depth: 1
+    - name: Cache Gradle
+      uses: remal-github-actions/cache-gradle@main
+      with:
+        build-cache-for-branches-only: 'true'
+    - name: Setup Java ${{matrix['java-runtime'] != env.DEFAULT_JAVA_VERSION && format('{0} and {1}', matrix['java-runtime'], env.DEFAULT_JAVA_VERSION) || env.DEFAULT_JAVA_VERSION}}
+      uses: actions/setup-java@v5
+      with:
+        java-version: |
+          ${{matrix['java-runtime'] != env.DEFAULT_JAVA_VERSION && matrix['java-runtime'] || ''}}
+          ${{env.DEFAULT_JAVA_VERSION}}
+        distribution: temurin
+    - name: Download workspace archive
+      id: download-workspace
+      uses: Wandalen/wretry.action@v3.8.0
+      with:
+        action: actions/download-artifact@v5
+        attempt_limit: 3
+        attempt_delay: 5000
+        with: |
+          name: workspace
+          path: /tmp
+    - name: Unarchive workspace
+      run: |
+        tar -xz -f "${{fromJSON(steps.download-workspace.outputs.outputs).download-path}}/workspace-${{github.run_id}}.tar.gz"
+    - name: Execute tests
+      run: |
+        ./gradlew-retry-connection-timeouts allTests jacocoReportMerged displayTotalCodeCoverage ${{steps.matrix-info.outputs.gradle-args}}
+    - name: Upload Jacoco merged report
+      if: ${{strategy.job-index == '0'}}
+      uses: actions/upload-artifact@v4
+      with:
+        name: jacoco-merged-report-${{steps.matrix-info.outputs.token}}
+        path: build/reports/jacoco/jacocoReportMerged/
+        if-no-files-found: error
+        retention-days: 30
+    - name: Archive failed test workspace
+      if: ${{failure()}}
+      run: |
+        tar -cz -f "/tmp/workspace-test-${{steps.matrix-info.outputs.token}}-${{github.run_id}}.tar.gz" `git ls-files -m -o`
+    - name: Upload failed test workspace archive
+      if: ${{failure()}}
+      uses: actions/upload-artifact@v4
+      with:
+        name: workspace-test-${{steps.matrix-info.outputs.token}}
+        path: '/tmp/workspace-test-${{steps.matrix-info.outputs.token}}-${{github.run_id}}.tar.gz'
+        if-no-files-found: error
+        retention-days: 7
