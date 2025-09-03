@@ -77,16 +77,15 @@ jobs:
   build:
     needs:
     - populate-cache
+    outputs:
+      repository-isTemplate: ${{fromJSON(steps.repository-info.outputs.result).isTemplate}}
+      publish-isGradlePlugin: ${{steps.publish-flags.outputs.isGradlePlugin}}
+      publish-isMavenCentral: ${{steps.publish-flags.outputs.isMavenCentral}}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     concurrency:
       group: ${{github.workflow}}-build-${{strategy.job-index||'0'}}-${{github.ref}}
       cancel-in-progress: true
-    outputs:
-      repository-isTemplate: ${{fromJSON(steps.repository-info.outputs.result).isTemplate}}
-      publish-isGradlePlugin: ${{steps.publish-flags.outputs.isGradlePlugin}}
-      publish-isMavenCentral: ${{steps.publish-flags.outputs.isMavenCentral}}
-      allMatrixIncludes: ${{steps.matrixVersions.outputs.allMatrixIncludes}}
     steps:
     - name: Checkout repository
       uses: actions/checkout@v5
@@ -119,16 +118,16 @@ jobs:
         REPOSITORY_LICENSE_NAME: ${{fromJSON(steps.repository-info.outputs.result).license.name}}
         REPOSITORY_LICENSE_HTML_URL: ${{fromJSON(steps.repository-info.outputs.result).license.htmlUrl}}
       run: |
-        echo "REPOSITORY_NAME=$REPOSITORY_NAME" >> "$GITHUB_ENV"
-        echo "REPOSITORY_FULL_NAME=$REPOSITORY_FULL_NAME" >> "$GITHUB_ENV"
-        echo "REPOSITORY_API_URL=$REPOSITORY_API_URL" >> "$GITHUB_ENV"
-        echo "REPOSITORY_HTML_URL=$REPOSITORY_HTML_URL" >> "$GITHUB_ENV"
-        echo "REPOSITORY_DESCRIPTION=$REPOSITORY_DESCRIPTION" >> "$GITHUB_ENV"
-        echo "REPOSITORY_TOPICS=$REPOSITORY_TOPICS" >> "$GITHUB_ENV"
-        echo "REPOSITORY_IS_TEMPLATE=$REPOSITORY_IS_TEMPLATE" >> "$GITHUB_ENV"
-        echo "REPOSITORY_OWNER_NAME=$REPOSITORY_OWNER_NAME" >> "$GITHUB_ENV"
-        echo "REPOSITORY_LICENSE_NAME=$REPOSITORY_LICENSE_NAME" >> "$GITHUB_ENV"
-        echo "REPOSITORY_LICENSE_HTML_URL=$REPOSITORY_LICENSE_HTML_URL" >> "$GITHUB_ENV"
+        echo "REPOSITORY_NAME=$REPOSITORY_NAME" | tee -a $GITHUB_ENV
+        echo "REPOSITORY_FULL_NAME=$REPOSITORY_FULL_NAME" | tee -a $GITHUB_ENV
+        echo "REPOSITORY_API_URL=$REPOSITORY_API_URL" | tee -a $GITHUB_ENV
+        echo "REPOSITORY_HTML_URL=$REPOSITORY_HTML_URL" | tee -a $GITHUB_ENV
+        echo "REPOSITORY_DESCRIPTION=$REPOSITORY_DESCRIPTION" | tee -a $GITHUB_ENV
+        echo "REPOSITORY_TOPICS=$REPOSITORY_TOPICS" | tee -a $GITHUB_ENV
+        echo "REPOSITORY_IS_TEMPLATE=$REPOSITORY_IS_TEMPLATE" | tee -a $GITHUB_ENV
+        echo "REPOSITORY_OWNER_NAME=$REPOSITORY_OWNER_NAME" | tee -a $GITHUB_ENV
+        echo "REPOSITORY_LICENSE_NAME=$REPOSITORY_LICENSE_NAME" | tee -a $GITHUB_ENV
+        echo "REPOSITORY_LICENSE_HTML_URL=$REPOSITORY_LICENSE_HTML_URL" | tee -a $GITHUB_ENV
     - name: Submit dependencies to GitHub
       if: ${{(github.event_name == 'push' || github.event_name == 'workflow_dispatch') && startsWith(github.ref, 'refs/heads/')}}
       run: |
@@ -136,7 +135,7 @@ jobs:
     - name: Compile classes
       run: |
         ./gradlew-retry-connection-timeouts allClasses
-        echo "DISABLE_COMPILATION=true" >> "$GITHUB_ENV"
+        echo "DISABLE_COMPILATION=true" | tee -a $GITHUB_ENV
     - name: Build without tests
       run: |
         ./gradlew-retry-connection-timeouts build publishToMavenLocal -Pdisable-tests=true
@@ -144,18 +143,14 @@ jobs:
       id: publish-flags
       run: |
         if [ -f "build/publish-gradle-plugin.flag" ]; then
-          echo "isGradlePlugin = true"
-          echo 'isGradlePlugin=true' >> $GITHUB_OUTPUT
+          echo "isGradlePlugin=true" | tee -a $GITHUB_OUTPUT
         else
-          echo "isGradlePlugin = false"
-          echo 'isGradlePlugin=false' >> $GITHUB_OUTPUT
+          echo "isGradlePlugin=false" | tee -a $GITHUB_OUTPUT
         fi
         if [ -f "build/publish-maven-central.flag" ]; then
-          echo "isMavenCentral = true"
-          echo 'isMavenCentral=true' >> $GITHUB_OUTPUT
+          echo "isMavenCentral=true" | tee -a $GITHUB_OUTPUT
         else
-          echo "isMavenCentral = false"
-          echo 'isMavenCentral=false' >> $GITHUB_OUTPUT
+          echo "isMavenCentral=false" | tee -a $GITHUB_OUTPUT
         fi
     - name: Archive workspace
       if: ${{always()}}
@@ -169,112 +164,48 @@ jobs:
         path: '/tmp/workspace-${{github.run_id}}.tar.gz'
         if-no-files-found: error
         retention-days: 90
-    - name: Read min supported Java version
-      id: min-java-version
-      uses: remal-github-actions/read-property@v1
-      with:
-        file: gradle.properties
-        property: 'java-runtime.min-version'
-    - name: Read min supported Gradle version
-      id: min-gradle-version
-      uses: remal-github-actions/read-property@v1
-      with:
-        file: gradle.properties
-        property: 'gradle-api.min-version'
-    - name: Retrieve matrix versions for testing
-      id: matrixVersions
-      uses: remal-github-actions/matrix-versions@v1
-      with:
-        matrix: |
-          java:
-            dependency: java
-            only:
-            - lts
-            - stable
-            include:
-            - '[${{steps.min-java-version.outputs.value}},)'
-          gradle:
-            dependency: 'maven:name.remal.gradle-api:gradle-api'
-            repositories:
-            - 'https://maven.pkg.github.com/remal-gradle-api/packages'
-            only:
-            - stable-minors+current-unstable
-            include:
-            - '[${{steps.min-gradle-version.outputs.value}},)'
 
+
+  prepare-env-for-cross-versions-tests:
+    outputs:
+      env-json: ${{steps.prepare.outputs.env-json}}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+    - name: Prepare environment variables for cross-versions-tests
+      id: prepare
+      uses: actions/github-script@v7
+      env:
+        ENV_JSON: ${{toJSON(env)}}
+      with:
+        script: |
+          const envObj = JSON.parse(process.env.ENV_JSON)
+          for (const name of Object.keys(envObj)) {
+            if (name.startsWith('GITHUB_ACTIONS_')) {
+              delete envObj[name]
+            }
+          }
+          core.info(JSON.stringify(envObj, null, '  '))
+          core.setOutput('env-json', JSON.stringify(envObj))
 
   cross-versions-tests:
     needs:
     - build
-    runs-on: ubuntu-latest
-    timeout-minutes: 120
-    strategy:
-      fail-fast: false
-      matrix:
-        include: ${{fromJSON(needs.build.outputs.allMatrixIncludes)}}
-    concurrency:
-      group: ${{github.workflow}}-cross-versions-tests-${{strategy.job-index||'0'}}-${{github.ref}}
-      cancel-in-progress: true
-    env:
-      DISABLE_COMPILATION: 'true'
-      DISABLE_VERIFICATION_EXCEPT_TESTS: 'true'
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v5
-      with:
-        submodules: recursive
-        fetch-depth: 1
-    - name: Cache Gradle
-      uses: remal-github-actions/cache-gradle@main
-      with:
-        build-cache-for-branches-only: 'true'
-    - name: Setup Java ${{matrix.java != env.DEFAULT_JAVA_VERSION && format('{0} and {1}', matrix.java, env.DEFAULT_JAVA_VERSION) || env.DEFAULT_JAVA_VERSION}}
-      uses: actions/setup-java@v5
-      with:
-        java-version: |
-          ${{matrix.java != env.DEFAULT_JAVA_VERSION && matrix.java || ''}}
-          ${{env.DEFAULT_JAVA_VERSION}}
-        distribution: temurin
-    - name: Download workspace archive
-      id: download-workspace
-      uses: Wandalen/wretry.action@v3.8.0
-      with:
-        action: actions/download-artifact@v5
-        attempt_limit: 3
-        attempt_delay: 5000
-        with: |
-          name: workspace
-          path: /tmp
-    - name: Unarchive workspace
-      run: |
-        tar -xz -f "${{fromJSON(steps.download-workspace.outputs.outputs).download-path}}/workspace-${{github.run_id}}.tar.gz"
-    - name: Execute tests
-      run: |
-        ./gradlew-retry-connection-timeouts allTests jacocoReportMerged displayTotalCodeCoverage "-Pjava-runtime.version=${{matrix.java}}" "-Pgradle-api.version=${{matrix.gradle}}"
-    - name: Upload Jacoco merged report
-      if: ${{strategy.job-index == '0'}}
-      uses: actions/upload-artifact@v4
-      with:
-        name: jacoco-merged-report-${{matrix.java}}-${{matrix.gradle}}
-        path: build/reports/jacoco/jacocoReportMerged/
-        if-no-files-found: error
-        retention-days: 30
-    - name: Archive failed test workspace
-      if: ${{failure()}}
-      run: |
-        tar -cz -f "/tmp/workspace-test-${{matrix.java}}-${{matrix.gradle}}-${{github.run_id}}.tar.gz" `git ls-files -m -o`
-    - name: Upload failed test workspace archive
-      if: ${{failure()}}
-      uses: actions/upload-artifact@v4
-      with:
-        name: workspace-test-${{matrix.java}}-${{matrix.gradle}}
-        path: '/tmp/workspace-test-${{matrix.java}}-${{matrix.gradle}}-${{github.run_id}}.tar.gz'
-        if-no-files-found: error
-        retention-days: 7
+    - prepare-env-for-cross-versions-tests
+    uses: ./.github/workflows/build-cross-versions-tests.yml
+    secrets: inherit
+    with:
+      workflow-key: gradle-java
+      env-json: ${{needs.prepare-env-for-cross-versions-tests.outputs.env-json}}
+
+  # $$$sync-with-template-modifiable: cross-versions-additional-tests $$$
+  # $$$sync-with-template-modifiable-end$$$
 
   cross-versions-tests-success:
     needs:
     - cross-versions-tests
+    # $$$sync-with-template-modifiable: cross-versions-additional-tests-dependents $$$
+    # $$$sync-with-template-modifiable-end$$$
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -292,7 +223,7 @@ jobs:
       }}
     needs:
     - build
-    - cross-versions-tests
+    - cross-versions-tests-success
     runs-on: ubuntu-latest
     timeout-minutes: 15
     concurrency:
@@ -329,9 +260,43 @@ jobs:
     - name: Unarchive workspace
       run: |
         tar -xz -f "${{fromJSON(steps.download-workspace.outputs.outputs).download-path}}/workspace-${{github.run_id}}.tar.gz"
+    - name: Read min supported Java version
+      id: min-java-version
+      uses: remal-github-actions/read-property@v1
+      with:
+        file: gradle.properties
+        property: 'java-runtime.min-version'
+    - name: Read min supported Gradle version
+      id: min-gradle-version
+      uses: remal-github-actions/read-property@v1
+      with:
+        file: gradle.properties
+        property: 'gradle-api.min-version'
+    - name: Retrieve max tested versions
+      id: max-tested-versions
+      uses: remal-github-actions/matrix-versions@v1
+      with:
+        matrix: |
+          java:
+            dependency: java
+            only:
+            - once
+            - lts
+            - stable
+            include:
+            - '[${{steps.min-java-version.outputs.value}},)'
+          gradle:
+            dependency: 'maven:name.remal.gradle-api:gradle-api'
+            repositories:
+            - 'https://maven.pkg.github.com/remal-gradle-api/packages'
+            only:
+            - once
+            - stable-minors+current-unstable
+            include:
+            - '[${{steps.min-gradle-version.outputs.value}},)'
     - name: Execute push-back tasks
       run: |
-        ./gradlew-retry-connection-timeouts pushBackTasks "-Pjava-runtime.max-version=${{fromJSON(needs.build.outputs.allMatrixIncludes)[0].java}}" "-Pgradle-api.max-version=${{fromJSON(needs.build.outputs.allMatrixIncludes)[0].gradle}}"
+        ./gradlew-retry-connection-timeouts pushBackTasks "-Pjava-runtime.max-version=${{fromJSON(steps.max-tested-versions.outputs.allMatrixIncludes)[0].java}}" "-Pgradle-api.max-version=${{fromJSON(steps.max-tested-versions.outputs.allMatrixIncludes)[0].gradle}}"
     - name: Push back
       env:
         PUSH_BACK_TOKEN: ${{secrets.PUSH_BACK_TOKEN}}
@@ -346,7 +311,7 @@ jobs:
     if: ${{github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')}}
     needs:
     - build
-    - cross-versions-tests
+    - cross-versions-tests-success
     runs-on: ubuntu-latest
     timeout-minutes: 5
     concurrency:
@@ -361,7 +326,7 @@ jobs:
       with:
         script: |
           const tagName = context.payload.ref.replace(/^refs\/tags\//, '')
-          core.info('Git tag: ' + tagName)
+          core.info(`Git tag: ${tagName}``)
           const result = {
             isVersion: !!tagName.match(/^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-rc-[1-9]\d*)?$/),
           }
@@ -379,7 +344,7 @@ jobs:
       }}
     needs:
     - build
-    - cross-versions-tests
+    - cross-versions-tests-success
     - parse-git-tag
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -434,7 +399,7 @@ jobs:
       }}
     needs:
     - build
-    - cross-versions-tests
+    - cross-versions-tests-success
     - parse-git-tag
     runs-on: ubuntu-latest
     timeout-minutes: 30
