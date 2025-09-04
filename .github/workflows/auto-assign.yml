@@ -27,7 +27,7 @@ jobs:
     steps:
     - name: Define assignee
       id: assignee
-      uses: actions/github-script@v7
+      uses: actions/github-script@v8
       with:
         script: |
           const repository = await github.rest.repos.get({
