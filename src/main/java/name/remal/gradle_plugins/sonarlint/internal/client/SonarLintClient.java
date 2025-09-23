@@ -34,7 +34,6 @@ import java.rmi.RemoteException;
 import java.security.CodeSource;
 import java.security.ProtectionDomain;
 import java.time.Duration;
-import java.time.LocalTime;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -56,13 +55,14 @@ import name.remal.gradle_plugins.sonarlint.internal.server.api.SonarLintAnalyzer
 import name.remal.gradle_plugins.sonarlint.internal.server.api.SonarLintHelp;
 import name.remal.gradle_plugins.sonarlint.internal.utils.AccumulatingLogger;
 import name.remal.gradle_plugins.sonarlint.internal.utils.ServerRegistryFacade;
+import name.remal.gradle_plugins.sonarlint.internal.utils.SonarLintRmiMethodCallException;
+import name.remal.gradle_plugins.sonarlint.internal.utils.SonarLintServerStartTimeoutException;
 import name.remal.gradle_plugins.toolkit.AbstractCloseablesContainer;
 import name.remal.gradle_plugins.toolkit.UriUtils;
 import org.gradle.api.JavaVersion;
 import org.gradle.util.GradleVersion;
 
 @RequiredArgsConstructor
-@SuppressWarnings("JavaTimeDefaultTimeZone")
 public class SonarLintClient extends AbstractCloseablesContainer implements AutoCloseable {
 
     private static final Duration START_TIMEOUT = isDebugEnabled() ? Duration.ofMinutes(5) : Duration.ofSeconds(10);
@@ -180,14 +180,7 @@ public class SonarLintClient extends AbstractCloseablesContainer implements Auto
             stub = state.getServerRegistry().lookup(interfaceClass);
         } catch (Exception e) {
             try {
-                throw new SonarLintClientException(format(
-                    "SonarLint server couldn't start within %s."
-                        + " Local time: %s."
-                        + "%n%s",
-                    START_TIMEOUT,
-                    LocalTime.now(),
-                    renderDebugInfo()
-                ));
+                throw new SonarLintServerStartTimeoutException(START_TIMEOUT, renderDebugInfo());
             } finally {
                 close();
             }
@@ -204,14 +197,11 @@ public class SonarLintClient extends AbstractCloseablesContainer implements Auto
                     || exception instanceof NotBoundException
                 ) {
                     try {
-                        throw new SonarLintClientException(format(
-                            "An exception occurred while calling for an RMI stub of %s."
-                                + " Local time: %s."
-                                + "%n%s",
-                            interfaceClass,
-                            LocalTime.now(),
-                            renderDebugInfo()
-                        ));
+                        throw new SonarLintRmiMethodCallException(
+                            realMethod,
+                            renderDebugInfo(),
+                            exception
+                        );
                     } finally {
                         close();
                     }
@@ -272,14 +262,7 @@ public class SonarLintClient extends AbstractCloseablesContainer implements Auto
 
         if (!startingState.getStartedSignal().await(START_TIMEOUT.toMillis(), MILLISECONDS)) {
             try {
-                throw new SonarLintClientException(format(
-                    "SonarLint server couldn't start within %s."
-                        + " Local time: %s."
-                        + "%n%s",
-                    START_TIMEOUT,
-                    LocalTime.now(),
-                    renderDebugInfo()
-                ));
+                throw new SonarLintServerStartTimeoutException(START_TIMEOUT, renderDebugInfo());
             } finally {
                 close();
             }
