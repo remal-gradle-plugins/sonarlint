@@ -8,7 +8,9 @@ import static java.nio.file.Files.newBufferedWriter;
 import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.joining;
 import static name.remal.gradle_plugins.sonarlint.internal.utils.ForkUtils.getEnvironmentVariablesToPropagateToForkedProcess;
+import static name.remal.gradle_plugins.sonarlint.internal.utils.ForkUtils.getEnvironmentVariablesToSetToForkedProcess;
 import static name.remal.gradle_plugins.sonarlint.internal.utils.ForkUtils.getSystemsPropertiesToPropagateToForkedProcess;
+import static name.remal.gradle_plugins.sonarlint.internal.utils.ForkUtils.getSystemsPropertiesToSetToForkedProcess;
 import static name.remal.gradle_plugins.toolkit.JacocoJvmArg.parseJacocoJvmArgFromCurrentJvmArgs;
 import static name.remal.gradle_plugins.toolkit.PathUtils.tryToDeleteRecursivelyIgnoringFailure;
 
@@ -29,10 +31,7 @@ public class JavaExecDefault implements JavaExec {
 
         if (!params.getClasspath().isEmpty()) {
             allArgs.add("-cp");
-            allArgs.add(params.getClasspath().stream()
-                .map(File::getAbsolutePath)
-                .collect(joining(File.pathSeparator))
-            );
+            allArgs.add(params.getClasspath().stream().map(File::getAbsolutePath).collect(joining(File.pathSeparator)));
         }
 
         params.getMaxHeapSize()
@@ -44,6 +43,10 @@ public class JavaExecDefault implements JavaExec {
         allArgs.add("java.base/java.lang=ALL-UNNAMED");
 
         allArgs.add(format("-D%s=%s", "java.awt.headless", true));
+
+        getSystemsPropertiesToSetToForkedProcess().forEach((property, value) -> {
+            allArgs.add(format("-D%s=%s", property, value));
+        });
 
         getSystemsPropertiesToPropagateToForkedProcess().forEach(property -> {
             var value = System.getProperty(property);
@@ -80,14 +83,14 @@ public class JavaExecDefault implements JavaExec {
         }
 
 
-        var processBuilder = new ProcessBuilder(
-            params.getExecutable().getAbsolutePath(),
-            "@" + cliArgumentFile
-        )
-            .redirectErrorStream(true);
+        var processBuilder = new ProcessBuilder(params.getExecutable().getAbsolutePath(),
+            "@" + cliArgumentFile).redirectErrorStream(true);
 
         var outputFile = createTempFile(getClass().getSimpleName() + "-", ".log").toFile();
         processBuilder.redirectOutput(Redirect.appendTo(outputFile));
+
+
+        processBuilder.environment().putAll(getEnvironmentVariablesToSetToForkedProcess());
 
         getEnvironmentVariablesToPropagateToForkedProcess().forEach(envName -> {
             var value = System.getenv(envName);
@@ -117,9 +120,7 @@ public class JavaExecDefault implements JavaExec {
 
         for (var i = 0; i < line.length(); i++) {
             var ch = line.charAt(i);
-            if (isWhitespace(ch)
-                || ch == '#'
-            ) {
+            if (isWhitespace(ch) || ch == '#') {
                 return true;
             }
         }

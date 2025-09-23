@@ -50,6 +50,8 @@ public class SimpleLoggingEventBuilder {
 
     public interface WithLog {
         void log(Logger logger);
+
+        void log(AccumulatingLoggerMethods logger);
     }
 
 
@@ -107,6 +109,13 @@ public class SimpleLoggingEventBuilder {
                         logger.info(message, cause);
                     }
             }
+        }
+
+        @Override
+        public void log(AccumulatingLoggerMethods logger) {
+            var level = requireNonNull(this.level, "level");
+            var message = requireNonNull(this.message, "message");
+            logger.log(level, message, cause);
         }
 
         @Override

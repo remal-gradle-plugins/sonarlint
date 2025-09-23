@@ -440,6 +440,7 @@ public abstract class SonarLint
                 var forkOptions = getSettings().getFork();
                 var clientParams = ImmutableSonarLintClientParams.builder()
                     .from(sonarLintParams)
+                    .javaMajorVersion(forkOptions.getJavaLauncher().get().getMetadata().getLanguageVersion().asInt())
                     .javaExecutable(forkOptions.getJavaLauncher().get().getExecutablePath().getAsFile())
                     .coreClasspath(getCoreClasspath())
                     .addAllCoreClasspath(getCoreLoggingClasspath())

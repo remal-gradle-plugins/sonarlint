@@ -1,6 +1,7 @@
 package name.remal.gradle_plugins.sonarlint.internal.client;
 
 import static java.lang.String.format;
+import static java.lang.System.lineSeparator;
 import static java.net.InetAddress.getLoopbackAddress;
 import static java.nio.file.Files.createTempFile;
 import static java.nio.file.Files.write;
@@ -18,6 +19,7 @@ import static name.remal.gradle_plugins.toolkit.GradleVersionUtils.isCurrentGrad
 import static name.remal.gradle_plugins.toolkit.JavaSerializationUtils.serializeToBytes;
 import static name.remal.gradle_plugins.toolkit.LazyProxy.asLazyProxy;
 import static name.remal.gradle_plugins.toolkit.PathUtils.tryToDeleteRecursivelyIgnoringFailure;
+import static name.remal.gradle_plugins.toolkit.StringUtils.indentString;
 import static name.remal.gradle_plugins.toolkit.ThrowableUtils.unwrapException;
 import static org.slf4j.event.Level.DEBUG;
 
@@ -38,6 +40,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -51,22 +54,25 @@ import name.remal.gradle_plugins.sonarlint.internal.server.ImmutableSonarLintSer
 import name.remal.gradle_plugins.sonarlint.internal.server.SonarLintServerMain;
 import name.remal.gradle_plugins.sonarlint.internal.server.api.SonarLintAnalyzer;
 import name.remal.gradle_plugins.sonarlint.internal.server.api.SonarLintHelp;
+import name.remal.gradle_plugins.sonarlint.internal.utils.AccumulatingLogger;
 import name.remal.gradle_plugins.sonarlint.internal.utils.ServerRegistryFacade;
 import name.remal.gradle_plugins.toolkit.AbstractCloseablesContainer;
 import name.remal.gradle_plugins.toolkit.UriUtils;
+import org.gradle.api.JavaVersion;
 import org.gradle.util.GradleVersion;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @RequiredArgsConstructor
 @SuppressWarnings("JavaTimeDefaultTimeZone")
-public class SonarLintClient
-    extends AbstractCloseablesContainer
-    implements AutoCloseable {
+public class SonarLintClient extends AbstractCloseablesContainer implements AutoCloseable {
 
-    private static final Duration startTimeout = isDebugEnabled() ? Duration.ofMinutes(5) : Duration.ofSeconds(10);
+    private static final Duration START_TIMEOUT = isDebugEnabled() ? Duration.ofMinutes(5) : Duration.ofSeconds(10);
 
-    private static final Logger logger = LoggerFactory.getLogger(SonarLintClient.class);
+
+    private final AccumulatingLogger logger = new AccumulatingLogger(SonarLintClient.class);
+
+    {
+        registerCloseable(logger::reset);
+    }
 
 
     private final JavaExec javaExec;
@@ -87,6 +93,54 @@ public class SonarLintClient
             this.state
         ).log(logger);
         this.state = state;
+    }
+
+
+    @SuppressWarnings("java:S2259")
+    private String renderDebugInfo() {
+        var buf = new StringBuilder();
+        Supplier<StringBuilder> withNewLineIfNeeded = () -> {
+            if (buf.length() > 0) {
+                buf.append(lineSeparator());
+            }
+            return buf;
+        };
+
+        var state = this.state;
+
+        withNewLineIfNeeded.get()
+            .append("State: ").append(state.getClass().getSimpleName());
+
+        withNewLineIfNeeded.get()
+            .append("Client Java version: ").append(JavaVersion.current().getMajorVersion());
+
+        withNewLineIfNeeded.get()
+            .append("Client logs:").append(lineSeparator())
+            .append(indentString(logger.render()).replace("\n", lineSeparator()));
+
+        withNewLineIfNeeded.get()
+            .append("Server Java version: ").append(params.getJavaMajorVersion());
+
+        final JavaExecProcess serverProcess;
+        if (state instanceof Starting) {
+            serverProcess = ((Starting) state).getServerProcess().get();
+        } else if (state instanceof Started) {
+            serverProcess = ((Started) state).getServerProcess();
+        } else {
+            serverProcess = null;
+        }
+        if (serverProcess != null) {
+            withNewLineIfNeeded.get()
+                .append("Server pid: ").append(serverProcess.getProcess().pid());
+            withNewLineIfNeeded.get()
+                .append("Server logs file: ").append(serverProcess.getOutputFile());
+            withNewLineIfNeeded.get()
+                .append("Server logs:")
+                .append(lineSeparator())
+                .append(indentString(serverProcess.readOutput()).replace("\n", lineSeparator()));
+        }
+
+        return buf.toString();
     }
 
 
@@ -129,10 +183,10 @@ public class SonarLintClient
                 throw new SonarLintClientException(format(
                     "SonarLint server couldn't start within %s."
                         + " Local time: %s."
-                        + " Server output:%n%s",
-                    startTimeout,
+                        + "%n%s",
+                    START_TIMEOUT,
                     LocalTime.now(),
-                    state.getServerProcess().readOutput()
+                    renderDebugInfo()
                 ));
             } finally {
                 close();
@@ -153,10 +207,10 @@ public class SonarLintClient
                         throw new SonarLintClientException(format(
                             "An exception occurred while calling for an RMI stub of %s."
                                 + " Local time: %s."
-                                + " Server output:%n%s",
+                                + "%n%s",
                             interfaceClass,
                             LocalTime.now(),
-                            state.getServerProcess().readOutput()
+                            renderDebugInfo()
                         ));
                     } finally {
                         close();
@@ -166,6 +220,8 @@ public class SonarLintClient
                 throw exception;
             }
         });
+
+        stub = logger.wrapCalls(interfaceClass, stub);
 
         return stub;
     }
@@ -214,15 +270,15 @@ public class SonarLintClient
         var serverProcess = registerCloseable(startServer(serverRuntimeInfoRegistry));
         startingState.getServerProcess().set(serverProcess);
 
-        if (!startingState.getStartedSignal().await(startTimeout.toMillis(), MILLISECONDS)) {
+        if (!startingState.getStartedSignal().await(START_TIMEOUT.toMillis(), MILLISECONDS)) {
             try {
                 throw new SonarLintClientException(format(
                     "SonarLint server couldn't start within %s."
                         + " Local time: %s."
-                        + " Server output:%n%s",
-                    startTimeout,
+                        + "%n%s",
+                    START_TIMEOUT,
                     LocalTime.now(),
-                    serverProcess.readOutput()
+                    renderDebugInfo()
                 ));
             } finally {
                 close();

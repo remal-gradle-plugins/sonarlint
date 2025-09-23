@@ -5,6 +5,7 @@ import static java.nio.file.Files.readAllBytes;
 import static name.remal.gradle_plugins.build_time_constants.api.BuildTimeConstants.getClassPackageName;
 import static name.remal.gradle_plugins.build_time_constants.api.BuildTimeConstants.getStringProperty;
 import static name.remal.gradle_plugins.sonarlint.internal.utils.JacocoUtils.dumpJacocoData;
+import static name.remal.gradle_plugins.sonarlint.internal.utils.LogMessageRenderer.SIMPLE_LOG_MESSAGE_DATE_FORMAT;
 import static name.remal.gradle_plugins.sonarlint.internal.utils.RegistryFactory.connectToRegistry;
 import static name.remal.gradle_plugins.toolkit.JavaSerializationUtils.deserializeFrom;
 import static name.remal.gradle_plugins.toolkit.SneakyThrowUtils.sneakyThrowsRunnable;
@@ -55,6 +56,13 @@ public class SonarLintServerMain {
         System.setProperty(
             format(
                 "org.slf4j.simpleLogger.log.%s",
+                getClassPackageName(SonarLintServerMain.class)
+            ),
+            Level.TRACE.name()
+        );
+        System.setProperty(
+            format(
+                "org.slf4j.simpleLogger.log.%s",
                 getStringProperty("classesRelocation.basePackageForRelocatedClasses")
             ),
             serverParams.getDefaultLogLevel().name()
@@ -67,7 +75,7 @@ public class SonarLintServerMain {
         );
         System.setProperty(
             "org.slf4j.simpleLogger.dateTimeFormat",
-            "HH:mm:ss.SSS"
+            SIMPLE_LOG_MESSAGE_DATE_FORMAT
         );
     }
 
