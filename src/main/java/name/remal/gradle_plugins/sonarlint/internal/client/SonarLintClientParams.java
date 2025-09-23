@@ -10,6 +10,8 @@ import org.immutables.value.Value;
 @SuppressWarnings("immutables:subtype")
 public interface SonarLintClientParams extends SonarLintParams {
 
+    int getJavaMajorVersion();
+
     File getJavaExecutable();
 
     Set<File> getCoreClasspath();

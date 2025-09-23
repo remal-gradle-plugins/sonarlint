@@ -11,15 +11,14 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.SneakyThrows;
 import lombok.experimental.SuperBuilder;
+import name.remal.gradle_plugins.sonarlint.internal.client.SonarLintClient;
 import name.remal.gradle_plugins.toolkit.CloseablesContainer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @SuperBuilder
 @Getter
 public class ServerRegistryFacade extends AbstractRegistryFacade implements AutoCloseable {
 
-    private static final Logger logger = LoggerFactory.getLogger(ServerRegistryFacade.class);
+    private static final AccumulatingLogger logger = new AccumulatingLogger(SonarLintClient.class);
 
 
     @NonNull
@@ -31,10 +30,11 @@ public class ServerRegistryFacade extends AbstractRegistryFacade implements Auto
         implementation = withLoggedCalls(interfaceClass, implementation);
         implementation = withDumpJacocoDataOnEveryCall(interfaceClass, implementation);
 
+        implementation = logger.wrapCalls(interfaceClass, implementation);
         keepHardReferenceOnImplementation(implementation);
 
         logger.debug(
-            "Exporting an {} RMI stub of {} at {} on any available port",
+            "Exporting an %s RMI stub of %s at %s on any available port",
             registryName,
             interfaceClass,
             socketFactory.getBindAddr()
@@ -43,7 +43,7 @@ public class ServerRegistryFacade extends AbstractRegistryFacade implements Auto
         var stub = exportObject(implementation, 0, socketFactory, socketFactory);
 
         logger.info(
-            "Exported an {} RMI stub of {} at {} on port {}",
+            "Exported an %s RMI stub of %s at %s on port %s",
             registryName,
             interfaceClass,
             socketFactory.getBindAddr(),

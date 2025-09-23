@@ -1,9 +1,12 @@
 package name.remal.gradle_plugins.sonarlint.internal.utils;
 
 import static java.lang.reflect.Proxy.newProxyInstance;
+import static java.util.Arrays.stream;
+import static java.util.stream.Collectors.joining;
 import static lombok.AccessLevel.PRIVATE;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.Type;
 import lombok.NoArgsConstructor;
 import name.remal.gradle_plugins.toolkit.ProxyInvocationHandler;
 import org.jspecify.annotations.Nullable;
@@ -34,7 +37,13 @@ public abstract class AopUtils {
 
                     @Override
                     public String toString() {
-                        return method.toString();
+                        var paramsStr = stream(method.getParameterTypes())
+                            .map(Type::getTypeName)
+                            .collect(joining(",", "(", ")"));
+                        return method.getDeclaringClass().getName()
+                            + '.'
+                            + method.getName()
+                            + paramsStr;
                     }
                 };
                 return aroundAdvice.around(realMethod);

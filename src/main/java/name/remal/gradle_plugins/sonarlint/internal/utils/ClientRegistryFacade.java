@@ -6,20 +6,19 @@ import java.rmi.Remote;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.experimental.SuperBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import name.remal.gradle_plugins.sonarlint.internal.client.SonarLintClient;
 
 @SuperBuilder
 @Getter
 public class ClientRegistryFacade extends AbstractRegistryFacade {
 
-    private static final Logger logger = LoggerFactory.getLogger(ClientRegistryFacade.class);
+    private static final AccumulatingLogger logger = new AccumulatingLogger(SonarLintClient.class);
 
 
     @SneakyThrows
     public <T extends Remote> T lookup(Class<T> interfaceClass) {
         logger.debug(
-            "Looking up for a stub of {} from {} RMI registry ({})",
+            "Looking up for a stub of %s from %s RMI registry (%s)",
             interfaceClass,
             registryName,
             socketAddress
@@ -29,13 +28,14 @@ public class ClientRegistryFacade extends AbstractRegistryFacade {
         var stub = interfaceClass.cast(remote);
 
         logger.info(
-            "Retrieved a stub of {} from {} RMI registry ({})",
+            "Retrieved a stub of %s from %s RMI registry (%s)",
             interfaceClass,
             registryName,
             socketAddress
         );
 
         stub = withLoggedCalls(interfaceClass, stub);
+        stub = logger.wrapCalls(interfaceClass, stub);
 
         return stub;
     }

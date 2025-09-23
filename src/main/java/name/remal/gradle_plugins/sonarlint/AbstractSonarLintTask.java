@@ -3,7 +3,9 @@ package name.remal.gradle_plugins.sonarlint;
 import static java.lang.String.format;
 import static name.remal.gradle_plugins.sonarlint.SonarLintConstants.MIN_SUPPORTED_SONAR_RUNTIME_JAVA_VERSION;
 import static name.remal.gradle_plugins.sonarlint.internal.utils.ForkUtils.getEnvironmentVariablesToPropagateToForkedProcess;
+import static name.remal.gradle_plugins.sonarlint.internal.utils.ForkUtils.getEnvironmentVariablesToSetToForkedProcess;
 import static name.remal.gradle_plugins.sonarlint.internal.utils.ForkUtils.getSystemsPropertiesToPropagateToForkedProcess;
+import static name.remal.gradle_plugins.sonarlint.internal.utils.ForkUtils.getSystemsPropertiesToSetToForkedProcess;
 
 import javax.inject.Inject;
 import org.gradle.api.DefaultTask;
@@ -77,6 +79,9 @@ public abstract class AbstractSonarLintTask
                 var javaLauncher = forkOptions.getJavaLauncher().get();
                 spec.getForkOptions().setExecutable(javaLauncher.getExecutablePath().getAsFile().getAbsolutePath());
 
+
+                spec.getForkOptions().environment(getEnvironmentVariablesToSetToForkedProcess());
+
                 getEnvironmentVariablesToPropagateToForkedProcess().forEach(envVar -> {
                     var value = System.getenv(envVar);
                     if (value != null) {
@@ -84,9 +89,17 @@ public abstract class AbstractSonarLintTask
                     }
                 });
 
+
+                spec.getForkOptions().setMaxHeapSize(forkOptions.getMaxHeapSize().getOrNull());
+
                 if (javaLauncher.getMetadata().getLanguageVersion().canCompileOrRun(9)) {
                     spec.getForkOptions().jvmArgs("--add-opens", "java.base/java.lang=ALL-UNNAMED");
                 }
+
+
+                getSystemsPropertiesToSetToForkedProcess().forEach((property, value) -> {
+                    spec.getForkOptions().jvmArgs(format("-D%s=%s", property, value));
+                });
 
                 getSystemsPropertiesToPropagateToForkedProcess().forEach(property -> {
                     var value = System.getProperty(property);
@@ -95,7 +108,6 @@ public abstract class AbstractSonarLintTask
                     }
                 });
 
-                spec.getForkOptions().setMaxHeapSize(forkOptions.getMaxHeapSize().getOrNull());
 
                 spec.getClasspath().from(getCoreClasspath());
             });

@@ -10,9 +10,8 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.server.ExportException;
 import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;
+import name.remal.gradle_plugins.sonarlint.internal.client.SonarLintClient;
 import name.remal.gradle_plugins.sonarlint.internal.server.SonarLintServerException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @NoArgsConstructor(access = PRIVATE)
 public abstract class RegistryFactory {
@@ -24,12 +23,12 @@ public abstract class RegistryFactory {
     );
 
 
-    private static final Logger logger = LoggerFactory.getLogger(RegistryFactory.class);
+    private static final AccumulatingLogger logger = new AccumulatingLogger(SonarLintClient.class);
 
 
     @SneakyThrows
     public static ServerRegistryFacade createRegistryOnAvailablePort(String registryName, InetAddress address) {
-        logger.debug("Creating {} RMI registry at {} on any available port", registryName, address);
+        logger.debug("Creating %s RMI registry at %s on any available port", registryName, address);
         var socketFactory = new RmiSocketFactory(address);
 
         for (var attempt = 1; attempt <= REGISTRY_START_ATTEMPTS; attempt++) {
@@ -37,7 +36,7 @@ public abstract class RegistryFactory {
             try {
                 var registry = LocateRegistry.createRegistry(port, socketFactory, socketFactory);
                 var socketAddress = new InetSocketAddress(socketFactory.getBindAddr(), port);
-                logger.info("{} RMI registry created at {}", registryName, socketAddress);
+                logger.info("%s RMI registry created at %s", registryName, socketAddress);
                 return ServerRegistryFacade.builder()
                     .registryName(registryName)
                     .registry(registry)
@@ -58,13 +57,13 @@ public abstract class RegistryFactory {
 
     @SneakyThrows
     public static ClientRegistryFacade connectToRegistry(String registryName, InetSocketAddress socketAddress) {
-        logger.debug("Connecting to {} RMI registry at {}", registryName, socketAddress);
+        logger.debug("Connecting to %s RMI registry at %s", registryName, socketAddress);
         var registry = LocateRegistry.getRegistry(
             socketAddress.getAddress().getHostAddress(),
             socketAddress.getPort()
         );
 
-        logger.info("Connected to {} RMI registry at {}", registryName, socketAddress);
+        logger.info("Connected to %s RMI registry at %s", registryName, socketAddress);
         return ClientRegistryFacade.builder()
             .registryName(registryName)
             .registry(registry)
