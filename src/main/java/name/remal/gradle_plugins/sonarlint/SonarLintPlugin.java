@@ -157,7 +157,6 @@ public abstract class SonarLintPlugin implements Plugin<Project> {
 
     private void configureSonarLintConfiguration(Configuration configuration, boolean addExclusions) {
         configuration.setCanBeResolved(true);
-        configuration.setVisible(false);
 
         if (configuration.isCanBeResolved() || configuration.isCanBeConsumed()) {
             configuration.attributes(javaRuntimeLibrary(getObjects()));
