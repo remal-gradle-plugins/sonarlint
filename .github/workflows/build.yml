@@ -327,7 +327,7 @@ jobs:
       with:
         script: |
           const tagName = context.payload.ref.replace(/^refs\/tags\//, '')
-          core.info(`Git tag: ${tagName}``)
+          core.info(`Git tag: ${tagName}`)
           const result = {
             isVersion: !!tagName.match(/^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-rc-[1-9]\d*)?$/),
           }
