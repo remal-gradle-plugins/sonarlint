@@ -12,6 +12,10 @@ on:
   - cron: '53 22 * * *' # sync-with-template: adjust
   workflow_dispatch: { }
 
+concurrency:
+  group: build-${{github.ref}}
+  cancel-in-progress: true
+
 defaults:
   run:
     shell: bash
@@ -25,7 +29,6 @@ env:
   GITHUB_ACTIONS_RUN_ID: ${{github.run_id}}
   GITHUB_ACTIONS_RUN_ATTEMPT: ${{github.run_attempt}}
   GITHUB_ACTIONS_JOB: ${{github.job}}
-  GITHUB_ACTIONS_JOB_INDEX: ${{github.job_index||'0'}}
 
 jobs:
   populate-cache:
@@ -37,9 +40,6 @@ jobs:
       }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    concurrency:
-      group: ${{github.workflow}}-populate-cache-${{strategy.job-index||'0'}}-${{github.ref}}
-      cancel-in-progress: true
     steps:
     - name: Checkout repository
       uses: actions/checkout@v5
@@ -47,7 +47,7 @@ jobs:
         submodules: recursive
         fetch-depth: 1
     - name: Validate Gradle Wrapper
-      uses: Wandalen/wretry.action@v3.8.0
+      uses: Wandalen/wretry.action/main@v3.8.0
       with:
         action: gradle/actions/wrapper-validation@v4
         attempt_limit: 3
@@ -58,6 +58,7 @@ jobs:
       with:
         lookup-only: 'true'
         build-cache-enabled: 'false'
+
     - name: Setup Java ${{env.DEFAULT_JAVA_VERSION}}
       if: ${{steps.cache-gradle.outputs.gradle-wrapper-cache-hit != 'true' || steps.cache-gradle.outputs.gradle-caches-cache-hit != 'true'}}
       uses: actions/setup-java@v5
@@ -81,11 +82,9 @@ jobs:
       repository-isTemplate: ${{fromJSON(steps.repository-info.outputs.result).isTemplate}}
       publish-isGradlePlugin: ${{steps.publish-flags.outputs.isGradlePlugin}}
       publish-isMavenCentral: ${{steps.publish-flags.outputs.isMavenCentral}}
+      env-json: ${{steps.prepare-env-for-cross-versions-tests.outputs.env-json}}
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    concurrency:
-      group: ${{github.workflow}}-build-${{strategy.job-index||'0'}}-${{github.ref}}
-      cancel-in-progress: true
     steps:
     - name: Checkout repository
       uses: actions/checkout@v5
@@ -102,6 +101,7 @@ jobs:
         java-version: |
           ${{env.DEFAULT_JAVA_VERSION}}
         distribution: temurin
+
     - name: Retrieve repository info
       id: repository-info
       uses: remal-github-actions/retrieve-repository-info@v1
@@ -128,10 +128,12 @@ jobs:
         echo "REPOSITORY_OWNER_NAME=$REPOSITORY_OWNER_NAME" | tee -a $GITHUB_ENV
         echo "REPOSITORY_LICENSE_NAME=$REPOSITORY_LICENSE_NAME" | tee -a $GITHUB_ENV
         echo "REPOSITORY_LICENSE_HTML_URL=$REPOSITORY_LICENSE_HTML_URL" | tee -a $GITHUB_ENV
+
     - name: Submit dependencies to GitHub
       if: ${{(github.event_name == 'push' || github.event_name == 'workflow_dispatch') && startsWith(github.ref, 'refs/heads/')}}
       run: |
         ./gradlew-retry-connection-timeouts githubSubmitDependencies
+
     - name: Compile classes
       run: |
         ./gradlew-retry-connection-timeouts allClasses
@@ -139,6 +141,7 @@ jobs:
     - name: Build without tests
       run: |
         ./gradlew-retry-connection-timeouts build publishToMavenLocal -Pdisable-tests=true
+
     - name: Read publish flags
       id: publish-flags
       run: |
@@ -152,28 +155,12 @@ jobs:
         else
           echo "isMavenCentral=false" | tee -a $GITHUB_OUTPUT
         fi
-    - name: Archive workspace
-      if: ${{always()}}
-      run: |
-        tar -cz -f "/tmp/workspace-${{github.run_id}}.tar.gz" `git ls-files -m -o`
-    - name: Upload workspace archive
-      if: ${{always()}}
-      uses: actions/upload-artifact@v4
-      with:
-        name: workspace
-        path: '/tmp/workspace-${{github.run_id}}.tar.gz'
-        if-no-files-found: error
-        retention-days: 90
+    - name: Archive and upload workspace
+      if: ${{!cancelled()}}
+      uses: ./.github/workflows/actions/archive-upload-workspace
 
-
-  prepare-env-for-cross-versions-tests:
-    outputs:
-      env-json: ${{steps.prepare.outputs.env-json}}
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
     - name: Prepare environment variables for cross-versions-tests
-      id: prepare
+      id: prepare-env-for-cross-versions-tests
       uses: actions/github-script@v8
       env:
         ENV_JSON: ${{toJSON(env)}}
@@ -188,15 +175,14 @@ jobs:
           core.info(JSON.stringify(envObj, null, '  '))
           core.setOutput('env-json', JSON.stringify(envObj))
 
+
   cross-versions-tests:
     needs:
     - build
-    - prepare-env-for-cross-versions-tests
     uses: ./.github/workflows/build-cross-versions-tests.yml
     secrets: inherit
     with:
-      workflow-key: gradle-java
-      env-json: ${{needs.prepare-env-for-cross-versions-tests.outputs.env-json}}
+      env-json: ${{needs.build.outputs.env-json}}
       java-gradle-only-once: false
 
   # $$$sync-with-template-modifiable: cross-versions-additional-tests $$$
@@ -227,9 +213,6 @@ jobs:
     - cross-versions-tests-success
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    concurrency:
-      group: ${{github.workflow}}-push-back-${{strategy.job-index||'0'}}-${{github.ref}}
-      cancel-in-progress: true
     env:
       DISABLE_COMPILATION: 'true'
       DISABLE_VERIFICATION: 'true'
@@ -248,19 +231,9 @@ jobs:
       with:
         java-version: ${{env.DEFAULT_JAVA_VERSION}}
         distribution: temurin
-    - name: Download workspace archive
-      id: download-workspace
-      uses: Wandalen/wretry.action@v3.8.0
-      with:
-        action: actions/download-artifact@v5
-        attempt_limit: 3
-        attempt_delay: 5000
-        with: |
-          name: workspace
-          path: /tmp
-    - name: Unarchive workspace
-      run: |
-        tar -xz -f "${{fromJSON(steps.download-workspace.outputs.outputs).download-path}}/workspace-${{github.run_id}}.tar.gz"
+    - name: Download and extract workspace
+      uses: ./.github/workflows/actions/download-extract-workspace
+
     - name: Read min supported Java version
       id: min-java-version
       uses: remal-github-actions/read-property@v1
@@ -295,9 +268,11 @@ jobs:
             - stable-minors+current-unstable
             include:
             - '[${{steps.min-gradle-version.outputs.value}},)'
+
     - name: Execute push-back tasks
       run: |
         ./gradlew-retry-connection-timeouts pushBackTasks "-Pjava-runtime.max-version=${{fromJSON(steps.max-tested-versions.outputs.allMatrixIncludes)[0].java}}" "-Pgradle-api.max-version=${{fromJSON(steps.max-tested-versions.outputs.allMatrixIncludes)[0].gradle}}"
+
     - name: Push back
       env:
         PUSH_BACK_TOKEN: ${{secrets.PUSH_BACK_TOKEN}}
@@ -315,9 +290,6 @@ jobs:
     - cross-versions-tests-success
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    concurrency:
-      group: ${{github.workflow}}-parse-git-tag-${{strategy.job-index||'0'}}-${{github.ref}}
-      cancel-in-progress: true
     outputs:
       isVersion: ${{fromJSON(steps.parse-git-tag.outputs.result).isVersion}}
     steps:
@@ -349,7 +321,6 @@ jobs:
     - parse-git-tag
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    concurrency: publish-to-gradle-plugins-portal
     env:
       DISABLE_COMPILATION: 'true'
       DISABLE_VERIFICATION: 'true'
@@ -369,19 +340,9 @@ jobs:
       with:
         java-version: ${{env.DEFAULT_JAVA_VERSION}}
         distribution: temurin
-    - name: Download workspace archive
-      id: download-workspace
-      uses: Wandalen/wretry.action@v3.8.0
-      with:
-        action: actions/download-artifact@v5
-        attempt_limit: 3
-        attempt_delay: 5000
-        with: |
-          name: workspace
-          path: /tmp
-    - name: Unarchive workspace
-      run: |
-        tar -xz -f "${{fromJSON(steps.download-workspace.outputs.outputs).download-path}}/workspace-${{github.run_id}}.tar.gz"
+    - name: Download and extract workspace
+      uses: ./.github/workflows/actions/download-extract-workspace
+
     - name: Publish to Gradle Plugin Portal
       run: |
         ./gradlew-retry-connection-timeouts publishPlugins "-Pgradle.publish.key=${{secrets.GRADLE_PLUGINS_PORTAL_KEY}}" "-Pgradle.publish.secret=${{secrets.GRADLE_PLUGINS_PORTAL_SECRET}}"
@@ -404,7 +365,6 @@ jobs:
     - parse-git-tag
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    concurrency: publish-to-maven-central
     env:
       DISABLE_COMPILATION: 'true'
       DISABLE_VERIFICATION: 'true'
@@ -424,19 +384,9 @@ jobs:
       with:
         java-version: ${{env.DEFAULT_JAVA_VERSION}}
         distribution: temurin
-    - name: Download workspace archive
-      id: download-workspace
-      uses: Wandalen/wretry.action@v3.8.0
-      with:
-        action: actions/download-artifact@v5
-        attempt_limit: 3
-        attempt_delay: 5000
-        with: |
-          name: workspace
-          path: /tmp
-    - name: Unarchive workspace
-      run: |
-        tar -xz -f "${{fromJSON(steps.download-workspace.outputs.outputs).download-path}}/workspace-${{github.run_id}}.tar.gz"
+    - name: Download and extract workspace
+      uses: ./.github/workflows/actions/download-extract-workspace
+
     - name: Publish to Maven Central
       run: |
         ./gradlew-retry-connection-timeouts publishToSonatype closeAndReleaseSonatypeStagingRepository "-PsonatypeUsername=${{secrets.OSS_USER}}" "-PsonatypePassword=${{secrets.OSS_PASSWORD}}" "-Psigning.key=${{secrets.SIGNING_SECRET_KEY_RING}}" "-Psigning.keyId=${{secrets.SIGNING_KEY_ID}}" "-Psigning.password=${{secrets.SIGNING_PASSWORD}}"

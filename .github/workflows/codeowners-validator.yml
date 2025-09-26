@@ -16,6 +16,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: codeowners-validation-${{github.ref}}
+  cancel-in-progress: true
+
 env:
   VALIDATION_TOKEN: ${{secrets.CODEOWNERS_VALIDATOR_TOKEN && secrets.CODEOWNERS_VALIDATOR_TOKEN || github.token}}
 
@@ -24,9 +28,6 @@ jobs:
     name: Check rate limits
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    concurrency:
-      group: codeowners-validation
-      cancel-in-progress: true
     steps:
     - name: Get rate limits
       uses: remal-github-actions/get-rate-limits@v1
@@ -58,9 +59,6 @@ jobs:
     if: ${{fromJSON(needs.rate-limits.outputs.enough) == true}}
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    concurrency:
-      group: codeowners-validation
-      cancel-in-progress: true
     steps:
     - name: Checkout repository
       uses: actions/checkout@v5

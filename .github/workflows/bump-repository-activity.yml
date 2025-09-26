@@ -27,6 +27,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: bump-repository-activity-${{github.ref}}
+  cancel-in-progress: true
+
 defaults:
   run:
     shell: bash
@@ -36,9 +40,6 @@ jobs:
     name: Bump repository activity
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    concurrency:
-      group: bump-repository-activity
-      cancel-in-progress: true
     steps:
     - name: Get rate limits
       uses: remal-github-actions/get-rate-limits@v1

@@ -1,0 +1,59 @@
+name: Archive and upload workspace
+description: Archives changed and uncommitted files to a gzipped tar archive file and uploads it as a workflow artifact
+
+inputs:
+  archive-name:
+    required: false
+    default: workspace-${{github.run_id}}
+    description: Archive file name without extension
+  artifact-name:
+    required: false
+    default: workspace
+    description: Artifact name
+  artifact-retention-days:
+    required: false
+    default: 90
+    description: Artifact retention days
+
+outputs:
+  archive-file:
+    description: Created archive file.
+    value: ${{steps.archive-workspace.outputs.file}}
+  artifact-id:
+    description: A unique identifier for the artifact that was just uploaded. Empty if the artifact upload failed.
+    value: ${{steps.upload-workspace.outputs.artifact-id}}
+  artifact-url:
+    description: A download URL for the artifact that was just uploaded. Empty if the artifact upload failed.
+    value: ${{steps.upload-workspace.outputs.artifact-url}}
+  artifact-digest:
+    description: SHA-256 digest for the artifact that was just uploaded. Empty if the artifact upload failed.
+    value: ${{steps.upload-workspace.outputs.artifact-digest}}
+
+runs:
+  using: composite
+  steps:
+  - name: Archive workspace
+    id: archive-workspace
+    shell: bash
+    run: |
+      archive="${{runner.temp}}/${{inputs.archive-name}}.tar.gz"
+      echo "file=$archive" | tee -a $GITHUB_OUTPUT
+
+      listFile="$(mktemp)"
+      git ls-files --modified --others -z > "$listFile"
+
+      if [ -s "$listFile" ]; then
+          tar --create --gzip --no-recursion "--file=$archive" --null -T "$listFile"
+      else
+          echo "No modified or uncommitted files to archive"
+          tar --create --gzip --no-recursion "--file=$archive" --files-from /dev/null
+      fi
+
+  - name: Upload workspace archive
+    id: upload
+    uses: actions/upload-artifact@v4
+    with:
+      name: ${{inputs.artifact-name}}
+      path: ${{steps.archive-workspace.outputs.file}}
+      if-no-files-found: error
+      retention-days: ${{inputs.artifact-retention-days}}

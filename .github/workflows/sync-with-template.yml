@@ -22,6 +22,10 @@ on:
         - 'true'
         - 'false'
 
+concurrency:
+  group: sync-with-template-${{github.ref}}
+  cancel-in-progress: true
+
 defaults:
   run:
     shell: bash
@@ -34,9 +38,6 @@ jobs:
     name: Sync with template repository
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    concurrency:
-      group: sync-with-template
-      cancel-in-progress: true
     steps:
     - name: Get rate limits
       uses: remal-github-actions/get-rate-limits@v1
