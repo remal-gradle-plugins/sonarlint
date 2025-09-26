@@ -3,17 +3,20 @@ name: 'build: build-cross-versions-tests'
 on:
   workflow_call:
     inputs:
-      workflow-key:
+      os:
         type: string
-        required: true
-        description: Workflow key.
+        required: false
+        default: ubuntu
+        description: Operation system to test against.
       env-json:
         type: string
         required: false
         default: '{}'
         description: Environment variables encoded as JSON.
-      matrix:
+      versions-matrix-spec:
         type: string
+        required: false
+        default: ''
         description: Matrix definition for remal-github-actions/matrix-versions action.
       java-gradle-only-once:
         type: boolean
@@ -22,6 +25,13 @@ on:
         description: >-
           Set to `true` to add `only: once` to Java and Gradle dependencies
           for remal-github-actions/matrix-versions action.
+      gradle-stable-only:
+        type: boolean
+        required: false
+        default: true
+        description: >-
+          Test against stable Gradle versions only.
+          Future RC versions won't be tested.
 
 defaults:
   run:
@@ -44,6 +54,7 @@ jobs:
       with:
         submodules: recursive
         fetch-depth: 1
+
     - name: Read min supported Java version
       id: min-java-version
       uses: remal-github-actions/read-property@v1
@@ -61,7 +72,7 @@ jobs:
       uses: remal-github-actions/matrix-versions@v1
       with:
         matrix: |
-          ${{inputs.matrix || ''}}
+          ${{inputs.versions-matrix-spec}}
           java-runtime:
             dependency: java
             only:
@@ -75,108 +86,23 @@ jobs:
             repositories:
             - 'https://maven.pkg.github.com/remal-gradle-api/packages'
             only:
-            - stable-minors+current-unstable
+            - ${{inputs.gradle-stable-only && 'stable-minors' || 'stable-minors+current-unstable'}}
             ${{inputs.java-gradle-only-once && '- once' || ''}}
             include:
             - '[${{steps.min-gradle-version.outputs.value}},)'
 
-  cross-versions-tests:
+  tests:
     needs:
     - create-matrix
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
         include: ${{fromJSON(needs.create-matrix.outputs.matrix-includes)}}
-    concurrency:
-      group: ${{github.workflow}}-cross-versions-tests-${{inputs.workflow-key}}-${{strategy.job-index||'0'}}-${{github.ref}}
-      cancel-in-progress: true
-    env:
-      GITHUB_ACTIONS_JOB: ${{github.job}}
-      GITHUB_ACTIONS_JOB_INDEX: ${{github.job_index||'0'}}
-    steps:
-    - name: Create matrix info
-      id: matrix-info
-      uses: actions/github-script@v8
-      env:
-        MATRIX: ${{toJSON(matrix)}}
-      with:
-        script: |
-          const matrix = JSON.parse(process.env.MATRIX)
-          const token = Object.entries(matrix)
-            .map(([name, value]) => `${name}-${value}`)
-            .join('-')
-          core.info(`token=${token}`)
-          core.setOutput('token', token)
-          const gradleArgs = Object.entries(matrix)
-            .map(([name, value]) => `"-P${name}.version=${value}"`)
-            .join(' ')
-          core.info(`gradle-args=${gradleArgs}`)
-          core.setOutput('gradle-args', gradleArgs)
-    - name: Initialize environment variables
-      uses: actions/github-script@v8
-      env:
-        PARENT_ENV_JSON: ${{inputs.env-json}}
-      with:
-        script: |
-          const parentEnv = JSON.parse(process.env.PARENT_ENV_JSON)
-          for (const [name, value] of Object.entries(parentEnv)) {
-            if (process.env[name] == null) {
-              core.exportVariable(name, value)
-            }
-          }
-          core.exportVariable('DISABLE_COMPILATION', 'true')
-          core.exportVariable('DISABLE_VERIFICATION_EXCEPT_TESTS', 'true')
-    - name: Checkout repository
-      uses: actions/checkout@v5
-      with:
-        submodules: recursive
-        fetch-depth: 1
-    - name: Cache Gradle
-      uses: remal-github-actions/cache-gradle@main
-      with:
-        build-cache-for-branches-only: 'true'
-    - name: Setup Java ${{matrix['java-runtime'] != env.DEFAULT_JAVA_VERSION && format('{0} and {1}', matrix['java-runtime'], env.DEFAULT_JAVA_VERSION) || env.DEFAULT_JAVA_VERSION}}
-      uses: actions/setup-java@v5
-      with:
-        java-version: |
-          ${{matrix['java-runtime'] != env.DEFAULT_JAVA_VERSION && matrix['java-runtime'] || ''}}
-          ${{env.DEFAULT_JAVA_VERSION}}
-        distribution: temurin
-    - name: Download workspace archive
-      id: download-workspace
-      uses: Wandalen/wretry.action@v3.8.0
-      with:
-        action: actions/download-artifact@v5
-        attempt_limit: 3
-        attempt_delay: 5000
-        with: |
-          name: workspace
-          path: /tmp
-    - name: Unarchive workspace
-      run: |
-        tar -xz -f "${{fromJSON(steps.download-workspace.outputs.outputs).download-path}}/workspace-${{github.run_id}}.tar.gz"
-    - name: Execute tests
-      run: |
-        ./gradlew-retry-connection-timeouts allTests jacocoReportMerged displayTotalCodeCoverage ${{steps.matrix-info.outputs.gradle-args}}
-    - name: Upload Jacoco merged report
-      if: ${{strategy.job-index == '0'}}
-      uses: actions/upload-artifact@v4
-      with:
-        name: jacoco-merged-report-${{steps.matrix-info.outputs.token}}
-        path: build/reports/jacoco/jacocoReportMerged/
-        if-no-files-found: error
-        retention-days: 30
-    - name: Archive failed test workspace
-      if: ${{failure()}}
-      run: |
-        tar -cz -f "/tmp/workspace-test-${{steps.matrix-info.outputs.token}}-${{github.run_id}}.tar.gz" `git ls-files -m -o`
-    - name: Upload failed test workspace archive
-      if: ${{failure()}}
-      uses: actions/upload-artifact@v4
-      with:
-        name: workspace-test-${{steps.matrix-info.outputs.token}}
-        path: '/tmp/workspace-test-${{steps.matrix-info.outputs.token}}-${{github.run_id}}.tar.gz'
-        if-no-files-found: error
-        retention-days: 7
+    uses: ./.github/workflows/build-test.yml
+    secrets: inherit
+    with:
+      os: ${{inputs.os}}
+      job-matrix-json: ${{toJSON(matrix)}}
+      strategy-job-index: ${{strategy.job-index}}
+      strategy-job-total: ${{strategy.job-total}}
+      env-json: ${{inputs.env-json}}
