@@ -208,8 +208,6 @@ jobs:
   cross-versions-tests-success:
     needs:
     - cross-versions-tests
-    - cross-versions-tests-windows
-    - cross-versions-tests-macos
     # $$$sync-with-template-modifiable: cross-versions-additional-tests-dependents $$$
     # $$$sync-with-template-modifiable-end$$$
     runs-on: ubuntu-latest
