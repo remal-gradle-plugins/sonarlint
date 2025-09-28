@@ -6,6 +6,10 @@ on:
     - main
   workflow_dispatch: { }
 
+concurrency:
+  group: release-drafter-${{github.ref}}
+  cancel-in-progress: true
+
 permissions:
   contents: write
   pull-requests: write
@@ -14,9 +18,6 @@ jobs:
   update-release-draft:
     name: Update release draft
     runs-on: ubuntu-latest
-    concurrency:
-      group: update-release-draft
-      cancel-in-progress: true
     steps:
     - uses: actions/github-script@v8
       name: Evaluate conditions

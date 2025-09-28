@@ -1,0 +1,49 @@
+name: Download and extract workspace
+description: Downloads and extracts a workflow artifact containing a gzipped tar archive of changed and uncommitted files
+
+inputs:
+  archive-name:
+    required: false
+    default: workspace-${{github.run_id}}
+    description: Archive file name without extension
+  artifact-name:
+    required: false
+    default: workspace
+    description: Artifact name
+
+outputs:
+  download-path:
+    description: Path of artifact download
+    value: ${{fromJSON(steps.download-workspace.outputs.outputs).download-path}}
+  archive-file:
+    description: Downloaded archive file.
+    value: ${{steps.archive-workspace.outputs.file}}
+
+runs:
+  using: composite
+  steps:
+  - name: Download workspace archive
+    id: download-workspace
+    uses: Wandalen/wretry.action/main@v3.8.0
+    with:
+      action: actions/download-artifact@v5
+      attempt_limit: 3
+      attempt_delay: 5000
+      with: |
+        name: ${{inputs.artifact-name}}
+        path: ${{runner.temp}}
+
+  - name: Unarchive workspace
+    id: extract-workspace
+    shell: bash
+    run: |
+      archive="${{fromJSON(steps.download-workspace.outputs.outputs).download-path}}/${{inputs.archive-name}}.tar.gz"
+      echo "file=$archive" | tee -a $GITHUB_OUTPUT
+
+      extra=()
+      if tar --version 2>/dev/null | grep -q 'GNU tar'; then
+        extra+=(--force-local)
+      fi
+
+      tar --extract --gzip --file="$archive" "${extra[@]}"
+

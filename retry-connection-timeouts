@@ -18,31 +18,31 @@ for ATTEMPT in $(seq 1 2); do
     #echo -e "${TRACE_COLOR}Executing $* command and storing its output to log file $LOGFILE${NO_COLOR}"
     echo "::debug::Executing $* command and storing its output to log file $LOGFILE"
 
-    "$@" |& tee "$LOGFILE"
+    "$@" 2>&1 | tee "$LOGFILE"
     RESULT="${PIPESTATUS[0]}"
 
     if [ "$RESULT" -eq 0 ]; then
         exit 0
 
-    elif STR="connect timed out" && grep --quiet --ignore-case "\b$STR\b" "$LOGFILE"; then
+    elif STR="connect timed out" && grep -q -i "$STR" "$LOGFILE"; then
         echo "::warning::'$STR' found in $* command log file $LOGFILE"
 
-    elif STR="Connect Timeout Error" && grep --quiet --ignore-case "\b$STR\b" "$LOGFILE"; then
+    elif STR="Connect Timeout Error" && grep -q -i "$STR" "$LOGFILE"; then
         echo "::warning::'$STR' found in $* command log file $LOGFILE"
 
-    elif STR="Could not install Gradle distribution from" && grep --quiet --ignore-case "\b$STR\b" "$LOGFILE"; then
+    elif STR="Could not install Gradle distribution from" && grep -q -i "$STR" "$LOGFILE"; then
         echo "::warning::'$STR' found in $* command log file $LOGFILE"
 
-    elif STR="Timeout has been exceeded" && grep --quiet --ignore-case "\b$STR\b" "$LOGFILE"; then
+    elif STR="Timeout has been exceeded" && grep -q -i "$STR" "$LOGFILE"; then
         echo "::warning::'$STR' found in $* command log file $LOGFILE"
 
-    elif STR="Could not pack tree 'jvmArgumentProviders.jacocoAgent" && grep --quiet --ignore-case "\b$STR\b" "$LOGFILE"; then
+    elif STR="Could not pack tree 'jvmArgumentProviders.jacocoAgent" && grep -q -i "$STR" "$LOGFILE"; then
         echo "::warning::'$STR' found in $* command log file $LOGFILE"
 
-    elif STR="Could not get resource" && grep --quiet --ignore-case "\b$STR\b" "$LOGFILE"; then
+    elif STR="Could not get resource" && grep -q -i "$STR" "$LOGFILE"; then
         echo "::warning::'$STR' found in $* command log file $LOGFILE"
 
-    elif STR="Received status code 429 from server" && grep --quiet --ignore-case "\b$STR\b" "$LOGFILE"; then
+    elif STR="Received status code 429 from server" && grep -q -i "$STR" "$LOGFILE"; then
         echo "::warning::'$STR' found in $* command log file $LOGFILE"
 
     else

@@ -1,0 +1,123 @@
+name: 'build: test'
+
+on:
+  workflow_call:
+    inputs:
+      os:
+        type: string
+        required: false
+        default: ubuntu
+        description: Operation system to test against.
+      job-matrix-json:
+        type: string
+        required: false
+        default: '{}'
+        description: Job matrix encoded as JSON.
+      strategy-job-index:
+        type: number
+        required: false
+        default: 0
+        description: The index of the current job in the matrix.
+      strategy-job-total:
+        type: number
+        required: false
+        default: 0
+        description: The total number of jobs in the matrix.
+      env-json:
+        type: string
+        required: false
+        default: '{}'
+        description: Environment variables encoded as JSON.
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  GITHUB_ACTIONS_TOKEN: ${{github.token}}
+  GITHUB_ACTIONS_RUN_ID: ${{github.run_id}}
+  GITHUB_ACTIONS_RUN_ATTEMPT: ${{github.run_attempt}}
+
+jobs:
+  test:
+    name: "test ${{inputs.os}} ${{inputs.job-matrix-json}}"
+    runs-on: ${{inputs.os}}-latest
+    timeout-minutes: 60
+    env:
+      GITHUB_ACTIONS_JOB: ${{github.job}}
+      GITHUB_ACTIONS_JOB_INDEX: ${{inputs.strategy-job-index}}
+      GITHUB_ACTIONS_JOB_TOTAL: ${{inputs.strategy-job-total}}
+    steps:
+    - name: Create matrix info
+      id: matrix-info
+      uses: actions/github-script@v8
+      env:
+        MATRIX: ${{inputs.job-matrix-json}}
+      with:
+        script: |
+          const matrix = JSON.parse(process.env.MATRIX)
+          const token = Object.entries(matrix)
+            .map(([name, value]) => `${name}-${value}`)
+            .join('-') || 'default'
+          core.info(`token=${token}`)
+          core.setOutput('token', token)
+          const gradleArgs = Object.entries(matrix)
+            .map(([name, value]) => `"-P${name}.version=${value}"`)
+            .join(' ')
+          core.info(`gradle-args=${gradleArgs}`)
+          core.setOutput('gradle-args', gradleArgs)
+    - name: Initialize environment variables
+      uses: actions/github-script@v8
+      env:
+        PARENT_ENV_JSON: ${{inputs.env-json}}
+      with:
+        script: |
+          const parentEnv = JSON.parse(process.env.PARENT_ENV_JSON)
+          for (const [name, value] of Object.entries(parentEnv)) {
+            if (process.env[name] == null) {
+              process.env[name] = value
+              core.exportVariable(name, value)
+            }
+          }
+          core.exportVariable('CURRENT_JAVA_VERSION', '${{fromJSON(inputs.job-matrix-json)['java-runtime'] || ''}}' || process.env.DEFAULT_JAVA_VERSION || '')
+          core.exportVariable('DISABLE_COMPILATION', 'true')
+          core.exportVariable('DISABLE_VERIFICATION_EXCEPT_TESTS', 'true')
+    - name: Checkout repository
+      uses: actions/checkout@v5
+      with:
+        submodules: recursive
+        fetch-depth: 1
+    - name: Cache Gradle
+      uses: remal-github-actions/cache-gradle@main
+      with:
+        build-cache-for-branches-only: 'true'
+        strategy-job-index: ${{inputs.strategy-job-index}}
+        strategy-job-total: ${{inputs.strategy-job-total}}
+    - name: Setup Java ${{env.CURRENT_JAVA_VERSION != env.DEFAULT_JAVA_VERSION && format('{0} and {1}', env.CURRENT_JAVA_VERSION, env.DEFAULT_JAVA_VERSION) || env.DEFAULT_JAVA_VERSION}}
+      uses: actions/setup-java@v5
+      with:
+        java-version: |
+          ${{env.CURRENT_JAVA_VERSION != env.DEFAULT_JAVA_VERSION && env.CURRENT_JAVA_VERSION || ''}}
+          ${{env.DEFAULT_JAVA_VERSION}}
+        distribution: temurin
+    - name: Download and extract workspace
+      uses: ./.github/workflows/actions/download-extract-workspace
+
+    - name: Execute tests
+      run: |
+        ./gradlew-retry-connection-timeouts allTests jacocoReportMerged displayTotalCodeCoverage ${{steps.matrix-info.outputs.gradle-args}}
+
+    - name: Upload Jacoco merged report
+      if: ${{(inputs.strategy-job-index || '0') == '0'}}
+      uses: actions/upload-artifact@v4
+      with:
+        name: jacoco-merged-report-${{inputs.os}}-${{steps.matrix-info.outputs.token}}
+        path: build/reports/jacoco/jacocoReportMerged/
+        if-no-files-found: warn
+        retention-days: 90
+    - name: Archive and upload test workspace
+      if: ${{failure()}}
+      uses: ./.github/workflows/actions/archive-upload-workspace
+      with:
+        archive-name: workspace-test-${{inputs.os}}-${{steps.matrix-info.outputs.token}}
+        artifact-name: workspace-test-${{inputs.os}}-${{steps.matrix-info.outputs.token}}
