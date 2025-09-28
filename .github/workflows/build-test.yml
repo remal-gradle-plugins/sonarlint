@@ -41,6 +41,9 @@ env:
 jobs:
   test:
     name: "test ${{inputs.os}} ${{inputs.job-matrix-json}}"
+    concurrency:
+      group: build-test-${{inputs.os}}-${{inputs.job-matrix-json}}-${{github.ref}}
+      cancel-in-progress: true
     runs-on: ${{inputs.os}}-latest
     timeout-minutes: 60
     env:
