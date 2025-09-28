@@ -186,11 +186,30 @@ jobs:
       java-gradle-only-once: false
 
   # $$$sync-with-template-modifiable: cross-versions-additional-tests $$$
+  cross-versions-tests-windows:
+    needs:
+    - build
+    uses: ./.github/workflows/build-test.yml
+    secrets: inherit
+    with:
+      os: windows
+      env-json: ${{needs.build.outputs.env-json}}
+
+  cross-versions-tests-macos:
+    needs:
+    - build
+    uses: ./.github/workflows/build-test.yml
+    secrets: inherit
+    with:
+      os: macos
+      env-json: ${{needs.build.outputs.env-json}}
   # $$$sync-with-template-modifiable-end$$$
 
   cross-versions-tests-success:
     needs:
     - cross-versions-tests
+    - cross-versions-tests-windows
+    - cross-versions-tests-macos
     # $$$sync-with-template-modifiable: cross-versions-additional-tests-dependents $$$
     # $$$sync-with-template-modifiable-end$$$
     runs-on: ubuntu-latest
