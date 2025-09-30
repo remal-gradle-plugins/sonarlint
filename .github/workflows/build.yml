@@ -55,7 +55,6 @@ jobs:
       id: cache-gradle
       uses: remal-github-actions/cache-gradle@main
       with:
-        lookup-only: 'true'
         build-cache-enabled: 'false'
 
     - name: Setup Java ${{env.DEFAULT_JAVA_VERSION}}
