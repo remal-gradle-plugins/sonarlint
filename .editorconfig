@@ -330,6 +330,8 @@ ij_java_wrap_semicolon_after_call_chain = false
 
 ij_groovy_imports_layout = $*, |, *
 ij_groovy_align_named_args_in_map = false
+ij_groovy_class_count_to_use_import_on_demand = 999
+ij_groovy_names_count_to_use_import_on_demand = 999
 
 ij_kotlin_align_in_columns_case_branch = false
 ij_kotlin_blank_lines_around_block_when_branches = 0
