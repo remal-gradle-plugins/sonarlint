@@ -93,9 +93,7 @@ jobs:
     - name: Cache Gradle
       uses: remal-github-actions/cache-gradle@main
       with:
-        build-cache-for-branches-only: 'true'
-        strategy-job-index: ${{inputs.strategy-job-index}}
-        strategy-job-total: ${{inputs.strategy-job-total}}
+        github-job: 'test-${{inputs.os}}-${{inputs.job-matrix-json}}'
     - name: Setup Java ${{env.CURRENT_JAVA_VERSION != env.DEFAULT_JAVA_VERSION && format('{0} and {1}', env.CURRENT_JAVA_VERSION, env.DEFAULT_JAVA_VERSION) || env.DEFAULT_JAVA_VERSION}}
       uses: actions/setup-java@v5
       with:
