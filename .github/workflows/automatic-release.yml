@@ -5,6 +5,14 @@ on:
   - cron: '14 8 * * 3' # sync-with-template: adjust
   workflow_dispatch:
     inputs:
+      ignoreExpectedFilesToChange:
+        required: true
+        default: 'false'
+        description: Set to 'true' to skip checking changed files
+        type: choice
+        options:
+        - 'true'
+        - 'false'
       dryRun:
         required: true
         default: 'false'
@@ -34,6 +42,7 @@ jobs:
         versionTagPrefix: 'v'
         expectedFilesToChange: |
           gradle-plugin-api-dependencies.txt
+        ignoreExpectedFilesToChange: ${{inputs.ignoreExpectedFilesToChange}}
         allowedCommitPrefixes: |
           [push-back]
           [noci]
