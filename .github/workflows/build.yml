@@ -48,7 +48,7 @@ jobs:
     - name: Validate Gradle Wrapper
       uses: Wandalen/wretry.action/main@v3.8.0
       with:
-        action: gradle/actions/wrapper-validation@v4
+        action: gradle/actions/wrapper-validation@v5
         attempt_limit: 3
         attempt_delay: 5000
     - name: Cache Gradle
@@ -94,8 +94,6 @@ jobs:
         fetch-depth: 1
     - name: Cache Gradle
       uses: remal-github-actions/cache-gradle@main
-      with:
-        build-cache-for-branches-only: 'true'
     - name: Setup Java ${{env.DEFAULT_JAVA_VERSION}}
       uses: actions/setup-java@v5
       with:
@@ -247,8 +245,6 @@ jobs:
         fetch-depth: 1
     - name: Cache Gradle
       uses: remal-github-actions/cache-gradle@main
-      with:
-        build-cache-for-branches-only: 'true'
     - name: Setup Java ${{env.DEFAULT_JAVA_VERSION}}
       uses: actions/setup-java@v5
       with:
@@ -359,8 +355,6 @@ jobs:
         fetch-depth: 1
     - name: Cache Gradle
       uses: remal-github-actions/cache-gradle@main
-      with:
-        build-cache-for-branches-only: 'true'
     - name: Setup Java ${{env.DEFAULT_JAVA_VERSION}}
       uses: actions/setup-java@v5
       with:
@@ -406,8 +400,6 @@ jobs:
         fetch-depth: 1
     - name: Cache Gradle
       uses: remal-github-actions/cache-gradle@main
-      with:
-        build-cache-for-branches-only: 'true'
     - name: Setup Java ${{env.DEFAULT_JAVA_VERSION}}
       uses: actions/setup-java@v5
       with:
