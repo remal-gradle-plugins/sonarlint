@@ -14,6 +14,7 @@ import static name.remal.gradle_plugins.sonarlint.internal.SonarLintLanguageIncl
 import static name.remal.gradle_plugins.sonarlint.internal.utils.RemoteObjectUtils.exportObject;
 import static name.remal.gradle_plugins.sonarlint.internal.utils.RemoteObjectUtils.unexportObject;
 import static name.remal.gradle_plugins.sonarlint.internal.utils.SimpleLoggingEventBuilder.newLoggingEvent;
+import static name.remal.gradle_plugins.toolkit.BuildFeaturesUtils.areIsolatedProjectsRequested;
 import static name.remal.gradle_plugins.toolkit.ClosureUtils.configureWith;
 import static name.remal.gradle_plugins.toolkit.FileCollectionUtils.finalizeFileCollectionValueOnRead;
 import static name.remal.gradle_plugins.toolkit.FileTreeElementUtils.createFileTreeElement;
@@ -42,6 +43,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -147,7 +149,7 @@ public abstract class SonarLint
 
         if (getSettings().getIsGeneratedCodeIgnored().getOrElse(true)) {
             sources = sources.matching(filter -> {
-                var allBuildDirectories = getAllProjectsBuildDirectories().getFiles();
+                var allBuildDirectories = getProjectsBuildDirectories().getFiles();
                 if (allBuildDirectories.isEmpty()) {
                     return;
                 }
@@ -173,16 +175,21 @@ public abstract class SonarLint
 
 
     @Internal
-    protected abstract ConfigurableFileCollection getAllProjectsBuildDirectories();
+    protected abstract ConfigurableFileCollection getProjectsBuildDirectories();
 
     {
-        getAllProjectsBuildDirectories().from(getProviders().provider(() ->
-            getProject().getRootProject().getAllprojects().stream()
-                .map(Project::getProjectDir)
-                .map(projectDir -> new File(projectDir, "build"))
-                .collect(toUnmodifiableList())
-        ));
-        finalizeFileCollectionValueOnRead(getAllProjectsBuildDirectories());
+        getProjectsBuildDirectories().from(getProviders().provider(() -> {
+            final Collection<Project> projects;
+            if (areIsolatedProjectsRequested(getProject().getGradle())) {
+                projects = List.of(getProject());
+            } else {
+                projects = getProject().getRootProject().getAllprojects();
+            }
+            return projects.stream()
+                .map(project -> project.getLayout().getBuildDirectory())
+                .collect(toUnmodifiableList());
+        }));
+        finalizeFileCollectionValueOnRead(getProjectsBuildDirectories());
     }
 
     //#endregion
