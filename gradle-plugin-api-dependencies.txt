@@ -1,7 +1,7 @@
 # This file is generated automatically by `collectAllGradlePluginApiDependencies` Gradle task.
 # Do not modify it yourself unless you know what you are doing.
 
-org.ow2.asm:asm-bom:9.8:@pom
+org.ow2.asm:asm-bom:9.9:@pom
 org.sonarsource.html:sonar-html-plugin:3.19.0.5695:@sonar-plugin
 org.sonarsource.iac:sonar-iac-plugin:1.50.0.16452
 org.sonarsource.java:sonar-java-plugin:8.19.0.40387:@sonar-plugin
