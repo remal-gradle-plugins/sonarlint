@@ -6,6 +6,7 @@ import static name.remal.gradle_plugins.sonarlint.RuleExamples.writeSonarRuleExa
 import static name.remal.gradle_plugins.sonarlint.TestConstants.CURRENT_MINOR_GRADLE_VERSION;
 import static name.remal.gradle_plugins.sonarlint.internal.PropertiesDocumentation.NO_SONARLINT_PROPERTIES_FOUND_LOG_MESSAGE;
 import static name.remal.gradle_plugins.sonarlint.internal.RulesDocumentation.NO_SONARLINT_RULES_FOUND_LOG_MESSAGE;
+import static name.remal.gradle_plugins.toolkit.FileUtils.normalizeFile;
 import static name.remal.gradle_plugins.toolkit.LazyValue.lazyValue;
 import static name.remal.gradle_plugins.toolkit.SneakyThrowUtils.sneakyThrows;
 import static name.remal.gradle_plugins.toolkit.StringUtils.normalizeString;
@@ -27,10 +28,12 @@ import java.util.function.Consumer;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
+import name.remal.gradle_plugins.sonarlint.RuleExampleParams.RuleExampleParamsBuilder;
 import name.remal.gradle_plugins.toolkit.LazyValue;
 import name.remal.gradle_plugins.toolkit.issues.CheckstyleXmlIssuesParser;
 import name.remal.gradle_plugins.toolkit.issues.Issue;
 import name.remal.gradle_plugins.toolkit.testkit.MinTestableGradleVersion;
+import name.remal.gradle_plugins.toolkit.testkit.functional.AbstractBaseGradleProject;
 import name.remal.gradle_plugins.toolkit.testkit.functional.GradleProject;
 import org.gradle.testkit.runner.BuildResult;
 import org.jspecify.annotations.Nullable;
@@ -46,6 +49,19 @@ class SonarLintPluginFunctionalTest {
 
     @BeforeEach
     void beforeEach() {
+        configureSonarLintProject(project);
+
+        project.addForbiddenMessage("Provided Node.js executable file does not exist.");
+        project.addForbiddenMessage("Couldn't find the Node.js binary.");
+        project.addForbiddenMessage("Failed to determine the version of Node.js");
+        project.addForbiddenMessage("Unsupported Node.JS version detected");
+        project.addForbiddenMessage("Embedded Node.js failed to deploy.");
+
+        project.addForbiddenMessage("is excluded because language");
+        project.addForbiddenMessage("is excluded because none of languages");
+    }
+
+    private static void configureSonarLintProject(AbstractBaseGradleProject<?, ?> project) {
         project.forBuildFile(build -> {
             build.applyPlugin("name.remal.sonarlint");
             build.applyPlugin("java");
@@ -56,15 +72,6 @@ class SonarLintPluginFunctionalTest {
                 sonarLint.line("rules.enable('no-rules:enabled-by-default')");
             });
         });
-
-        project.addForbiddenMessage("Provided Node.js executable file does not exist.");
-        project.addForbiddenMessage("Couldn't find the Node.js binary.");
-        project.addForbiddenMessage("Failed to determine the version of Node.js");
-        project.addForbiddenMessage("Unsupported Node.JS version detected");
-        project.addForbiddenMessage("Embedded Node.js failed to deploy.");
-
-        project.addForbiddenMessage("is excluded because language");
-        project.addForbiddenMessage("is excluded because none of languages");
     }
 
 
@@ -437,11 +444,28 @@ class SonarLintPluginFunctionalTest {
             "}",
         }));
 
-        project.getBuildFile().line("sonarLint.languages.include('java')");
+        new Assertions()
+            .rule("java:S1133")
+            .assertAllRulesAreRaised();
+    }
+
+    @Test
+    void multiProjectBuild() {
+        var childProject = project.newChildProject("child");
+        configureSonarLintProject(childProject);
+        var childExampleRelativeFilePath = writeRuleExample(childProject, "java:S1171");
+        childProject.getBuildFile().line("sonarLint.languages.include('java')");
 
         new Assertions()
             .rule("java:S1133")
             .assertAllRulesAreRaised();
+
+        assertThat(parseSonarLintIssuesOf(
+            childProject.getName() + "/build/reports/sonarLint/sonarlintMain/sonarlintMain.xml",
+            childProject.getName() + "/" + childExampleRelativeFilePath
+        ))
+            .extracting(Issue::getRule)
+            .contains("java:S1171");
     }
 
 
@@ -460,7 +484,7 @@ class SonarLintPluginFunctionalTest {
         }
 
         @CheckReturnValue
-        public Assertions rule(String rule, Consumer<RuleExampleParams.RuleExampleParamsBuilder> configurer) {
+        public Assertions rule(String rule, Consumer<RuleExampleParamsBuilder> configurer) {
             if (buildResult.isInitialized()) {
                 throw new IllegalStateException("Project has been built");
             }
@@ -562,11 +586,11 @@ class SonarLintPluginFunctionalTest {
     @SneakyThrows
     List<Issue> parseSonarLintIssuesOf(@Nullable String reportRelativePath, String sourceFileRelativePath) {
         var issues = parseSonarLintIssues(reportRelativePath);
-        var fileToMatch = new File(project.getProjectDir(), sourceFileRelativePath).getCanonicalFile();
+        var fileToMatch = normalizeFile(new File(project.getProjectDir(), sourceFileRelativePath));
 
         List<Issue> fileIssues = new ArrayList<>();
         for (var issue : issues) {
-            var sourceFile = issue.getSourceFile().getCanonicalFile();
+            var sourceFile = normalizeFile(issue.getSourceFile());
             if (sourceFile.equals(fileToMatch)) {
                 fileIssues.add(issue);
             }
@@ -576,10 +600,25 @@ class SonarLintPluginFunctionalTest {
 
 
     String writeRuleExample(String rule) {
-        return writeRuleExample(rule, __ -> { });
+        return writeRuleExample(project, rule);
     }
 
-    String writeRuleExample(String rule, Consumer<RuleExampleParams.RuleExampleParamsBuilder> configurer) {
+    String writeRuleExample(String rule, Consumer<RuleExampleParamsBuilder> configurer) {
+        return writeRuleExample(project, rule, configurer);
+    }
+
+    private static String writeRuleExample(
+        AbstractBaseGradleProject<?, ?> project,
+        String rule
+    ) {
+        return writeRuleExample(project, rule, __ -> { });
+    }
+
+    private static String writeRuleExample(
+        AbstractBaseGradleProject<?, ?> project,
+        String rule,
+        Consumer<RuleExampleParamsBuilder> configurer
+    ) {
         var relativeFilePath = writeSonarRuleExample(project.getProjectDir(), rule, configurer);
 
         project.forBuildFile(build -> build.line(
