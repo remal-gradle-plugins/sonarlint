@@ -44,7 +44,7 @@ public abstract class SonarLintLanguagesSettings {
     }
 
 
-    @Internal
+    @Input
     public abstract Property<Boolean> getIncludeJvm();
 
     {
@@ -55,24 +55,31 @@ public abstract class SonarLintLanguagesSettings {
         ));
     }
 
-    @Internal
+    @Input
     public abstract Property<Boolean> getIncludeInfra();
 
     {
         getIncludeInfra().convention(false);
     }
 
-    @Internal
+    @Input
     public abstract Property<Boolean> getIncludeFrontend();
 
     {
         getIncludeFrontend().convention(false);
     }
 
+
     private Collection<SonarLintLanguage> getAutomaticallyExcludedLanguages() {
+        getIncludeJvm().finalizeValueOnRead();
         var jvmIncluded = getIncludeJvm().get();
+
+        getIncludeInfra().finalizeValueOnRead();
         var infraIncluded = getIncludeInfra().get();
+
+        getIncludeFrontend().finalizeValueOnRead();
         var frontendIncluded = getIncludeFrontend().get();
+
         return stream(SonarLintLanguage.values())
             .filter(lang -> {
                 if (!jvmIncluded && lang.getType() == SonarLintLanguageType.JVM) {
@@ -89,12 +96,14 @@ public abstract class SonarLintLanguagesSettings {
             .collect(toUnmodifiableList());
     }
 
-
-    @Input
-    @org.gradle.api.tasks.Optional
-    protected Collection<SonarLintLanguage> getLanguagesToProcess() {
+    @Internal
+    protected final Collection<SonarLintLanguage> getLanguagesToProcess() {
+        getIncludes().finalizeValueOnRead();
         var includedLanguages = getIncludes().get();
+
+        getExcludes().finalizeValueOnRead();
         var excludedLanguages = new LinkedHashSet<>(getExcludes().get());
+
         getAutomaticallyExcludedLanguages().stream()
             .filter(not(includedLanguages::contains))
             .forEach(excludedLanguages::add);
