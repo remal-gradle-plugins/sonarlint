@@ -1,5 +1,7 @@
 package name.remal.gradle_plugins.sonarlint;
 
+import static java.lang.Math.floor;
+import static java.lang.Math.max;
 import static java.lang.String.format;
 import static java.lang.String.join;
 import static java.lang.System.identityHashCode;
@@ -14,7 +16,6 @@ import static name.remal.gradle_plugins.sonarlint.SonarDependencies.SONARLINT_CO
 import static name.remal.gradle_plugins.sonarlint.SonarDependencies.SONARLINT_CORE_LOGGING_ALL_EXCLUSIONS;
 import static name.remal.gradle_plugins.sonarlint.SonarDependencies.SONARLINT_CORE_SLF4J_VERSION;
 import static name.remal.gradle_plugins.sonarlint.SonarJavascriptPluginInfo.SONAR_JAVASCRIPT_PLUGIN_DEPENDENCY;
-import static name.remal.gradle_plugins.toolkit.ActionUtils.doNothingAction;
 import static name.remal.gradle_plugins.toolkit.AttributeContainerUtils.javaRuntimeLibrary;
 import static name.remal.gradle_plugins.toolkit.GradleManagedObjectsUtils.copyManagedProperties;
 import static name.remal.gradle_plugins.toolkit.LazyValue.lazyValue;
@@ -142,7 +143,11 @@ public abstract class SonarLintPlugin implements Plugin<Project> {
                     .orElse("")
             ),
             SonarLintBuildService.class,
-            doNothingAction()
+            service -> {
+                service.getMaxParallelUsages().set(
+                    max(2, (int) floor(0.75 * Runtime.getRuntime().availableProcessors()))
+                );
+            }
         );
 
         configureSonarLintTasks(project, buildService);

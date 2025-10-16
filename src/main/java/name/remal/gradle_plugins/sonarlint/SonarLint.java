@@ -482,8 +482,10 @@ public abstract class SonarLint extends AbstractSonarLintTask
 
         } else {
             var workQueue = createWorkQueue();
-            workQueue.submit(SonarLintAnalyzeWorkAction.class,
-                params -> configureWorkActionParams(inputChanges, params));
+            workQueue.submit(
+                SonarLintAnalyzeWorkAction.class,
+                params -> configureWorkActionParams(inputChanges, params)
+            );
         }
     }
 
