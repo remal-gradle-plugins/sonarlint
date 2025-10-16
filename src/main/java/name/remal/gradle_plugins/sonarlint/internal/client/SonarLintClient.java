@@ -109,7 +109,10 @@ public class SonarLintClient extends AbstractCloseablesContainer implements Auto
         var state = this.state;
 
         withNewLineIfNeeded.get()
-            .append("State: ").append(state.getClass().getSimpleName());
+            .append("SonarLint plugin version: ").append(getStringProperty("project.version"));
+
+        withNewLineIfNeeded.get()
+            .append("Client state: ").append(state.getClass().getSimpleName());
 
         withNewLineIfNeeded.get()
             .append("Client Java version: ").append(JavaVersion.current().getMajorVersion());
@@ -139,6 +142,14 @@ public class SonarLintClient extends AbstractCloseablesContainer implements Auto
                 .append(lineSeparator())
                 .append(indentString(serverProcess.readOutput()).replace("\n", lineSeparator()));
         }
+
+        withNewLineIfNeeded.get()
+            .append("Core classpath:");
+        params.getCoreClasspath().forEach(file -> withNewLineIfNeeded.get().append("  ").append(file.getPath()));
+
+        withNewLineIfNeeded.get()
+            .append("Plugin files:");
+        params.getPluginFiles().forEach(file -> withNewLineIfNeeded.get().append("  ").append(file.getPath()));
 
         return buf.toString();
     }
