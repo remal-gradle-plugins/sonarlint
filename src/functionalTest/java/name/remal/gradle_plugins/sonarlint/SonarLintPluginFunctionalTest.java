@@ -70,6 +70,7 @@ class SonarLintPluginFunctionalTest {
             build.block("sonarLint", sonarLint -> {
                 sonarLint.line("ignoreFailures = true");
                 sonarLint.line("rules.enable('no-rules:enabled-by-default')");
+                sonarLint.line("logging.failOnChangedCoreClasspath = true");
             });
         });
     }
@@ -466,6 +467,120 @@ class SonarLintPluginFunctionalTest {
         ))
             .extracting(Issue::getRule)
             .contains("java:S1171");
+    }
+
+
+    @Nested
+    @SuppressWarnings("RegExpRepeatedSpace")
+    class ChangedDependencies {
+
+        @BeforeEach
+        void beforeEach() {
+            project.withoutJacoco(); // TODO: remove when toolkit is updated
+        }
+
+        @Test
+        void addedCoreDependency() {
+            project.getBuildFile().block("dependencies", deps -> {
+                deps.line("sonarlintCore('com.google.inject:guice:7.0.0') { transitive = false }");
+            });
+
+            var buildResult = project.assertBuildFails("sonarlintMain");
+
+            assertThat(normalizeString(buildResult.getOutput()))
+                .matches(
+                    "[\\s\\S]*\\n"
+                        + "Unexpected core dependencies:\\n"
+                        + "  \\Qcom.google.inject:guice:7.0.0\\E"
+                        + "\\n[\\s\\S]*"
+                );
+        }
+
+        @Test
+        void addedCoreLoggingDependency() {
+            project.getBuildFile().block("dependencies", deps -> {
+                deps.line("sonarlintCoreLogging('com.google.inject:guice:7.0.0') { transitive = false }");
+            });
+
+            var buildResult = project.assertBuildFails("sonarlintMain");
+
+            assertThat(normalizeString(buildResult.getOutput()))
+                .matches(
+                    "[\\s\\S]*\\n"
+                        + "Unexpected core logging dependencies:\\n"
+                        + "  \\Qcom.google.inject:guice:7.0.0\\E"
+                        + "\\n[\\s\\S]*"
+                );
+        }
+
+        @Test
+        void changedCoreDependencyVersion() {
+            project.getBuildFile().block("dependencies", deps -> {
+                deps.block("sonarlintCore('org.springframework:spring-core')", dep -> {
+                    dep.line("version { strictly('5.0.0.RELEASE') }");
+                });
+            });
+
+            var buildResult = project.assertBuildFails("sonarlintMain");
+
+            assertThat(normalizeString(buildResult.getOutput()))
+                .matches(
+                    "[\\s\\S]*\\n"
+                        + "Changed core versions:\\n"
+                        + "  \\Qorg.springframework:spring-core\\E: \\S+ -> \\Q5.0.0.RELEASE\\E"
+                        + "\\n[\\s\\S]*"
+                );
+        }
+
+        @Test
+        void changedCoreLoggingDependencyVersion() {
+            project.getBuildFile().block("dependencies", deps -> {
+                deps.block("sonarlintCoreLogging('org.springframework:spring-jcl')", dep -> {
+                    dep.line("version { strictly('5.0.0.RELEASE') }");
+                });
+            });
+
+            var buildResult = project.assertBuildFails("sonarlintMain");
+
+            assertThat(normalizeString(buildResult.getOutput()))
+                .matches(
+                    "[\\s\\S]*\\n"
+                        + "Changed core logging versions:\\n"
+                        + "  \\Qorg.springframework:spring-jcl\\E: \\S+ -> \\Q5.0.0.RELEASE\\E"
+                        + "\\n[\\s\\S]*"
+                );
+        }
+
+        @Test
+        void removedCoreDependency() {
+            project.getBuildFile().line("configurations.sonarlintCore.exclude(group: 'org.springframework')");
+
+            var buildResult = project.assertBuildFails("sonarlintMain");
+
+            assertThat(normalizeString(buildResult.getOutput()))
+                .matches(
+                    "[\\s\\S]*\\n"
+                        + "Missing core dependencies:\\n"
+                        + "  \\Qorg.springframework:spring-\\E\\w+:\\d\\S+"
+                        + "\\n[\\s\\S]*"
+                );
+        }
+
+        @Test
+        void removedCoreLoggingDependency() {
+            project.getBuildFile().line("configurations.sonarlintCoreLogging.exclude(group: 'org.springframework')");
+
+            var buildResult = project.assertBuildFails("sonarlintMain");
+
+            assertThat(normalizeString(buildResult.getOutput()))
+                .matches(
+                    "[\\s\\S]*\\n"
+                        + "Missing core logging dependencies:\\n"
+                        + "  \\Qorg.springframework:spring-jcl:\\E\\d\\S+"
+                        + "\\n[\\s\\S]*"
+                );
+        }
+
     }
 
 

@@ -1,5 +1,6 @@
 package name.remal.gradle_plugins.sonarlint;
 
+import static com.google.common.collect.ImmutableSet.toImmutableSet;
 import static java.lang.Math.floor;
 import static java.lang.Math.max;
 import static java.lang.String.format;
@@ -14,7 +15,7 @@ import static name.remal.gradle_plugins.sonarlint.ResolvedNonReproducibleSonarDe
 import static name.remal.gradle_plugins.sonarlint.SonarDependencies.SONARLINT_CORE_DEPENDENCIES;
 import static name.remal.gradle_plugins.sonarlint.SonarDependencies.SONARLINT_CORE_LIBRARIES_EXCLUSIONS;
 import static name.remal.gradle_plugins.sonarlint.SonarDependencies.SONARLINT_CORE_LOGGING_ALL_EXCLUSIONS;
-import static name.remal.gradle_plugins.sonarlint.SonarDependencies.SONARLINT_CORE_SLF4J_VERSION;
+import static name.remal.gradle_plugins.sonarlint.SonarDependencies.SONARLINT_CORE_LOGGING_DEPENDENCIES;
 import static name.remal.gradle_plugins.sonarlint.SonarJavascriptPluginInfo.SONAR_JAVASCRIPT_PLUGIN_DEPENDENCY;
 import static name.remal.gradle_plugins.toolkit.AttributeContainerUtils.javaRuntimeLibrary;
 import static name.remal.gradle_plugins.toolkit.GradleManagedObjectsUtils.copyManagedProperties;
@@ -28,7 +29,9 @@ import com.tisonkun.os.core.OS;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.BooleanSupplier;
+import java.util.function.Function;
 import javax.inject.Inject;
 import lombok.CustomLog;
 import name.remal.gradle_plugins.sonarlint.SonarJavascriptPluginInfo.EmbeddedNodeJsPlatform;
@@ -39,7 +42,6 @@ import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.ModuleDependency;
-import org.gradle.api.artifacts.ResolvedDependency;
 import org.gradle.api.artifacts.dsl.DependencyHandler;
 import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.file.FileCollection;
@@ -86,30 +88,11 @@ public abstract class SonarLintPlugin implements Plugin<Project> {
             configureSonarLintConfiguration(conf, false);
             conf.setDescription("SonarLint core logging");
             conf.defaultDependencies(deps -> {
-                deps.add(getDependencies().create(format(
-                    "org.slf4j:slf4j-simple:%s",
-                    SONARLINT_CORE_SLF4J_VERSION
-                )));
-                deps.add(getDependencies().create(format(
-                    "org.slf4j:jul-to-slf4j:%s",
-                    SONARLINT_CORE_SLF4J_VERSION
-                )));
-
-                var springVersion = coreConf.get()
-                    .getResolvedConfiguration()
-                    .getLenientConfiguration()
-                    .getAllModuleDependencies()
-                    .stream()
-                    .filter(dep ->
-                        "org.springframework:spring-core".equals(dep.getModuleGroup() + ":" + dep.getModuleName())
-                    )
-                    .map(ResolvedDependency::getModuleVersion)
-                    .findAny()
-                    .orElse("");
-                deps.add(getDependencies().create(format(
-                    "org.springframework:spring-jcl:%s",
-                    springVersion
-                )));
+                SONARLINT_CORE_LOGGING_DEPENDENCIES.stream()
+                    .map(this::processSonarDependency)
+                    .map(SonarDependency::getNotation)
+                    .map(getDependencies()::create)
+                    .forEach(deps::add);
             });
         });
 
@@ -256,6 +239,29 @@ public abstract class SonarLintPlugin implements Plugin<Project> {
             task.getCoreClasspath().from(coreConf);
             task.getCoreLoggingClasspath().from(coreLoggingConf);
             task.getPluginFiles().from(pluginsConf);
+
+            Function<Provider<Configuration>, Set<SonarResolvedDependency>> getSonarResolvedDependencies = conf -> {
+                return conf.get()
+                    .getResolvedConfiguration()
+                    .getLenientConfiguration()
+                    .getAllModuleDependencies()
+                    .stream()
+                    .filter(dep -> !dep.getModuleArtifacts().isEmpty())
+                    .map(dep ->
+                        SonarResolvedDependency.builder()
+                            .moduleGroup(dep.getModuleGroup())
+                            .moduleName(dep.getModuleName())
+                            .moduleVersion(dep.getModuleVersion())
+                            .build()
+                    )
+                    .collect(toImmutableSet());
+            };
+            task.getCoreResolvedDependencies().set(project.provider(() ->
+                getSonarResolvedDependencies.apply(coreConf)
+            ));
+            task.getCoreLoggingResolvedDependencies().set(project.provider(() ->
+                getSonarResolvedDependencies.apply(coreLoggingConf)
+            ));
         });
     }
 

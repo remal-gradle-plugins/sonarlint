@@ -10,45 +10,29 @@ import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.Value;
-import lombok.With;
 import org.jetbrains.annotations.ApiStatus;
-import org.jspecify.annotations.Nullable;
 
 @ApiStatus.Internal
 @Value
 @Builder
-@With
 @RequiredArgsConstructor(access = PRIVATE)
 @NoArgsConstructor(access = PRIVATE, force = true)
 @EqualsAndHashCode(cacheStrategy = LAZY)
-public class SonarDependency implements Serializable {
+public class SonarResolvedDependency implements Serializable {
 
     @NonNull
-    String group;
+    String moduleGroup;
 
     @NonNull
-    String name;
+    String moduleName;
 
     @NonNull
-    String version;
-
-
-    @Nullable
-    String classifier;
+    String moduleVersion;
 
 
     public String getNotation() {
-        var notation = group + ':' + name + ':' + version;
-        if (classifier != null) {
-            notation += ':' + classifier;
-        }
-        return notation;
+        return moduleGroup + ':' + moduleName + ':' + moduleVersion;
     }
-
-    public String getId() {
-        return group + ':' + name;
-    }
-
 
     @Override
     public String toString() {

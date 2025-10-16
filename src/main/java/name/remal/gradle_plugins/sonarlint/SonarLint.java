@@ -444,6 +444,8 @@ public abstract class SonarLint extends AbstractSonarLintTask
 
     @TaskAction
     public final void execute(@Nullable InputChanges inputChanges) {
+        checkCoreResolvedDependencies();
+
         if (getIsForkEnabled().getOrElse(false)) {
             var workActionParams = getObjects().newInstance(SonarLintAnalyzeWorkActionParams.class);
             configureWorkActionParams(inputChanges, workActionParams);

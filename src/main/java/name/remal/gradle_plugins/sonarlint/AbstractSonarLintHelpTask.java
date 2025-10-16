@@ -23,6 +23,8 @@ public abstract class AbstractSonarLintHelpTask<WorkAction extends AbstractSonar
 
     @TaskAction
     public final void execute() {
+        checkCoreResolvedDependencies();
+
         var workQueue = createWorkQueue();
         workQueue.submit(getWorkActionClass(), params -> {
             params.getPluginFiles().from(getPluginFiles());

@@ -100,27 +100,6 @@ configurations.testImplementation.dependencies.withType(ExternalModuleDependency
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-generateSources.forMainSourceSet.java {
-    Provider<MavenPublication> publication = provider { publishing.publications.withType(MavenPublication).pluginMaven }
-    Provider<String> group = provider { publication.get().groupId }
-    Provider<String> artifactId = provider { publication.get().artifactId }
-    Provider<String> version = provider { publication.get().version }
-    inputs.property('groupId', group)
-    inputs.property('artifactId', artifactId)
-    inputs.property('version', version)
-
-    classFile(project.calculateBaseJavaPackage(), 'SonarLintPluginBuildInfo') {
-        block("interface ${simpleName}") {
-            line("String SONARLINT_PLUGIN_ID = \"${escapeString(gradlePlugin.plugins.names.first())}\";")
-            line("String SONARLINT_PLUGIN_GROUP = \"${escapeString(group.get())}\";")
-            line("String SONARLINT_PLUGIN_ARTIFACT_ID = \"${escapeString(artifactId.get())}\";")
-            line("String SONARLINT_PLUGIN_VERSION = \"${escapeString(version.get())}\";")
-        }
-    }
-}
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
 project.javaRuntimeMinVersion.majorVersion.toInteger().with { javaRuntimeMinVersion ->
     project.redefineDependencyTargetJvmVersion('org.springframework:spring-core', javaRuntimeMinVersion)
     project.redefineDependencyTargetJvmVersion('org.springframework:spring-context', javaRuntimeMinVersion)
@@ -249,7 +228,7 @@ sonarPluginArtifactsConf.dependencies.withType(ModuleDependency).all { ModuleDep
     allSonarLintCoreExclusions.forEach { dep.exclude it }
 
     configurations.compileOnly.dependencies.add(project.dependencies.create("${dep.group}:${dep.name}:${dep.version}") { ModuleDependency innerDep ->
-        transitive = false
+        innerDep.transitive = false
         allSonarLintCoreExclusions.forEach { innerDep.exclude it }
     })
 }
@@ -322,7 +301,30 @@ apply from: 'build-languages.gradle'
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+Configuration sonarCoreTransitiveConf = configurations.create('sonarCoreTransitive') { Configuration conf ->
+    conf.extendsFrom = []
+
+    sonarCoreArtifactsConf.dependencies.all { Dependency dep ->
+        dep = dep.copy()
+        if (dep instanceof ModuleDependency) {
+            dep.transitive = true
+        }
+
+        conf.dependencies.add(dep)
+    }
+}
+
+configurations[componentTestSourceSet.runtimeOnlyConfigurationName].extendsFrom(sonarCoreTransitiveConf)
+
+tasks.withType(Test).configureEach { Test task ->
+    task.testClasspathScopeConfigurations.create('sonar-plugins').add(sonarPluginArtifactsConf)
+}
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 Configuration sonarCoreTransitiveWithoutExclusionsConf = configurations.create('sonarCoreTransitiveWithoutExclusions') { Configuration conf ->
+    conf.extendsFrom = []
+
     sonarCoreArtifactsConf.dependencies.withType(ModuleDependency).all { ModuleDependency dep ->
         conf.dependencies.add(project.dependencies.create("${dep.group}:${dep.name}:${dep.version}"))
     }
@@ -337,18 +339,40 @@ Property<String> sonarCoreSlf4jVersion = objects.property(String).value(provider
         ?.moduleVersion
 }).with { it.finalizeValueOnRead(); it }
 
-; [
-    'org.slf4j:slf4j-simple',
-    'org.slf4j:jul-to-slf4j',
-].forEach { notation ->
-    configurations.compileOnly.dependencies.addLater(provider { dependencies.create("$notation:${sonarCoreSlf4jVersion.get()}") })
+Property<String> sonarCoreSpringVersion = objects.property(String).value(provider {
+    return sonarCoreTransitiveWithoutExclusionsConf
+        .resolvedConfiguration
+        .lenientConfiguration
+        .allModuleDependencies
+        .find { "${it.moduleGroup}:${it.moduleName}" == 'org.springframework:spring-core' }
+        ?.moduleVersion
+}).with { it.finalizeValueOnRead(); it }
+
+Configuration sonarCoreLoggingConf = configurations.create('sonarCoreLogging') { Configuration conf ->
+    conf.extendsFrom = []
+
+    ; [
+        'org.slf4j:slf4j-simple',
+        'org.slf4j:jul-to-slf4j',
+    ].forEach { notation ->
+        conf.dependencies.addLater(provider { project.dependencies.create("$notation:${sonarCoreSlf4jVersion.get()}") })
+    }
+
+    ; [
+        'org.springframework:spring-jcl',
+    ].forEach { notation ->
+        conf.dependencies.addLater(provider { project.dependencies.create("$notation:${sonarCoreSpringVersion.get()}") })
+    }
 }
+
+configurations.compileOnly.extendsFrom(sonarCoreLoggingConf)
 
 generateSources.forMainSourceSet.java { Task task ->
     inputs.files(allSonarArtifactsConf).withPropertyName(allSonarArtifactsConf.name).optional(false)
     inputs.files(sonarCoreArtifactsConf).withPropertyName(sonarCoreArtifactsConf.name).optional(false)
+    inputs.files(sonarCoreTransitiveConf).withPropertyName(sonarCoreTransitiveConf.name).optional(true)
+    inputs.files(sonarCoreLoggingConf).withPropertyName(sonarCoreLoggingConf.name).optional(false)
     inputs.files(sonarPluginArtifactsConf).withPropertyName(sonarPluginArtifactsConf.name).optional(true)
-    inputs.property('sonarCoreSlf4jVersion', sonarCoreSlf4jVersion).optional(false)
     inputs.property('sonarLintCoreLibrariesExclusions', sonarLintCoreLibrariesExclusions).optional(true)
     inputs.property('sonarLintCoreLoggingImplExclusions', sonarLintCoreLoggingImplExclusions).optional(true)
     inputs.property('sonarLintCoreLoggingAllExclusions', sonarLintCoreLoggingAllExclusions).optional(true)
@@ -364,13 +388,60 @@ generateSources.forMainSourceSet.java { Task task ->
             line("@Unmodifiable")
             line("List<SonarDependency> SONARLINT_CORE_DEPENDENCIES = List.of(")
             indent {
-                List<Dependency> coreDependencies = sonarCoreArtifactsConf.dependencies.collect()
+                List<Dependency> coreDependencies = sonarCoreTransitiveConf.dependencies.collect()
                 coreDependencies.eachWithIndex { dep, index ->
                     line("SonarDependency.builder()")
                     line("    .group(\"${escapeString(dep.group)}\")")
                     line("    .name(\"${escapeString(dep.name)}\")")
                     line("    .version(\"${escapeString(dep.version)}\")")
                     line("    .build()${index < coreDependencies.size() - 1 ? ',' : ''}")
+                }
+            }
+            line(");")
+
+            line()
+            line("@Unmodifiable")
+            line("List<SonarResolvedDependency> SONARLINT_CORE_RESOLVED_DEPENDENCIES = List.of(")
+            indent {
+                Collection<ResolvedDependency> coreResolvedDependencies = sonarCoreTransitiveConf.resolvedConfiguration.lenientConfiguration.allModuleDependencies.collect()
+                    .findAll { !it.allModuleArtifacts.isEmpty() }
+                coreResolvedDependencies.eachWithIndex { dep, index ->
+                    line("SonarResolvedDependency.builder()")
+                    line("    .moduleGroup(\"${escapeString(dep.moduleGroup)}\")")
+                    line("    .moduleName(\"${escapeString(dep.moduleName)}\")")
+                    line("    .moduleVersion(\"${escapeString(dep.moduleVersion)}\")")
+                    line("    .build()${index < coreResolvedDependencies.size() - 1 ? ',' : ''}")
+                }
+            }
+            line(");")
+
+            line()
+            line("@Unmodifiable")
+            line("List<SonarDependency> SONARLINT_CORE_LOGGING_DEPENDENCIES = List.of(")
+            indent {
+                List<Dependency> coreLoggingDependencies = sonarCoreLoggingConf.dependencies.collect()
+                coreLoggingDependencies.eachWithIndex { dep, index ->
+                    line("SonarDependency.builder()")
+                    line("    .group(\"${escapeString(dep.group)}\")")
+                    line("    .name(\"${escapeString(dep.name)}\")")
+                    line("    .version(\"${escapeString(dep.version)}\")")
+                    line("    .build()${index < coreLoggingDependencies.size() - 1 ? ',' : ''}")
+                }
+            }
+            line(");")
+
+            line()
+            line("@Unmodifiable")
+            line("List<SonarResolvedDependency> SONARLINT_CORE_LOGGING_RESOLVED_DEPENDENCIES = List.of(")
+            indent {
+                List<ResolvedDependency> coreLoggingResolvedDependencies = sonarCoreLoggingConf.resolvedConfiguration.lenientConfiguration.allModuleDependencies.collect()
+                    .findAll { !it.allModuleArtifacts.isEmpty() }
+                coreLoggingResolvedDependencies.eachWithIndex { dep, index ->
+                    line("SonarResolvedDependency.builder()")
+                    line("    .moduleGroup(\"${escapeString(dep.moduleGroup)}\")")
+                    line("    .moduleName(\"${escapeString(dep.moduleName)}\")")
+                    line("    .moduleVersion(\"${escapeString(dep.moduleVersion)}\")")
+                    line("    .build()${index < coreLoggingResolvedDependencies.size() - 1 ? ',' : ''}")
                 }
             }
             line(");")
@@ -389,9 +460,6 @@ generateSources.forMainSourceSet.java { Task task ->
                 }
             }
             line(");")
-
-            line()
-            line("String SONARLINT_CORE_SLF4J_VERSION = \"${escapeString(sonarCoreSlf4jVersion.get())}\";")
 
             [
                 'SONARLINT_CORE_LIBRARIES_EXCLUSIONS': sonarLintCoreLibrariesExclusions,
@@ -503,25 +571,6 @@ generateSources.forMainSourceSet.java { Task task ->
             }
         }
     }
-}
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-Configuration sonarCoreTransitiveConf = configurations.create('sonarCoreTransitive') { Configuration conf ->
-    sonarCoreArtifactsConf.dependencies.all { Dependency dep ->
-        dep = dep.copy()
-        if (dep instanceof ModuleDependency) {
-            dep.transitive = true
-        }
-
-        conf.dependencies.add(dep)
-    }
-}
-
-configurations[componentTestSourceSet.runtimeOnlyConfigurationName].extendsFrom(sonarCoreTransitiveConf)
-
-tasks.withType(Test).configureEach { Test task ->
-    task.testClasspathScopeConfigurations.create('sonar-plugins').add(sonarPluginArtifactsConf)
 }
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
