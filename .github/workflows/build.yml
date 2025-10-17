@@ -220,6 +220,52 @@ jobs:
         echo "All cross versions tests executed successfully"
 
 
+  combine-jacoco-reports:
+    needs:
+    - cross-versions-tests-success
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DISABLE_COMPILATION: 'true'
+      DISABLE_VERIFICATION: 'true'
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v5
+      with:
+        submodules: recursive
+        fetch-depth: 1
+    - name: Cache Gradle
+      uses: remal-github-actions/cache-gradle@main
+    - name: Setup Java ${{env.DEFAULT_JAVA_VERSION}}
+      uses: actions/setup-java@v5
+      with:
+        java-version: ${{env.DEFAULT_JAVA_VERSION}}
+        distribution: temurin
+    - name: Download and extract workspace
+      uses: ./.github/workflows/actions/download-extract-workspace
+
+    - name: Download all exec files
+      id: download-exec-files
+      uses: Wandalen/wretry.action/main@v3.8.0
+      with:
+        action: actions/download-artifact@v5
+        attempt_limit: 3
+        attempt_delay: 5000
+        with: |
+          pattern: 'jacoco-matrix-exec-files-*'
+          path: build/jacoco-matrix-exec-files
+    - name: Calculate and display total coverage
+      run: |
+        ./gradlew-retry-connection-timeouts jacocoMatrixReportMerged displayMatrixTotalCodeCoverage "-Pjacoco-all-exec-files-dir=build/jacoco-matrix-exec-files"
+    - name: Upload Jacoco merged report
+      uses: actions/upload-artifact@v4
+      with:
+        name: jacoco-matrix-merged-report
+        path: build/reports/jacoco/jacocoMatrixReportMerged/
+        if-no-files-found: warn
+        retention-days: 90
+
+
   push-back:
     if: >-
       ${{
