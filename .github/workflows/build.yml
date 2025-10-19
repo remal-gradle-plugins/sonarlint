@@ -155,9 +155,23 @@ jobs:
         else
           echo "isMavenCentral=false" | tee -a $GITHUB_OUTPUT
         fi
-    - name: Archive and upload workspace
+
+    - name: Get untracked and updated files
       if: ${{!cancelled()}}
-      uses: ./.github/workflows/actions/archive-upload-workspace
+      id: untracked-and-changed-files
+      run: |
+        echo 'list<<EOF' >> "$GITHUB_OUTPUT"
+        git ls-files --modified --others  | tee -a "$GITHUB_OUTPUT"
+        echo 'EOF' >> "$GITHUB_OUTPUT"
+    - name: Upload untracked and updated files
+      if: ${{!cancelled()}}
+      uses: actions/upload-artifact@v4
+      with:
+        name: workspace
+        path: ${{steps.untracked-and-changed-files.outputs.list}}
+        include-hidden-files: true
+        if-no-files-found: warn
+        retention-days: 90
 
     - name: Prepare environment variables for cross-versions-tests
       id: prepare-env-for-cross-versions-tests
@@ -241,10 +255,16 @@ jobs:
       with:
         java-version: ${{env.DEFAULT_JAVA_VERSION}}
         distribution: temurin
-    - name: Download and extract workspace
-      uses: ./.github/workflows/actions/download-extract-workspace
+    - name: Download untracked and updated files
+      uses: Wandalen/wretry.action/main@v3.8.0
+      with:
+        action: actions/download-artifact@v5
+        attempt_limit: 3
+        attempt_delay: 5000
+        with: |
+          name: workspace
 
-    - name: Download all exec files
+    - name: Download all Jacoco exec files
       id: download-exec-files
       uses: Wandalen/wretry.action/main@v3.8.0
       with:
@@ -262,6 +282,7 @@ jobs:
       with:
         name: jacoco-matrix-merged-report
         path: build/reports/jacoco/jacocoMatrixReportMerged/
+        include-hidden-files: true
         if-no-files-found: warn
         retention-days: 90
 
@@ -296,8 +317,14 @@ jobs:
       with:
         java-version: ${{env.DEFAULT_JAVA_VERSION}}
         distribution: temurin
-    - name: Download and extract workspace
-      uses: ./.github/workflows/actions/download-extract-workspace
+    - name: Download untracked and updated files
+      uses: Wandalen/wretry.action/main@v3.8.0
+      with:
+        action: actions/download-artifact@v5
+        attempt_limit: 3
+        attempt_delay: 5000
+        with: |
+          name: workspace
 
     - name: Read min supported Java version
       id: min-java-version
@@ -404,8 +431,14 @@ jobs:
       with:
         java-version: ${{env.DEFAULT_JAVA_VERSION}}
         distribution: temurin
-    - name: Download and extract workspace
-      uses: ./.github/workflows/actions/download-extract-workspace
+    - name: Download untracked and updated files
+      uses: Wandalen/wretry.action/main@v3.8.0
+      with:
+        action: actions/download-artifact@v5
+        attempt_limit: 3
+        attempt_delay: 5000
+        with: |
+          name: workspace
 
     - name: Publish to Gradle Plugin Portal
       run: |
@@ -448,8 +481,14 @@ jobs:
       with:
         java-version: ${{env.DEFAULT_JAVA_VERSION}}
         distribution: temurin
-    - name: Download and extract workspace
-      uses: ./.github/workflows/actions/download-extract-workspace
+    - name: Download untracked and updated files
+      uses: Wandalen/wretry.action/main@v3.8.0
+      with:
+        action: actions/download-artifact@v5
+        attempt_limit: 3
+        attempt_delay: 5000
+        with: |
+          name: workspace
 
     - name: Publish to Maven Central
       run: |
