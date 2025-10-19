@@ -19,7 +19,6 @@ defaults:
 
 env:
   DEFAULT_JAVA_VERSION: 17
-  GRADLE_OPTS: -Dorg.gradle.parallel=true -Dorg.gradle.workers.max=4 -Dorg.gradle.warning.mode=all -Dorg.gradle.logging.stacktrace=all -Dhttp.keepAlive=false -Dsun.net.client.defaultConnectTimeout=15000 -Dsun.net.client.defaultReadTimeout=600000 -Dsun.net.http.retryPost=false -Dsun.io.useCanonCaches=false -Djava.awt.headless=true -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
   GIT_REF: ${{github.ref}}
   GIT_SHA: ${{github.sha}}
   GITHUB_ACTIONS_TOKEN: ${{github.token}}
@@ -155,23 +154,9 @@ jobs:
         else
           echo "isMavenCentral=false" | tee -a $GITHUB_OUTPUT
         fi
-
-    - name: Get untracked and updated files
+    - name: Archive and upload workspace
       if: ${{!cancelled()}}
-      id: untracked-and-changed-files
-      run: |
-        echo 'list<<EOF' >> "$GITHUB_OUTPUT"
-        git ls-files --modified --others  | tee -a "$GITHUB_OUTPUT"
-        echo 'EOF' >> "$GITHUB_OUTPUT"
-    - name: Upload untracked and updated files
-      if: ${{!cancelled()}}
-      uses: actions/upload-artifact@v4
-      with:
-        name: workspace
-        path: ${{steps.untracked-and-changed-files.outputs.list}}
-        include-hidden-files: true
-        if-no-files-found: warn
-        retention-days: 90
+      uses: ./.github/workflows/actions/archive-upload-workspace
 
     - name: Prepare environment variables for cross-versions-tests
       id: prepare-env-for-cross-versions-tests
@@ -255,16 +240,10 @@ jobs:
       with:
         java-version: ${{env.DEFAULT_JAVA_VERSION}}
         distribution: temurin
-    - name: Download untracked and updated files
-      uses: Wandalen/wretry.action/main@v3.8.0
-      with:
-        action: actions/download-artifact@v5
-        attempt_limit: 3
-        attempt_delay: 5000
-        with: |
-          name: workspace
+    - name: Download and extract workspace
+      uses: ./.github/workflows/actions/download-extract-workspace
 
-    - name: Download all Jacoco exec files
+    - name: Download all exec files
       id: download-exec-files
       uses: Wandalen/wretry.action/main@v3.8.0
       with:
@@ -282,7 +261,6 @@ jobs:
       with:
         name: jacoco-matrix-merged-report
         path: build/reports/jacoco/jacocoMatrixReportMerged/
-        include-hidden-files: true
         if-no-files-found: warn
         retention-days: 90
 
@@ -317,14 +295,8 @@ jobs:
       with:
         java-version: ${{env.DEFAULT_JAVA_VERSION}}
         distribution: temurin
-    - name: Download untracked and updated files
-      uses: Wandalen/wretry.action/main@v3.8.0
-      with:
-        action: actions/download-artifact@v5
-        attempt_limit: 3
-        attempt_delay: 5000
-        with: |
-          name: workspace
+    - name: Download and extract workspace
+      uses: ./.github/workflows/actions/download-extract-workspace
 
     - name: Read min supported Java version
       id: min-java-version
@@ -431,14 +403,8 @@ jobs:
       with:
         java-version: ${{env.DEFAULT_JAVA_VERSION}}
         distribution: temurin
-    - name: Download untracked and updated files
-      uses: Wandalen/wretry.action/main@v3.8.0
-      with:
-        action: actions/download-artifact@v5
-        attempt_limit: 3
-        attempt_delay: 5000
-        with: |
-          name: workspace
+    - name: Download and extract workspace
+      uses: ./.github/workflows/actions/download-extract-workspace
 
     - name: Publish to Gradle Plugin Portal
       run: |
@@ -481,14 +447,8 @@ jobs:
       with:
         java-version: ${{env.DEFAULT_JAVA_VERSION}}
         distribution: temurin
-    - name: Download untracked and updated files
-      uses: Wandalen/wretry.action/main@v3.8.0
-      with:
-        action: actions/download-artifact@v5
-        attempt_limit: 3
-        attempt_delay: 5000
-        with: |
-          name: workspace
+    - name: Download and extract workspace
+      uses: ./.github/workflows/actions/download-extract-workspace
 
     - name: Publish to Maven Central
       run: |
