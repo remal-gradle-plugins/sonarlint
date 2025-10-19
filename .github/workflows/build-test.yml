@@ -101,35 +101,19 @@ jobs:
           ${{env.CURRENT_JAVA_VERSION != env.DEFAULT_JAVA_VERSION && env.CURRENT_JAVA_VERSION || ''}}
           ${{env.DEFAULT_JAVA_VERSION}}
         distribution: temurin
-    - name: Download untracked and updated files
-      uses: Wandalen/wretry.action/main@v3.8.0
-      with:
-        action: actions/download-artifact@v5
-        attempt_limit: 3
-        attempt_delay: 5000
-        with: |
-          name: workspace
+    - name: Download and extract workspace
+      uses: ./.github/workflows/actions/download-extract-workspace
 
     - name: Execute tests
       run: |
         ./gradlew-retry-connection-timeouts allTests jacocoReportMerged displayTotalCodeCoverage ${{steps.matrix-info.outputs.gradle-args}}
 
-    - name: Get untracked and updated files
+    - name: Archive and upload workspace if tests failed
       if: ${{failure()}}
-      id: untracked-and-changed-files
-      run: |
-        echo 'list<<EOF' >> "$GITHUB_OUTPUT"
-        git ls-files --modified --others  | tee -a "$GITHUB_OUTPUT"
-        echo 'EOF' >> "$GITHUB_OUTPUT"
-    - name: Upload untracked and updated files
-      if: ${{failure()}}
-      uses: actions/upload-artifact@v4
+      uses: ./.github/workflows/actions/archive-upload-workspace
       with:
-        name: workspace-test-${{inputs.os}}-${{steps.matrix-info.outputs.token}}
-        path: ${{steps.untracked-and-changed-files.outputs.list}}
-        include-hidden-files: true
-        if-no-files-found: warn
-        retention-days: 90
+        archive-name: workspace-test-${{inputs.os}}-${{steps.matrix-info.outputs.token}}
+        artifact-name: workspace-test-${{inputs.os}}-${{steps.matrix-info.outputs.token}}
 
     - name: Upload Jacoco exec files
       uses: actions/upload-artifact@v4
