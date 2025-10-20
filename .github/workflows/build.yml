@@ -167,7 +167,7 @@ jobs:
         script: |
           const envObj = JSON.parse(process.env.ENV_JSON)
           for (const name of Object.keys(envObj)) {
-            if (name.startsWith('GITHUB_ACTIONS_')) {
+            if (name.startsWith('GITHUB_')) {
               delete envObj[name]
             }
           }
