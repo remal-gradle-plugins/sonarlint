@@ -13,6 +13,8 @@ buildscript {
     }
 }
 
+class ThisScriptLocation {}
+
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 Map<String, String> defaultLanguageNames = [
@@ -319,6 +321,8 @@ Property<String> frontendLanguageNamesString = project.ext.frontendLanguageNames
 
 
 generateSources.forMainSourceSet.java {
+    inputs.dir(getClassLocationFile(ThisScriptLocation)).withNormalizer(ClasspathNormalizer).optional()
+
     ; [
         'sonarCoreArtifacts',
         'sonarPluginArtifacts',

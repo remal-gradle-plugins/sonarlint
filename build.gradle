@@ -45,6 +45,8 @@ buildscript {
     }.memoize()
 }
 
+class ThisScriptLocation {}
+
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 allprojects {
@@ -368,6 +370,8 @@ Configuration sonarCoreLoggingConf = configurations.create('sonarCoreLogging') {
 configurations.compileOnly.extendsFrom(sonarCoreLoggingConf)
 
 generateSources.forMainSourceSet.java { Task task ->
+    inputs.dir(getClassLocationFile(ThisScriptLocation)).withNormalizer(ClasspathNormalizer).optional()
+
     inputs.files(allSonarArtifactsConf).withPropertyName(allSonarArtifactsConf.name).optional(false)
     inputs.files(sonarCoreArtifactsConf).withPropertyName(sonarCoreArtifactsConf.name).optional(false)
     inputs.files(sonarCoreTransitiveConf).withPropertyName(sonarCoreTransitiveConf.name).optional(true)

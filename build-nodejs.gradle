@@ -2,6 +2,8 @@ import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 
+class ThisScriptLocation {}
+
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 MapProperty<String, String> javascriptPluginDependencyInfo = project.ext.javascriptPluginDependencyInfo = project.objects.mapProperty(String, String).value(provider {
@@ -104,6 +106,8 @@ MapProperty<String, String> embeddedNodeJsPlatforms = rootProject.ext.embeddedNo
 }).with { it.finalizeValueOnRead(); it }
 
 generateSources.forMainSourceSet.java {
+    inputs.dir(getClassLocationFile(ThisScriptLocation)).withNormalizer(ClasspathNormalizer).optional()
+
     inputs.property('embeddedNodeJsPlatforms', embeddedNodeJsPlatforms)
 
     classFile(project.calculateBaseJavaPackage(), 'SonarJavascriptPluginInfo') {
