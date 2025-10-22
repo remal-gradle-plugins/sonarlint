@@ -148,6 +148,7 @@ public abstract class SonarLintPlugin implements Plugin<Project> {
     }
 
 
+    @SuppressWarnings("java:S3776")
     private void configureSonarLintConfiguration(
         Configuration configuration,
         boolean addExclusions,
