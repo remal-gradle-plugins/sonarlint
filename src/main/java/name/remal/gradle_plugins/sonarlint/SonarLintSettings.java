@@ -5,6 +5,7 @@ import org.gradle.api.provider.ListProperty;
 import org.gradle.api.provider.MapProperty;
 import org.gradle.api.provider.Property;
 import org.gradle.api.provider.Provider;
+import org.gradle.api.tasks.Console;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.Nested;
 
@@ -57,6 +58,21 @@ public abstract class SonarLintSettings {
 
     public void logging(Action<? super SonarLintLoggingSettings> action) {
         action.execute(getLogging());
+    }
+
+
+    @Console
+    public abstract Property<Boolean> getCheckChangedCoreClasspath();
+
+    {
+        getCheckChangedCoreClasspath().convention(true);
+    }
+
+    @Console
+    public abstract Property<Boolean> getFailOnChangedCoreClasspath();
+
+    {
+        getFailOnChangedCoreClasspath().convention(false);
     }
 
 

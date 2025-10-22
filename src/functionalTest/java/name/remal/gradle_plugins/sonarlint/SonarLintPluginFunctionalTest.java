@@ -11,6 +11,7 @@ import static name.remal.gradle_plugins.toolkit.LazyValue.lazyValue;
 import static name.remal.gradle_plugins.toolkit.SneakyThrowUtils.sneakyThrows;
 import static name.remal.gradle_plugins.toolkit.StringUtils.normalizeString;
 import static name.remal.gradle_plugins.toolkit.StringUtils.substringBeforeLast;
+import static name.remal.gradle_plugins.toolkit.testkit.TestClasspath.getTestClasspathLibraryVersion;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
@@ -70,7 +71,7 @@ class SonarLintPluginFunctionalTest {
             build.block("sonarLint", sonarLint -> {
                 sonarLint.line("ignoreFailures = true");
                 sonarLint.line("rules.enable('no-rules:enabled-by-default')");
-                sonarLint.line("logging.failOnChangedCoreClasspath = true");
+                sonarLint.line("failOnChangedCoreClasspath = true");
             });
         });
     }
@@ -471,12 +472,72 @@ class SonarLintPluginFunctionalTest {
 
 
     @Nested
+    class CompatibilityWithSpringDependencyManagementPlugin {
+
+        @BeforeEach
+        void beforeEach() {
+            project.forBuildFile(build -> {
+                build.applyPlugin(
+                    "io.spring.dependency-management",
+                    getTestClasspathLibraryVersion(
+                        "io.spring.dependency-management:io.spring.dependency-management.gradle.plugin"
+                    )
+                );
+
+                build.block("dependencyManagement", depMan -> {
+                    depMan.block("dependencies", deps -> {
+                        deps.line("dependency 'org.apache.commons:commons-lang3:3.0'");
+                    });
+                });
+            });
+        }
+
+        @Test
+        void defaultSettings() {
+            new Assertions()
+                .rule("java:S1133")
+                .assertAllRulesAreRaised();
+        }
+
+        @Test
+        void withoutFixOverriddenDependencies() {
+            project.getBuildFile().line("sonarLint.fixOverriddenDependencies = false");
+            project.getBuildFile().line("sonarLint.failOnChangedCoreClasspath = true");
+
+            writeRuleExample(project, "java:S1171");
+            project.getBuildFile().line("sonarLint.languages.include('java')");
+
+            var buildResult = project.assertBuildFails("sonarlintMain");
+
+            assertThat(normalizeString(buildResult.getOutput()))
+                .contains("Unexpected SonarLint core classpath");
+        }
+
+        @Test
+        void withoutFixOverriddenDependenciesAndWithoutCheckChangedCoreClasspath() {
+            project.getBuildFile().line("sonarLint.fixOverriddenDependencies = false");
+            project.getBuildFile().line("sonarLint.checkChangedCoreClasspath = false");
+            project.getBuildFile().line("sonarLint.failOnChangedCoreClasspath = false");
+
+            writeRuleExample(project, "java:S1171");
+            project.getBuildFile().line("sonarLint.languages.include('java')");
+
+            var buildResult = project.assertBuildFails("sonarlintMain");
+
+            assertThat(normalizeString(buildResult.getOutput()))
+                .contains("ClassNotFoundException: org.apache.commons.lang3.Strings");
+        }
+
+    }
+
+
+    @Nested
     @SuppressWarnings("RegExpRepeatedSpace")
     class ChangedDependencies {
 
         @BeforeEach
         void beforeEach() {
-            project.withoutJacoco(); // TODO: remove when toolkit is updated
+            project.getBuildFile().line("sonarLint.fixOverriddenDependencies = false");
         }
 
         @Test

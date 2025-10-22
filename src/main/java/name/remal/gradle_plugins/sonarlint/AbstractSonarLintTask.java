@@ -148,12 +148,12 @@ public abstract class AbstractSonarLintTask
     protected abstract SetProperty<SonarResolvedDependency> getCoreLoggingResolvedDependencies();
 
     protected final void checkCoreResolvedDependencies() {
-        boolean checkChangedCoreClasspath = getSettings().getLogging().getCheckChangedCoreClasspath().get();
+        boolean checkChangedCoreClasspath = getSettings().getCheckChangedCoreClasspath().get();
         if (!checkChangedCoreClasspath) {
             return;
         }
 
-        boolean failOnChangedCoreClasspath = getSettings().getLogging().getFailOnChangedCoreClasspath().get();
+        boolean failOnChangedCoreClasspath = getSettings().getFailOnChangedCoreClasspath().get();
 
         checkResolvedDependencies(
             "core",
@@ -237,12 +237,12 @@ public abstract class AbstractSonarLintTask
         if (failOnChangedCoreClasspath) {
             withNewLineIfNeeded.get()
                 .append("To make this message a warning,")
-                .append(" add `sonarLint.logging.failOnChangedCoreClasspath = false` to your build script.");
+                .append(" add `sonarLint.failOnChangedCoreClasspath = false` to your build script.");
         }
 
         withNewLineIfNeeded.get()
             .append("To hide this message,")
-            .append(" add `sonarLint.logging.checkChangedCoreClasspath = false` to your build script.");
+            .append(" add `sonarLint.checkChangedCoreClasspath = false` to your build script.");
 
         if (failOnChangedCoreClasspath) {
             throw new GradleException(buf.toString());

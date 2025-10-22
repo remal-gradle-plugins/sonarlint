@@ -139,8 +139,6 @@ sonarLint {
 
   logging {
     withDescription = false // Hide rule descriptions from console output
-    checkChangedCoreClasspath = false // To hide warning message about changed SonarLint core classpath
-    failOnChangedCoreClasspath = true // To fail if SonarLint core classpath was changed and if `checkChangedCoreClasspath == true`
   }
 }
 ```

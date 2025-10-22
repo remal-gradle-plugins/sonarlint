@@ -12,19 +12,4 @@ public abstract class SonarLintLoggingSettings {
         getWithDescription().convention(true);
     }
 
-
-    @Console
-    public abstract Property<Boolean> getCheckChangedCoreClasspath();
-
-    {
-        getCheckChangedCoreClasspath().convention(true);
-    }
-
-    @Console
-    public abstract Property<Boolean> getFailOnChangedCoreClasspath();
-
-    {
-        getFailOnChangedCoreClasspath().convention(false);
-    }
-
 }

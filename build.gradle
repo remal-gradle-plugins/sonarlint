@@ -68,6 +68,8 @@ dependencies {
     classesRelocation 'com.tisonkun.os:os-detector-core:0.6.0'
 
     componentTestImplementation 'org.junit.platform:junit-platform-launcher'
+
+    functionalTestAdditionalClasspath 'io.spring.dependency-management:io.spring.dependency-management.gradle.plugin:1.1.7'
 }
 
 buildTimeConstants.properties([

@@ -16,6 +16,8 @@ import static name.remal.gradle_plugins.sonarlint.SonarDependencies.SONARLINT_CO
 import static name.remal.gradle_plugins.sonarlint.SonarDependencies.SONARLINT_CORE_LIBRARIES_EXCLUSIONS;
 import static name.remal.gradle_plugins.sonarlint.SonarDependencies.SONARLINT_CORE_LOGGING_ALL_EXCLUSIONS;
 import static name.remal.gradle_plugins.sonarlint.SonarDependencies.SONARLINT_CORE_LOGGING_DEPENDENCIES;
+import static name.remal.gradle_plugins.sonarlint.SonarDependencies.SONARLINT_CORE_LOGGING_RESOLVED_DEPENDENCIES;
+import static name.remal.gradle_plugins.sonarlint.SonarDependencies.SONARLINT_CORE_RESOLVED_DEPENDENCIES;
 import static name.remal.gradle_plugins.sonarlint.SonarJavascriptPluginInfo.SONAR_JAVASCRIPT_PLUGIN_DEPENDENCY;
 import static name.remal.gradle_plugins.toolkit.AttributeContainerUtils.javaRuntimeLibrary;
 import static name.remal.gradle_plugins.toolkit.GradleManagedObjectsUtils.copyManagedProperties;
@@ -32,6 +34,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.BooleanSupplier;
 import java.util.function.Function;
+import java.util.stream.Stream;
 import javax.inject.Inject;
 import lombok.CustomLog;
 import name.remal.gradle_plugins.sonarlint.SonarJavascriptPluginInfo.EmbeddedNodeJsPlatform;
@@ -73,7 +76,8 @@ public abstract class SonarLintPlugin implements Plugin<Project> {
         var extension = project.getExtensions().create(SONARLINT_EXTENSION_NAME, SonarLintExtension.class);
 
         var coreConf = project.getConfigurations().register(SONARLINT_CORE_CONFIGURATION_NAME, conf -> {
-            configureSonarLintConfiguration(conf, true);
+            configureSonarLintConfiguration(conf, true, extension);
+
             conf.setDescription("SonarLint core");
             conf.defaultDependencies(deps -> {
                 SONARLINT_CORE_DEPENDENCIES.stream()
@@ -85,7 +89,8 @@ public abstract class SonarLintPlugin implements Plugin<Project> {
         });
 
         var coreLoggingConf = project.getConfigurations().register(SONARLINT_CORE_LOGGING_CONFIGURATION_NAME, conf -> {
-            configureSonarLintConfiguration(conf, false);
+            configureSonarLintConfiguration(conf, false, extension);
+
             conf.setDescription("SonarLint core logging");
             conf.defaultDependencies(deps -> {
                 SONARLINT_CORE_LOGGING_DEPENDENCIES.stream()
@@ -97,10 +102,10 @@ public abstract class SonarLintPlugin implements Plugin<Project> {
         });
 
         var pluginsConf = project.getConfigurations().register(SONARLINT_PLUGINS_CONFIGURATION_NAME, conf -> {
-            configureSonarLintConfiguration(conf, true);
+            configureSonarLintConfiguration(conf, true, extension);
+
             conf.setDescription("SonarLint plugins");
             conf.getDependencies().withType(ModuleDependency.class).configureEach(dep -> dep.setTransitive(false));
-
             conf.defaultDependencies(deps -> {
                 extension.getLanguages().getLanguagesToProcess().stream()
                     .map(SonarLintLanguage::getPluginDependencies)
@@ -143,12 +148,14 @@ public abstract class SonarLintPlugin implements Plugin<Project> {
     }
 
 
-    private void configureSonarLintConfiguration(Configuration configuration, boolean addExclusions) {
+    private void configureSonarLintConfiguration(
+        Configuration configuration,
+        boolean addExclusions,
+        SonarLintExtension extension
+    ) {
         configuration.setCanBeResolved(true);
 
-        if (configuration.isCanBeResolved() || configuration.isCanBeConsumed()) {
-            configuration.attributes(javaRuntimeLibrary(getObjects()));
-        }
+        configuration.attributes(javaRuntimeLibrary(getObjects()));
 
         if (addExclusions) {
             SONARLINT_CORE_LIBRARIES_EXCLUSIONS.forEach(configuration::exclude);
@@ -178,6 +185,38 @@ public abstract class SonarLintPlugin implements Plugin<Project> {
                 }
             });
         }
+
+        configuration.withDependencies(dependencySet -> {
+            if (configuration.getDependencies() != dependencySet) {
+                return; // a copied configuration
+            }
+
+            if (!extension.getFixOverriddenDependencies().getOrElse(true)) {
+                return;
+            }
+
+            configuration.getResolutionStrategy().eachDependency(details -> {
+                var target = details.getTarget();
+                var resolvedDep = Stream.of(
+                        SONARLINT_CORE_RESOLVED_DEPENDENCIES,
+                        SONARLINT_CORE_LOGGING_RESOLVED_DEPENDENCIES
+                    )
+                    .flatMap(Collection::stream)
+                    .filter(it -> it.getModuleGroup().equals(target.getGroup())
+                        && it.getModuleName().equals(target.getName())
+                    )
+                    .findFirst()
+                    .orElse(null);
+                if (resolvedDep == null) {
+                    return;
+                }
+
+                if (!resolvedDep.getModuleVersion().equals(target.getVersion())) {
+                    details.because("Fix overridden dependency version")
+                        .useVersion(resolvedDep.getModuleVersion());
+                }
+            });
+        });
     }
 
     private SonarDependency processSonarDependency(SonarDependency dependency) {
