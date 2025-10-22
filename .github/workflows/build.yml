@@ -11,7 +11,16 @@ on:
   pull_request: { }
   schedule:
   - cron: '53 22 * * *' # sync-with-template: adjust
-  workflow_dispatch: { }
+  workflow_dispatch:
+    inputs:
+      rerun-tests:
+        required: true
+        default: 'false'
+        description: Set to 'true' to make all test tasks out-of-date and rerun tests
+        type: choice
+        options:
+        - 'true'
+        - 'false'
 
 defaults:
   run:
@@ -19,6 +28,7 @@ defaults:
 
 env:
   DEFAULT_JAVA_VERSION: 17
+  RERUN_TESTS: ${{inputs.rerun-tests == 'true'}}
   GIT_REF: ${{github.ref}}
   GIT_SHA: ${{github.sha}}
   GITHUB_ACTIONS_TOKEN: ${{github.token}}
