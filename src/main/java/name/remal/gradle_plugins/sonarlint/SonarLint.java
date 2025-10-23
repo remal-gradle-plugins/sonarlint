@@ -13,7 +13,6 @@ import static java.util.stream.Collectors.toUnmodifiableList;
 import static name.remal.gradle_plugins.sonarlint.internal.SonarLintLanguageIncludes.getAllLanguageIncludes;
 import static name.remal.gradle_plugins.sonarlint.internal.utils.RemoteObjectUtils.exportObject;
 import static name.remal.gradle_plugins.sonarlint.internal.utils.RemoteObjectUtils.unexportObject;
-import static name.remal.gradle_plugins.sonarlint.internal.utils.SimpleLoggingEventBuilder.newLoggingEvent;
 import static name.remal.gradle_plugins.toolkit.BuildFeaturesUtils.areIsolatedProjectsRequested;
 import static name.remal.gradle_plugins.toolkit.ClosureUtils.configureWith;
 import static name.remal.gradle_plugins.toolkit.FileCollectionUtils.finalizeFileCollectionValueOnRead;
@@ -56,6 +55,7 @@ import name.remal.gradle_plugins.sonarlint.SonarLintAnalyzeWorkAction.SonarLintA
 import name.remal.gradle_plugins.sonarlint.internal.SourceFile;
 import name.remal.gradle_plugins.sonarlint.internal.client.ImmutableSonarLintClientParams;
 import name.remal.gradle_plugins.sonarlint.internal.server.api.SonarLintLogSink;
+import name.remal.gradle_plugins.sonarlint.internal.utils.SonarLintTaskLogSink;
 import name.remal.gradle_plugins.toolkit.CloseablesContainer;
 import name.remal.gradle_plugins.toolkit.EditorConfig;
 import name.remal.gradle_plugins.toolkit.LateInit;
@@ -468,14 +468,21 @@ public abstract class SonarLint extends AbstractSonarLintTask
 
 
             try (var closeables = new CloseablesContainer()) {
+                Consumer<Object> keepHardReferenceOnImplementation = object -> {
+                    closeables.registerCloseable(() -> {
+                        if (object instanceof AutoCloseable) {
+                            ((AutoCloseable) object).close();
+                        }
+                    });
+                };
+
                 Supplier<SonarLintLogSink> logSinkSupplier = () -> {
-                    SonarLintLogSink logSink = (level, message) -> {
-                        var logger = getLogger();
-                        newLoggingEvent(level).message(message).log(logger);
-                    };
+                    SonarLintLogSink logSink = new SonarLintTaskLogSink(this);
+                    keepHardReferenceOnImplementation.accept(logSink);
+
                     var bindAddress = clientBindAddress.get();
                     var logSinkStub = exportObject(logSink, bindAddress, 0);
-                    closeables.registerCloseable(() -> unexportObject(logSink));
+                    closeables.registerCloseable(() -> unexportObject(logSinkStub));
                     return logSinkStub;
                 };
 

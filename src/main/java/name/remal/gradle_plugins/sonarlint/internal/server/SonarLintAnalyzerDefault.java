@@ -80,7 +80,9 @@ public class SonarLintAnalyzerDefault implements SonarLintAnalyzer {
             return List.of();
         }
 
-        LogMessageConsumer logMessageConsumer = logSink == null ? null : logSink::onMessage;
+        LogMessageConsumer logMessageConsumer = logSink == null
+            ? null
+            : (level, message) -> logSink.onMessage(level.name(), message);
         return withThreadLogger(logMessageConsumer, () ->
             withSingleThreadedFirstFrontendScan(enabledLanguages, sourceFiles, sonarProperties, () -> {
                 var inputFiles = sourceFiles.stream()

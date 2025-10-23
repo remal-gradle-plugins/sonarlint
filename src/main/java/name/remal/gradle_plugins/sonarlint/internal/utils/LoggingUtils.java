@@ -8,7 +8,6 @@ import static org.slf4j.event.Level.DEBUG;
 import static org.slf4j.event.Level.WARN;
 
 import lombok.NoArgsConstructor;
-import org.slf4j.LoggerFactory;
 
 @NoArgsConstructor(access = PRIVATE)
 public abstract class LoggingUtils {
@@ -16,7 +15,7 @@ public abstract class LoggingUtils {
     @SuppressWarnings({"java:S2139", "AssignmentToCatchBlockParameter", "JavaTimeDefaultTimeZone"})
     public static <T> T withLoggedCalls(Class<T> interfaceClass, T object) {
         return withWrappedCalls(interfaceClass, object, realMethod -> {
-            var logger = LoggerFactory.getLogger(interfaceClass);
+            var logger = new AccumulatingLogger(interfaceClass);
             newLoggingEvent(DEBUG).message(
                 "Calling %s",
                 realMethod
