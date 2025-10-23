@@ -11,9 +11,9 @@ public abstract class SonarLintClientServerException extends RuntimeException {
 
     private static String enrichMessage(String message) {
         return format(
-            "This exception is unexpected. Please report it here: %s/issues ."
-                + " OS: %s %s %s."
-                + " Local time: %s. %s",
+            "This exception is unexpected. Please report it here: %s/issues%n"
+                + "OS: %s %s %s. Local time: %s.%n"
+                + "%s",
             getStringProperty("repository.html-url"),
             System.getProperty("os.name"),
             System.getProperty("os.version"),
