@@ -1,5 +1,7 @@
 package name.remal.gradle_plugins.sonarlint.internal.server.api;
 
+import static name.remal.gradle_plugins.sonarlint.internal.server.api.SonarLintAnalyzeParamsUtils.generateNextAnalyzeJobId;
+
 import java.io.File;
 import java.io.Serializable;
 import java.util.List;
@@ -11,6 +13,11 @@ import org.immutables.value.Value;
 
 @Value.Immutable
 public interface SonarLintAnalyzeParams extends Serializable {
+
+    @Value.Default
+    default String getJobId() {
+        return generateNextAnalyzeJobId();
+    }
 
     File getRepositoryRoot();
 
