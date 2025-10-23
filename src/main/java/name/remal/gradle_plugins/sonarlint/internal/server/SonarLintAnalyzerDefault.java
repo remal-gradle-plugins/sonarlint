@@ -79,6 +79,7 @@ public class SonarLintAnalyzerDefault implements SonarLintAnalyzer {
             || enabledLanguages.isEmpty()
             || (!enableRulesActivatedByDefault && enabledRulesConfig.isEmpty())
         ) {
+            logger.info("Nothing to analyze");
             return List.of();
         }
 
