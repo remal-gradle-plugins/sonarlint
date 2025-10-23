@@ -34,6 +34,8 @@ import name.remal.gradle_plugins.toolkit.ObjectUtils;
 import name.remal.gradle_plugins.toolkit.issues.Issue;
 import org.jetbrains.annotations.Unmodifiable;
 import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.sonar.api.rule.RuleKey;
 import org.sonar.api.server.rule.RulesDefinition.Rule;
 import org.sonarsource.sonarlint.core.analysis.api.ActiveRule;
@@ -45,6 +47,9 @@ import org.sonarsource.sonarlint.core.commons.log.SonarLintLogger;
 @RequiredArgsConstructor
 public class SonarLintAnalyzerDefault implements SonarLintAnalyzer {
 
+    private static final Logger logger = LoggerFactory.getLogger(SonarLintAnalyzerDefault.class);
+
+
     private final SonarLintSharedCode shared;
 
 
@@ -53,6 +58,13 @@ public class SonarLintAnalyzerDefault implements SonarLintAnalyzer {
         SonarLintAnalyzeParams params,
         @Nullable SonarLintLogSink logSink
     ) throws RemoteException {
+        logger.info(
+            "Analyze requested for {} files (job ID: {}, module ID: {})",
+            params.getSourceFiles().size(),
+            params.getJobId(),
+            params.getModuleId()
+        );
+
         var repositoryRoot = params.getRepositoryRoot();
         var moduleId = params.getModuleId();
         var sourceFiles = params.getSourceFiles();
