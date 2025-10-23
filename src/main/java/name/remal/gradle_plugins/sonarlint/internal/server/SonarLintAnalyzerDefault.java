@@ -75,11 +75,15 @@ public class SonarLintAnalyzerDefault implements SonarLintAnalyzer {
         var disabledRulesConfig = params.getDisabledRulesConfig();
         var rulesPropertiesConfig = params.getRulesPropertiesConfig();
 
-        if (sourceFiles.isEmpty()
-            || enabledLanguages.isEmpty()
+        if (sourceFiles.isEmpty()) {
+            logger.info("No source files to analyze");
+            return List.of();
+        }
+
+        if (enabledLanguages.isEmpty()
             || (!enableRulesActivatedByDefault && enabledRulesConfig.isEmpty())
         ) {
-            logger.info("Nothing to analyze");
+            logger.info("No languages or rules enabled for analysis");
             return List.of();
         }
 
@@ -91,6 +95,7 @@ public class SonarLintAnalyzerDefault implements SonarLintAnalyzer {
             rulesPropertiesConfig
         );
         if (activeRules.isEmpty()) {
+            logger.info("No active rules found for analysis");
             return List.of();
         }
 
@@ -103,7 +108,7 @@ public class SonarLintAnalyzerDefault implements SonarLintAnalyzer {
                     .map(SimpleClientInputFile::new)
                     .map(ClientInputFile.class::cast)
                     .collect(toUnmodifiableList());
-                SonarLintLogger.get().info("Start analyzing {} files in module '{}'", inputFiles.size(), moduleId);
+                SonarLintLogger.get().debug("Start analyzing {} files in module '{}'", inputFiles.size(), moduleId);
 
                 var analysisConfiguration = AnalysisConfiguration.builder()
                     .setBaseDir(repositoryRoot.toPath())
