@@ -182,8 +182,24 @@ class SonarLintPluginFunctionalTest {
 
             new Assertions()
                 .rule("java:S1171")
-                .rule("java:S1133")
+                .rule("java:S100")
                 .assertRulesAreNotRaised("java:S1171")
+                .assertRulesAreRaised("java:S100");
+        }
+
+        @Test
+        void rulePropertiesAreSupported() {
+            project.forBuildFile(build -> {
+                build.block("sonarLint.rules.rule('java:S100')", rule -> {
+                    rule.line("def format = '^[a-z_]+$'");
+                    rule.line("properties = ['format': \"$format\"]");
+                });
+            });
+
+            new Assertions()
+                .rule("java:S100")
+                .rule("java:S1133")
+                .assertRulesAreNotRaised("java:S100")
                 .assertRulesAreRaised("java:S1133");
         }
 
@@ -447,7 +463,7 @@ class SonarLintPluginFunctionalTest {
         }));
 
         new Assertions()
-            .rule("java:S1133")
+            .rule("java:S100")
             .assertAllRulesAreRaised();
     }
 

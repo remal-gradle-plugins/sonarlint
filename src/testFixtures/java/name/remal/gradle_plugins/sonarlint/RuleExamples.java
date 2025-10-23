@@ -46,6 +46,17 @@ public abstract class RuleExamples {
         .put("Web:S5725", join("\n", new String[]{
             "<script src=\"https://cdn.example.com/latest/script.js\"/>",
         }))
+        .put("java:S100", join("\n", new String[]{
+            "package pkg;",
+            "",
+            "public class JavaS100 {",
+            "",
+            "    void _method_() {",
+            "        // do nothing",
+            "    }",
+            "",
+            "}",
+        }))
         .put("java:S1133", join("\n", new String[]{
             "package pkg;",
             "",
