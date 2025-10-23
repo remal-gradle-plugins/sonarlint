@@ -37,8 +37,8 @@ public final class AccumulatingLogger implements AccumulatingLoggerMethods {
     }
 
 
-    private static final ThreadLocal<AccumulatingLoggerContext> CONTEXT = ThreadLocal.withInitial(
-        AccumulatingLoggerContext::new);
+    private static final ThreadLocal<AccumulatingLoggerContext> CONTEXT =
+        ThreadLocal.withInitial(AccumulatingLoggerContext::new);
 
     @Unmodifiable
     public Collection<LogMessage> getStoredLogMessages() {
