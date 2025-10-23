@@ -151,6 +151,8 @@ public class SonarLintClient extends AbstractCloseablesContainer implements Auto
             .append("Plugin files:");
         params.getPluginFiles().forEach(file -> withNewLineIfNeeded.get().append("  ").append(file.getPath()));
 
+        withNewLineIfNeeded.get();
+
         return buf.toString();
     }
 
