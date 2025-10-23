@@ -3,12 +3,15 @@ package name.remal.gradle_plugins.sonarlint;
 import static java.lang.String.format;
 import static java.util.function.Predicate.not;
 import static lombok.AccessLevel.PUBLIC;
+import static name.remal.gradle_plugins.toolkit.ObjectUtils.unwrapProviders;
 import static name.remal.gradle_plugins.toolkit.PathUtils.tryToDeleteRecursivelyIgnoringFailure;
 import static name.remal.gradle_plugins.toolkit.VerificationExceptionUtils.newVerificationException;
 
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Supplier;
 import javax.inject.Inject;
 import lombok.CustomLog;
@@ -85,6 +88,19 @@ abstract class SonarLintAnalyzeWorkAction
                     .build();
                 var analyzer = analyzerFactory.getAnalyzer(sonarLintParams, closeables);
 
+                var rulesPropertiesConfig = new LinkedHashMap<String, Map<String, String>>();
+                params.getRulesProperties().get().forEach((rule, props) -> {
+                    var clonedProps = new LinkedHashMap<String, String>(props.size());
+                    props.forEach((key, value) -> {
+                        var unwrappedKey = unwrapProviders(key);
+                        var unwrappedValue = unwrapProviders(value);
+                        if (unwrappedKey != null && unwrappedValue != null) {
+                            clonedProps.put(unwrappedKey.toString(), unwrappedValue.toString());
+                        }
+                    });
+                    rulesPropertiesConfig.put(rule, clonedProps);
+                });
+
                 var analyzeParams = ImmutableSonarLintAnalyzeParams.builder()
                     .repositoryRoot(params.getRootDirectory().get().getAsFile())
                     .moduleId(params.getModuleId().get())
@@ -93,7 +109,7 @@ abstract class SonarLintAnalyzeWorkAction
                     .sonarProperties(params.getSonarProperties().get())
                     .enabledRulesConfig(enabledRules)
                     .disabledRulesConfig(disabledRules)
-                    .rulesPropertiesConfig(params.getRulesProperties().get())
+                    .rulesPropertiesConfig(rulesPropertiesConfig)
                     .build();
                 var logSink = logSinkSupplier != null ? logSinkSupplier.get() : null;
                 issues = analyzer.analyze(analyzeParams, logSink);
