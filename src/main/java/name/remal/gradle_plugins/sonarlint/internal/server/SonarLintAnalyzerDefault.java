@@ -40,6 +40,7 @@ import org.sonarsource.sonarlint.core.analysis.api.ActiveRule;
 import org.sonarsource.sonarlint.core.analysis.api.AnalysisConfiguration;
 import org.sonarsource.sonarlint.core.analysis.api.ClientInputFile;
 import org.sonarsource.sonarlint.core.analysis.api.ClientModuleInfo;
+import org.sonarsource.sonarlint.core.commons.log.SonarLintLogger;
 
 @RequiredArgsConstructor
 public class SonarLintAnalyzerDefault implements SonarLintAnalyzer {
@@ -89,6 +90,7 @@ public class SonarLintAnalyzerDefault implements SonarLintAnalyzer {
                     .map(SimpleClientInputFile::new)
                     .map(ClientInputFile.class::cast)
                     .collect(toUnmodifiableList());
+                SonarLintLogger.get().info("Start analyzing {} files in module '{}'", inputFiles.size(), moduleId);
 
                 var analysisConfiguration = AnalysisConfiguration.builder()
                     .setBaseDir(repositoryRoot.toPath())

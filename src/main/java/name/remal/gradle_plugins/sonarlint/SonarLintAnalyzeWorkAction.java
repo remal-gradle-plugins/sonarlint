@@ -55,6 +55,7 @@ abstract class SonarLintAnalyzeWorkAction
     }
 
     @SneakyThrows
+    @SuppressWarnings("java:S3776")
     public static void executeForParams(
         SonarLintAnalyzeWorkActionParams params,
         SonarLintAnalyzerFactory analyzerFactory,
