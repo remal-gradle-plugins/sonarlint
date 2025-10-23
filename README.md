@@ -62,7 +62,7 @@ Infra languages are excluded by default:
 Infra code is often stored in the same repository as microservices, but typically outside the `src` directory.
 By default, this plugin generates `sonarlint*` tasks only for `src/*` directories.
 
-Even if infra languages were included, they wouldn't be checked unless infra code is placed inside a `src/*` directory.
+So, even if infra languages were included, they wouldn't be checked unless infra code is placed inside a `src/*` directory.
 For this reason, infra languages are excluded by default.
 
 To include infra languages, use this configuration: `sonarLint.languages.includeInfra = true`
@@ -81,7 +81,7 @@ Frontend languages are excluded by default:
 <!--/iterable-property-->
 
 Frontend code is usually built with Node.js, not Gradle.
-Additionally, SonarLint checks for frontend languages are slow when run on single files, making incremental verification inefficient.
+Additionally, SonarLint checks for frontend languages are slow when run on single files, making incremental verification very inefficient. On top of that there are issues with parallel analysis of frontend files.
 
 For these reasons, frontend languages are excluded by default.
 
