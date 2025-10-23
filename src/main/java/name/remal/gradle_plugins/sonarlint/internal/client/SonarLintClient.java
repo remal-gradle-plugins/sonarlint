@@ -109,6 +109,9 @@ public class SonarLintClient extends AbstractCloseablesContainer implements Auto
         var state = this.state;
 
         withNewLineIfNeeded.get()
+            .append("Gradle version: ").append(GradleVersion.current().getVersion());
+
+        withNewLineIfNeeded.get()
             .append("SonarLint plugin version: ").append(getStringProperty("project.version"));
 
         withNewLineIfNeeded.get()
