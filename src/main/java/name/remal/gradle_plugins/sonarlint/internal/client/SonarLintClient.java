@@ -59,7 +59,6 @@ import name.remal.gradle_plugins.sonarlint.internal.utils.SonarLintRmiMethodCall
 import name.remal.gradle_plugins.sonarlint.internal.utils.SonarLintServerStartTimeoutException;
 import name.remal.gradle_plugins.toolkit.AbstractCloseablesContainer;
 import name.remal.gradle_plugins.toolkit.UriUtils;
-import org.gradle.api.JavaVersion;
 import org.gradle.util.GradleVersion;
 
 @RequiredArgsConstructor
@@ -118,14 +117,17 @@ public class SonarLintClient extends AbstractCloseablesContainer implements Auto
             .append("Client state: ").append(state.getClass().getSimpleName());
 
         withNewLineIfNeeded.get()
-            .append("Client Java version: ").append(JavaVersion.current().getMajorVersion());
+            .append("Client Java full runtime version: ").append(Runtime.version());
 
         withNewLineIfNeeded.get()
             .append("Client logs:").append(lineSeparator())
             .append(indentString(logger.render()).replace("\n", lineSeparator()));
 
         withNewLineIfNeeded.get()
-            .append("Server Java version: ").append(params.getJavaMajorVersion());
+            .append("Server Java major version: ").append(params.getJavaMajorVersion());
+
+        withNewLineIfNeeded.get()
+            .append("Server Java full runtime version: ").append(params.getJavaRuntimeVersion());
 
         final JavaExecProcess serverProcess;
         if (state instanceof Starting) {

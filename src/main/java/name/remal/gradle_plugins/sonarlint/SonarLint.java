@@ -456,6 +456,7 @@ public abstract class SonarLint extends AbstractSonarLintTask
                 var clientParams = ImmutableSonarLintClientParams.builder()
                     .from(sonarLintParams)
                     .javaMajorVersion(forkOptions.getJavaLauncher().get().getMetadata().getLanguageVersion().asInt())
+                    .javaRuntimeVersion(forkOptions.getJavaLauncher().get().getMetadata().getJavaRuntimeVersion())
                     .javaExecutable(forkOptions.getJavaLauncher().get().getExecutablePath().getAsFile())
                     .coreClasspath(getCoreClasspath())
                     .addAllCoreClasspath(getCoreLoggingClasspath())

@@ -12,6 +12,8 @@ public interface SonarLintClientParams extends SonarLintParams {
 
     int getJavaMajorVersion();
 
+    String getJavaRuntimeVersion();
+
     File getJavaExecutable();
 
     Set<File> getCoreClasspath();
