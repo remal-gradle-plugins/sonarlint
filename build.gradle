@@ -155,7 +155,7 @@ dependencies {
     //sonarPluginArtifacts 'org.sonarsource.python:sonar-python-plugin:4.23.0.17664' // Python projects are unlikely built with Gradle
     sonarPluginArtifacts 'org.sonarsource.kotlin:sonar-kotlin-plugin:3.3.0.7402'
     //sonarPluginArtifacts 'org.sonarsource.slang:sonar-ruby-plugin:1.17.1.134' // Ruby projects are unlikely built with Gradle
-    sonarPluginArtifacts 'org.sonarsource.html:sonar-html-plugin:3.19.0.5695'
+    sonarPluginArtifacts 'org.sonarsource.html:sonar-html-plugin:3.20.0.6289'
     sonarPluginArtifacts 'org.sonarsource.xml:sonar-xml-plugin:2.13.0.5938'
     //sonarPluginArtifacts 'org.sonarsource.sonarlint.omnisharp:sonarlint-omnisharp-plugin:1.25.0.100205' // OmniSharp projects are unlikely built with Gradle
     sonarPluginArtifacts 'org.sonarsource.text:sonar-text-plugin:2.31.0.8443'
