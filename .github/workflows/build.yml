@@ -257,7 +257,7 @@ jobs:
       id: download-exec-files
       uses: Wandalen/wretry.action/main@v3.8.0
       with:
-        action: actions/download-artifact@v5
+        action: actions/download-artifact@v6
         attempt_limit: 3
         attempt_delay: 5000
         with: |
