@@ -34,7 +34,7 @@ public class ClientRegistryFacade extends AbstractRegistryFacade {
             socketAddress
         );
 
-        stub = withLoggedCalls(interfaceClass, stub);
+        stub = withLoggedCalls("RMI client", interfaceClass, stub);
         stub = logger.wrapCalls(interfaceClass, stub);
 
         return stub;

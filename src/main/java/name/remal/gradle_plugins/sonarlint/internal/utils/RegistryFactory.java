@@ -11,7 +11,6 @@ import java.rmi.server.ExportException;
 import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;
 import name.remal.gradle_plugins.sonarlint.internal.client.SonarLintClient;
-import name.remal.gradle_plugins.sonarlint.internal.server.SonarLintServerException;
 
 @NoArgsConstructor(access = PRIVATE)
 public abstract class RegistryFactory {
@@ -46,12 +45,12 @@ public abstract class RegistryFactory {
 
             } catch (ExportException e) {
                 if (attempt >= REGISTRY_START_ATTEMPTS) {
-                    throw new SonarLintServerException(REGISTRY_START_FAILED_MESSAGE, e);
+                    throw new RegistryFactoryException(REGISTRY_START_FAILED_MESSAGE, e);
                 }
             }
         }
 
-        throw new SonarLintServerException(REGISTRY_START_FAILED_MESSAGE);
+        throw new RegistryFactoryException(REGISTRY_START_FAILED_MESSAGE);
     }
 
 

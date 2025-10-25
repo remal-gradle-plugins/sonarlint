@@ -27,10 +27,10 @@ public class ServerRegistryFacade extends AbstractRegistryFacade implements Auto
 
     @SneakyThrows
     public <T extends Remote> void bind(Class<T> interfaceClass, T implementation) {
-        implementation = withLoggedCalls(interfaceClass, implementation);
-        implementation = withDumpJacocoDataOnEveryCall(interfaceClass, implementation);
-
+        implementation = withLoggedCalls("RMI server", interfaceClass, implementation);
         implementation = logger.wrapCalls(interfaceClass, implementation);
+
+        implementation = withDumpJacocoDataOnEveryCall(interfaceClass, implementation);
         keepHardReferenceOnImplementation(implementation);
 
         logger.debug(

@@ -28,7 +28,6 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.rmi.NotBoundException;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.security.CodeSource;
@@ -56,6 +55,7 @@ import name.remal.gradle_plugins.sonarlint.internal.server.api.SonarLintHelp;
 import name.remal.gradle_plugins.sonarlint.internal.utils.AccumulatingLogger;
 import name.remal.gradle_plugins.sonarlint.internal.utils.ServerRegistryFacade;
 import name.remal.gradle_plugins.sonarlint.internal.utils.SonarLintRmiMethodCallException;
+import name.remal.gradle_plugins.sonarlint.internal.utils.SonarLintServerException;
 import name.remal.gradle_plugins.sonarlint.internal.utils.SonarLintServerStartTimeoutException;
 import name.remal.gradle_plugins.toolkit.AbstractCloseablesContainer;
 import name.remal.gradle_plugins.toolkit.UriUtils;
@@ -95,8 +95,11 @@ public class SonarLintClient extends AbstractCloseablesContainer implements Auto
     }
 
 
+    @SneakyThrows
     @SuppressWarnings("java:S2259")
     private String renderDebugInfo() {
+        Thread.sleep(1_000); // sleep 1s to allow the server to flush its logs
+
         var buf = new StringBuilder();
         Supplier<StringBuilder> withNewLineIfNeeded = () -> {
             if (buf.length() > 0) {
@@ -216,21 +219,18 @@ public class SonarLintClient extends AbstractCloseablesContainer implements Auto
             } catch (Throwable exception) {
                 exception = unwrapException(exception);
 
-                if (exception instanceof RemoteException
-                    || exception instanceof NotBoundException
-                ) {
-                    try {
-                        throw new SonarLintRmiMethodCallException(
-                            realMethod,
-                            renderDebugInfo(),
-                            exception
-                        );
-                    } finally {
-                        close();
-                    }
+                if (exception instanceof SonarLintServerException) {
+                    ((SonarLintServerException) exception).resetStackTrace();
                 }
 
-                throw exception;
+                try {
+                    throw new SonarLintRmiMethodCallException(
+                        realMethod,
+                        renderDebugInfo()
+                    );
+                } finally {
+                    close();
+                }
             }
         });
 

@@ -55,6 +55,13 @@ public abstract class SonarLintForkSettings {
         }));
     }
 
+    @Internal
+    public abstract Property<Boolean> getBuildService();
+
+    {
+        getBuildService().convention(true);
+    }
+
 
     @Inject
     protected abstract Project getProject();

@@ -5,7 +5,7 @@ import static name.remal.gradle_plugins.sonarlint.internal.utils.AopUtils.withWr
 import static name.remal.gradle_plugins.sonarlint.internal.utils.SimpleLoggingEventBuilder.newLoggingEvent;
 import static name.remal.gradle_plugins.toolkit.ThrowableUtils.unwrapException;
 import static org.slf4j.event.Level.DEBUG;
-import static org.slf4j.event.Level.WARN;
+import static org.slf4j.event.Level.ERROR;
 
 import lombok.NoArgsConstructor;
 
@@ -13,26 +13,29 @@ import lombok.NoArgsConstructor;
 public abstract class LoggingUtils {
 
     @SuppressWarnings({"java:S2139", "AssignmentToCatchBlockParameter", "JavaTimeDefaultTimeZone"})
-    public static <T> T withLoggedCalls(Class<T> interfaceClass, T object) {
+    public static <T> T withLoggedCalls(String scope, Class<T> interfaceClass, T object) {
         return withWrappedCalls(interfaceClass, object, realMethod -> {
             var logger = new AccumulatingLogger(interfaceClass);
             newLoggingEvent(DEBUG).message(
-                "Calling %s",
+                "%s: Calling %s",
+                scope,
                 realMethod
             ).log(logger);
 
             try {
                 var result = realMethod.call();
                 newLoggingEvent(DEBUG).message(
-                    "Successfully called %s",
+                    "%s: Successfully called %s",
+                    scope,
                     realMethod
                 ).log(logger);
                 return result;
 
             } catch (Throwable exception) {
                 exception = unwrapException(exception);
-                newLoggingEvent(WARN).message(
-                    "Exception was thrown by calling %s",
+                newLoggingEvent(ERROR).message(
+                    "%s: Exception was thrown by calling %s",
+                    scope,
                     realMethod
                 ).cause(exception).log(logger);
                 throw exception;

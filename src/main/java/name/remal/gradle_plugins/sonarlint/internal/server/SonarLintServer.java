@@ -5,6 +5,7 @@ import static name.remal.gradle_plugins.sonarlint.internal.server.SonarLintServe
 import static name.remal.gradle_plugins.sonarlint.internal.server.SonarLintServerState.Stopped.SERVER_STOPPED;
 import static name.remal.gradle_plugins.sonarlint.internal.utils.RegistryFactory.createRegistryOnAvailablePort;
 import static name.remal.gradle_plugins.sonarlint.internal.utils.SimpleLoggingEventBuilder.newLoggingEvent;
+import static name.remal.gradle_plugins.sonarlint.internal.utils.SonarLintServerException.withServerExceptionCalls;
 import static org.slf4j.event.Level.DEBUG;
 
 import java.net.InetSocketAddress;
@@ -88,13 +89,19 @@ public class SonarLintServer
             .build();
         var shared = registerCloseable(new SonarLintSharedCode(sonarLintParams));
 
-        SonarLintAnalyzer analyzer = new SonarLintAnalyzerDefault(shared);
-        analyzer = usedThreads.withRegisterThreadEveryCall(SonarLintAnalyzer.class, analyzer);
-        registry.bind(SonarLintAnalyzer.class, analyzer);
+        {
+            SonarLintAnalyzer analyzer = new SonarLintAnalyzerDefault(shared);
+            analyzer = usedThreads.withRegisterThreadEveryCall(SonarLintAnalyzer.class, analyzer);
+            analyzer = withServerExceptionCalls(SonarLintAnalyzer.class, analyzer);
+            registry.bind(SonarLintAnalyzer.class, analyzer);
+        }
 
-        SonarLintHelp help = new SonarLintHelpDefault(shared);
-        help = usedThreads.withRegisterThreadEveryCall(SonarLintHelp.class, help);
-        registry.bind(SonarLintHelp.class, help);
+        {
+            SonarLintHelp help = new SonarLintHelpDefault(shared);
+            help = usedThreads.withRegisterThreadEveryCall(SonarLintHelp.class, help);
+            help = withServerExceptionCalls(SonarLintHelp.class, help);
+            registry.bind(SonarLintHelp.class, help);
+        }
 
 
         changeState(

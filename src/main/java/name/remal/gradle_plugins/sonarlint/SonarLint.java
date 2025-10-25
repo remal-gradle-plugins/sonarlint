@@ -446,56 +446,58 @@ public abstract class SonarLint extends AbstractSonarLintTask
     public final void execute(@Nullable InputChanges inputChanges) {
         checkCoreResolvedDependencies();
 
-        if (getIsForkEnabled().getOrElse(false)) {
-            var workActionParams = getObjects().newInstance(SonarLintAnalyzeWorkActionParams.class);
-            configureWorkActionParams(inputChanges, workActionParams);
-
-            LateInit<InetAddress> clientBindAddress = lateInit();
-            SonarLintAnalyzerFactory analyzerFactory = (sonarLintParams, closeables) -> {
-                var forkOptions = getSettings().getFork();
-                var clientParams = ImmutableSonarLintClientParams.builder()
-                    .from(sonarLintParams)
-                    .javaMajorVersion(forkOptions.getJavaLauncher().get().getMetadata().getLanguageVersion().asInt())
-                    .javaRuntimeVersion(forkOptions.getJavaLauncher().get().getMetadata().getJavaRuntimeVersion())
-                    .javaExecutable(forkOptions.getJavaLauncher().get().getExecutablePath().getAsFile())
-                    .coreClasspath(getCoreClasspath())
-                    .addAllCoreClasspath(getCoreLoggingClasspath())
-                    .maxHeapSize(forkOptions.getMaxHeapSize().getOrNull())
-                    .build();
-                var buildService = getBuildService().get();
-                clientBindAddress.set(buildService.getClientBindAddress(clientParams));
-                return buildService.getAnalyzer(clientParams);
-            };
-
-
-            try (var closeables = new CloseablesContainer()) {
-                Consumer<Object> keepHardReferenceOnImplementation = object -> {
-                    closeables.registerCloseable(() -> {
-                        if (object instanceof AutoCloseable) {
-                            ((AutoCloseable) object).close();
-                        }
-                    });
-                };
-
-                Supplier<SonarLintLogSink> logSinkSupplier = () -> {
-                    SonarLintLogSink logSink = new SonarLintTaskLogSink(this);
-                    keepHardReferenceOnImplementation.accept(logSink);
-
-                    var bindAddress = clientBindAddress.get();
-                    var logSinkStub = exportObject(logSink, bindAddress, 0);
-                    closeables.registerCloseable(() -> unexportObject(logSinkStub));
-                    return logSinkStub;
-                };
-
-                SonarLintAnalyzeWorkAction.executeForParams(workActionParams, analyzerFactory, logSinkSupplier);
-            }
-
-        } else {
+        if (!getIsForkEnabled().getOrElse(true)
+            || !getSettings().getFork().getBuildService().getOrElse(true)
+        ) {
             var workQueue = createWorkQueue();
             workQueue.submit(
                 SonarLintAnalyzeWorkAction.class,
                 params -> configureWorkActionParams(inputChanges, params)
             );
+            return;
+        }
+
+
+        var workActionParams = getObjects().newInstance(SonarLintAnalyzeWorkActionParams.class);
+        configureWorkActionParams(inputChanges, workActionParams);
+
+        LateInit<InetAddress> clientBindAddress = lateInit();
+        SonarLintAnalyzerFactory analyzerFactory = (sonarLintParams, closeables) -> {
+            var forkOptions = getSettings().getFork();
+            var clientParams = ImmutableSonarLintClientParams.builder()
+                .from(sonarLintParams)
+                .javaMajorVersion(forkOptions.getJavaLauncher().get().getMetadata().getLanguageVersion().asInt())
+                .javaRuntimeVersion(forkOptions.getJavaLauncher().get().getMetadata().getJavaRuntimeVersion())
+                .javaExecutable(forkOptions.getJavaLauncher().get().getExecutablePath().getAsFile())
+                .coreClasspath(getCoreClasspath())
+                .addAllCoreClasspath(getCoreLoggingClasspath())
+                .maxHeapSize(forkOptions.getMaxHeapSize().getOrNull())
+                .build();
+            var buildService = getBuildService().get();
+            clientBindAddress.set(buildService.getClientBindAddress(clientParams));
+            return buildService.getAnalyzer(clientParams);
+        };
+
+        try (var closeables = new CloseablesContainer()) {
+            Consumer<Object> keepHardReferenceOnImplementation = object -> {
+                closeables.registerCloseable(() -> {
+                    if (object instanceof AutoCloseable) {
+                        ((AutoCloseable) object).close();
+                    }
+                });
+            };
+
+            Supplier<SonarLintLogSink> logSinkSupplier = () -> {
+                SonarLintLogSink logSink = new SonarLintTaskLogSink(this);
+                keepHardReferenceOnImplementation.accept(logSink);
+
+                var bindAddress = clientBindAddress.get();
+                var logSinkStub = exportObject(logSink, bindAddress, 0);
+                closeables.registerCloseable(() -> unexportObject(logSinkStub));
+                return logSinkStub;
+            };
+
+            SonarLintAnalyzeWorkAction.executeForParams(workActionParams, analyzerFactory, logSinkSupplier);
         }
     }
 
