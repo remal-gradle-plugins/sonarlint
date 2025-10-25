@@ -222,6 +222,12 @@ class SonarLintPluginFunctionalTest {
                     new RulePerLanguage().java();
                 }
 
+                @Test
+                void analyzeWithBuildServiceDisabled() {
+                    project.getBuildFile().line("sonarLint.fork.buildService = false");
+                    new RulePerLanguage().java();
+                }
+
             }
 
             @Nested
