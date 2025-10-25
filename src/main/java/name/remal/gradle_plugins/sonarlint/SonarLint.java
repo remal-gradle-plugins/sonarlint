@@ -446,9 +446,9 @@ public abstract class SonarLint extends AbstractSonarLintTask
     public final void execute(@Nullable InputChanges inputChanges) {
         checkCoreResolvedDependencies();
 
-        if (!getIsForkEnabled().getOrElse(true)
-            || !getSettings().getFork().getBuildService().getOrElse(true)
-        ) {
+        var isForkEnabled = getIsForkEnabled().getOrElse(true);
+        var isBuildServiceEnabled = getSettings().getFork().getBuildService().getOrElse(true);
+        if (!isForkEnabled || !isBuildServiceEnabled) {
             var workQueue = createWorkQueue();
             workQueue.submit(
                 SonarLintAnalyzeWorkAction.class,
