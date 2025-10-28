@@ -1,0 +1,71 @@
+name: Set DEFAULT_JAVA_VERSION
+description: Set DEFAULT_JAVA_VERSION from various places
+
+outputs:
+  version:
+    description: Java version
+    value: ${{steps.result.outputs.version}}
+
+runs:
+  using: composite
+  steps:
+  - name: Read Gradle Daemon Java version
+    id: daemon-java-version
+    uses: remal-github-actions/read-property@v1
+    with:
+      file: gradle/gradle-daemon-jvm.properties
+      property: 'toolchainVersion'
+      failIfFileNotFound: 'false'
+      failIfPropertyNotFound: 'false'
+
+  - name: Read build Java version
+    id: build-java-version
+    uses: remal-github-actions/read-property@v1
+    with:
+      file: gradle.properties
+      property: 'java-build.version'
+      failIfFileNotFound: 'false'
+      failIfPropertyNotFound: 'false'
+
+  - name: Retrieve LTS Java versions
+    if: ${{steps.daemon-java-version.outputs.value == '' && steps.build-java-version.outputs.value == ''}}
+    id: max-java-version-matrix
+    uses: remal-github-actions/matrix-versions@v1
+    with:
+      matrix: |
+        java:
+          dependency: java
+          only:
+          - once
+          - lts
+          - stable
+
+  - name: Compose result
+    id: result
+    shell: bash
+    env:
+      DAEMON_VERSION: ${{steps.daemon-java-version.outputs.value}}
+      BUILD_VERSION: ${{steps.build-java-version.outputs.value}}
+      FALLBACK_VERSION: ${{steps.max-java-version-matrix.outputs.allMatrixIncludes && fromJSON(steps.max-java-version-matrix.outputs.allMatrixIncludes)[0].java}}
+    run: |
+      DAEMON_VERSION_NUM=${DAEMON_VERSION%%[^0-9]*}
+      echo "DAEMON_VERSION_NUM=$DAEMON_VERSION_NUM"
+      BUILD_VERSION_NUM=${BUILD_VERSION%%[^0-9]*}
+      echo "BUILD_VERSION_NUM=$BUILD_VERSION_NUM"
+      FALLBACK_VERSION_NUM=${FALLBACK_VERSION%%[^0-9]*}
+      echo "FALLBACK_VERSION_NUM=$FALLBACK_VERSION_NUM"
+      if [[ -n "$DAEMON_VERSION_NUM" && -n "$BUILD_VERSION_NUM" ]]; then
+        if (( DAEMON_VERSION_NUM >= BUILD_VERSION_NUM )); then
+          VERSION="$DAEMON_VERSION_NUM"
+        else
+          VERSION="$BUILD_VERSION_NUM"
+        fi
+      elif [[ -n "$DAEMON_VERSION_NUM" ]]; then
+        VERSION="$DAEMON_VERSION_NUM"
+      elif [[ -n "$BUILD_VERSION_NUM" ]]; then
+        VERSION="$BUILD_VERSION_NUM"
+      else
+        VERSION="$FALLBACK_VERSION_NUM"
+      fi
+      echo "DEFAULT_JAVA_VERSION=$VERSION" | tee -a $GITHUB_ENV
+      echo "version=$VERSION" >> $GITHUB_OUTPUT

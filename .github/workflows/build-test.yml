@@ -94,7 +94,7 @@ jobs:
       uses: remal-github-actions/cache-gradle@main
       with:
         github-job: 'test-${{inputs.os}}-${{inputs.job-matrix-json}}'
-    - name: Setup Java ${{env.CURRENT_JAVA_VERSION != env.DEFAULT_JAVA_VERSION && format('{0} and {1}', env.CURRENT_JAVA_VERSION, env.DEFAULT_JAVA_VERSION) || env.DEFAULT_JAVA_VERSION}}
+    - name: Setup Java ${{env.CURRENT_JAVA_VERSION != env.DEFAULT_JAVA_VERSION && format('{0} and {1}', env.DEFAULT_JAVA_VERSION, env.CURRENT_JAVA_VERSION) || env.DEFAULT_JAVA_VERSION}}
       uses: actions/setup-java@v5
       with:
         java-version: |
