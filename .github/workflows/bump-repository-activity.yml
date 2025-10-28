@@ -35,6 +35,9 @@ defaults:
   run:
     shell: bash
 
+env:
+  PUSH_BACK_TOKEN: ${{secrets.PUSH_BACK_TOKEN || github.token}}
+
 jobs:
   bump-repository-activity:
     name: Bump repository activity
@@ -45,7 +48,7 @@ jobs:
       uses: remal-github-actions/get-rate-limits@v1
       id: rate-limits
       with:
-        githubToken: ${{env.PUSH_BACK_TOKEN || github.token}}
+        githubToken: ${{env.PUSH_BACK_TOKEN}}
     - name: Make rate limits decision
       id: decision
       run: |
@@ -68,5 +71,6 @@ jobs:
       uses: remal-github-actions/bump-repository-activity@v1
       with:
         dryRun: ${{inputs.dryRun || 'false'}}
+        githubToken: ${{env.PUSH_BACK_TOKEN}}
         bumperFile: 'repository-activity.bumper'
         commitMessage: '[push-back] Bump repository activity'
