@@ -36,9 +36,9 @@ import org.jetbrains.annotations.Unmodifiable;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.sonar.api.batch.rule.ActiveRule;
 import org.sonar.api.rule.RuleKey;
 import org.sonar.api.server.rule.RulesDefinition.Rule;
-import org.sonarsource.sonarlint.core.analysis.api.ActiveRule;
 import org.sonarsource.sonarlint.core.analysis.api.AnalysisConfiguration;
 import org.sonarsource.sonarlint.core.analysis.api.ClientInputFile;
 import org.sonarsource.sonarlint.core.analysis.api.ClientModuleInfo;
@@ -173,14 +173,18 @@ public class SonarLintAnalyzerDefault implements SonarLintAnalyzer {
                 var ruleKey = entry.getKey();
                 var rule = entry.getValue();
 
-                var activeRule = new ActiveRule(ruleKey.toString(), rule.repository().language());
+                var activeRule = ImmutableActiveRule.builder()
+                    .ruleKey(ruleKey)
+                    .language(rule.repository().language())
+                    .severity(rule.severity())
+                    .internalKey(rule.internalKey());
 
                 var ruleProperties = rulesProperties.get(ruleKey);
                 if (ruleProperties != null) {
-                    activeRule.setParams(ruleProperties);
+                    activeRule.putAllParams(ruleProperties);
                 }
 
-                return activeRule;
+                return activeRule.build();
             })
             .collect(toUnmodifiableList());
     }
@@ -220,12 +224,17 @@ public class SonarLintAnalyzerDefault implements SonarLintAnalyzer {
                 var ruleKey = entry.getKey();
                 var rule = entry.getValue();
 
+                var allRuleKeys = Stream.concat(
+                    Stream.of(ruleKey),
+                    rule.deprecatedRuleKeys().stream()
+                ).collect(toImmutableSet());
+
                 var ruleLanguage = rule.repository().language();
                 if (!enabledLanguageIds.contains(ruleLanguage.toLowerCase())) {
                     return false;
                 }
 
-                if (disabledRules.contains(ruleKey)) {
+                if (disabledRules.stream().anyMatch(allRuleKeys::contains)) {
                     return false;
                 }
 
@@ -233,7 +242,7 @@ public class SonarLintAnalyzerDefault implements SonarLintAnalyzer {
                     return true;
                 }
 
-                return enabledRules.contains(ruleKey);
+                return enabledRules.stream().anyMatch(allRuleKeys::contains);
             })
             .collect(toImmutableMap(
                 Entry::getKey,

@@ -45,7 +45,7 @@ class SonarIssueConverter {
         }
 
         var issue = newIssue(builder -> {
-            builder.rule(sonarIssue.getRuleKey());
+            builder.rule(sonarIssue.getRuleKey().toString());
             builder.message(message);
 
             builder.sourceFile(sourceFile);
@@ -56,7 +56,6 @@ class SonarIssueConverter {
 
 
             var rule = Optional.ofNullable(sonarIssue.getRuleKey())
-                .map(RuleKey::parse)
                 .map(allRules::get)
                 .orElse(null);
 
