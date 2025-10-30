@@ -83,7 +83,6 @@ gradlePlugin {
             id = 'name.remal.sonarlint'
             implementationClass = 'name.remal.gradle_plugins.sonarlint.SonarLintPlugin'
             displayName = 'SonarLint'
-            description = property('repository-description')
         }
     }
 }
