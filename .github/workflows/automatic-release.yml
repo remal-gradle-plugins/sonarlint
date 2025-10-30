@@ -21,7 +21,7 @@ on:
         options:
         - 'true'
         - 'false'
-        
+
 defaults:
   run:
     shell: bash
@@ -58,6 +58,8 @@ jobs:
         skippedChangelogCommitPrefixes: |
           [push-back]
           [no-changelog]
+        skippedChangelogPullRequestLabels: |
+          sync-with-template
         dependencyUpdatesPullRequestLabels: |
           dependencies
         miscPullRequestLabels: |
