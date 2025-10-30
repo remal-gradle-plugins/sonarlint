@@ -121,29 +121,6 @@ jobs:
     - name: Retrieve repository info
       id: repository-info
       uses: remal-github-actions/retrieve-repository-info@v1
-    - name: Set repository info environment variables
-      env:
-        REPOSITORY_NAME: ${{fromJSON(steps.repository-info.outputs.result).name}}
-        REPOSITORY_FULL_NAME: ${{fromJSON(steps.repository-info.outputs.result).fullName}}
-        REPOSITORY_API_URL: ${{fromJSON(steps.repository-info.outputs.result).url}}
-        REPOSITORY_HTML_URL: ${{fromJSON(steps.repository-info.outputs.result).htmlUrl}}
-        REPOSITORY_DESCRIPTION: ${{fromJSON(steps.repository-info.outputs.result).description}}
-        REPOSITORY_TOPICS: ${{fromJSON(steps.repository-info.outputs.result).topicsString}}
-        REPOSITORY_IS_TEMPLATE: ${{fromJSON(steps.repository-info.outputs.result).isTemplate}}
-        REPOSITORY_OWNER_NAME: ${{fromJSON(steps.repository-info.outputs.result).owner.name}}
-        REPOSITORY_LICENSE_NAME: ${{fromJSON(steps.repository-info.outputs.result).license.name}}
-        REPOSITORY_LICENSE_HTML_URL: ${{fromJSON(steps.repository-info.outputs.result).license.htmlUrl}}
-      run: |
-        echo "REPOSITORY_NAME=$REPOSITORY_NAME" | tee -a $GITHUB_ENV
-        echo "REPOSITORY_FULL_NAME=$REPOSITORY_FULL_NAME" | tee -a $GITHUB_ENV
-        echo "REPOSITORY_API_URL=$REPOSITORY_API_URL" | tee -a $GITHUB_ENV
-        echo "REPOSITORY_HTML_URL=$REPOSITORY_HTML_URL" | tee -a $GITHUB_ENV
-        echo "REPOSITORY_DESCRIPTION=$REPOSITORY_DESCRIPTION" | tee -a $GITHUB_ENV
-        echo "REPOSITORY_TOPICS=$REPOSITORY_TOPICS" | tee -a $GITHUB_ENV
-        echo "REPOSITORY_IS_TEMPLATE=$REPOSITORY_IS_TEMPLATE" | tee -a $GITHUB_ENV
-        echo "REPOSITORY_OWNER_NAME=$REPOSITORY_OWNER_NAME" | tee -a $GITHUB_ENV
-        echo "REPOSITORY_LICENSE_NAME=$REPOSITORY_LICENSE_NAME" | tee -a $GITHUB_ENV
-        echo "REPOSITORY_LICENSE_HTML_URL=$REPOSITORY_LICENSE_HTML_URL" | tee -a $GITHUB_ENV
 
     - name: Submit dependencies to GitHub
       if: ${{(github.event_name == 'push' || github.event_name == 'workflow_dispatch') && startsWith(github.ref, 'refs/heads/')}}
