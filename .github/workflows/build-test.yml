@@ -86,7 +86,7 @@ jobs:
           core.exportVariable('DISABLE_COMPILATION', 'true')
           core.exportVariable('DISABLE_VERIFICATION_EXCEPT_TESTS', 'true')
     - name: Checkout repository
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
       with:
         submodules: recursive
         fetch-depth: 1
