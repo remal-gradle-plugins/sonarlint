@@ -28,7 +28,7 @@ jobs:
           ${{env.DEFAULT_JAVA_VERSION}}
         distribution: temurin
     - name: Checkout repository
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
       with:
         submodules: recursive
         fetch-depth: 2
