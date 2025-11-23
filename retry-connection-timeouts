@@ -48,6 +48,9 @@ for ATTEMPT in $(seq 1 2); do
     elif STR="Received status code 429 from server" && grep -q -i "$STR" "$LOGFILE"; then
         echo "::warning::'$STR' found in $* command log file $LOGFILE"
 
+    elif STR="Server returned HTTP response code: 50" && grep -q -i "$STR" "$LOGFILE"; then
+        echo "::warning::'$STR' found in $* command log file $LOGFILE"
+
     else
         break
     fi
