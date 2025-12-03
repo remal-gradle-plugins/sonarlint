@@ -8,7 +8,7 @@ org.sonarsource.java:sonar-java-plugin:8.21.1.41883:@sonar-plugin
 org.sonarsource.java:sonar-java-symbolic-execution-plugin:8.18.1.347:@sonar-plugin
 org.sonarsource.javascript:sonar-javascript-plugin:11.6.0.36606:@sonar-plugin
 org.sonarsource.kotlin:sonar-kotlin-plugin:3.3.0.7402
-org.sonarsource.slang:sonar-scala-plugin:1.20.0.1864
+org.sonarsource.slang:sonar-scala-plugin:1.20.1.1884
 org.sonarsource.sonarlint.core:sonarlint-analysis-engine:10.37.1.83894
 org.sonarsource.sonarlint.core:sonarlint-rule-extractor:10.37.1.83894
 org.sonarsource.text:sonar-text-plugin:2.34.0.9939
