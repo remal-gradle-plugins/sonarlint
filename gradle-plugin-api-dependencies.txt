@@ -7,7 +7,7 @@ org.sonarsource.iac:sonar-iac-plugin:2.2.0.18377
 org.sonarsource.java:sonar-java-plugin:8.22.0.41895:@sonar-plugin
 org.sonarsource.java:sonar-java-symbolic-execution-plugin:8.19.0.1586:@sonar-plugin
 org.sonarsource.javascript:sonar-javascript-plugin:11.7.1.36988:@sonar-plugin
-org.sonarsource.kotlin:sonar-kotlin-plugin:3.3.0.7402
+org.sonarsource.kotlin:sonar-kotlin-plugin:3.3.1.7792
 org.sonarsource.slang:sonar-scala-plugin:1.20.1.1884
 org.sonarsource.sonarlint.core:sonarlint-analysis-engine:10.37.1.83894
 org.sonarsource.sonarlint.core:sonarlint-rule-extractor:10.37.1.83894
