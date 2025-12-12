@@ -116,7 +116,7 @@ jobs:
         artifact-name: workspace-test-${{inputs.os}}-${{steps.matrix-info.outputs.token}}
 
     - name: Upload Jacoco exec files
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v6
       with:
         name: jacoco-matrix-exec-files-${{inputs.os}}-${{steps.matrix-info.outputs.token}}
         path: '**/build/jacoco/*.exec'
