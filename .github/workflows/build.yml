@@ -253,7 +253,7 @@ jobs:
       run: |
         ./gradlew-retry-connection-timeouts jacocoMatrixReportMerged displayMatrixTotalCodeCoverage "-Pjacoco-all-exec-files-dir=build/jacoco-matrix-exec-files"
     - name: Upload Jacoco merged report
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v6
       with:
         name: jacoco-matrix-merged-report
         path: build/reports/jacoco/jacocoMatrixReportMerged/
