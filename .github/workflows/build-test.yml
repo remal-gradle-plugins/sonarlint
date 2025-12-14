@@ -91,7 +91,7 @@ jobs:
         submodules: recursive
         fetch-depth: 1
     - name: Cache Gradle
-      uses: remal-github-actions/cache-gradle@main
+      uses: remal-github-actions/cache-gradle@v1
       with:
         github-job: 'test-${{inputs.os}}-${{inputs.job-matrix-json}}'
     - name: Setup Java ${{env.CURRENT_JAVA_VERSION != env.DEFAULT_JAVA_VERSION && format('{0} and {1}', env.DEFAULT_JAVA_VERSION, env.CURRENT_JAVA_VERSION) || env.DEFAULT_JAVA_VERSION}}
