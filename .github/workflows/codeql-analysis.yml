@@ -40,7 +40,7 @@ jobs:
         attempt_delay: 5000
     - name: Cache Gradle
       id: cache-gradle
-      uses: remal-github-actions/cache-gradle@main
+      uses: remal-github-actions/cache-gradle@v1
       with:
         build-cache-enabled: 'false'
     - name: Initialize CodeQL

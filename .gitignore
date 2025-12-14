@@ -17,8 +17,6 @@ target/
 # Gradle:
 build/
 !**/src/**/build/
-build-cache/
-!**/src/**/build-cache/
 .gradle/
 
 
