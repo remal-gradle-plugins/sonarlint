@@ -4,10 +4,10 @@ on:
   push:
     branches:
     - main
-    - 'release/*'
-    - 'test/*'
+    - 'release/**'
+    - 'test/**'
     tags:
-    - 'v*'
+    - 'v[0-9]**'
   pull_request: { }
   schedule:
   - cron: '53 22 * * *' # sync-with-template: adjust
