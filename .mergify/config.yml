@@ -1,20 +1,22 @@
 # Configuration file for Mergify GitHub App: https://github.com/marketplace/mergify
 
+#$schema: 'https://docs.mergify.com/mergify-configuration-schema.json'
+
 # All Status Checks should be listed explicitly (see https://docs.mergify.io/conditions/#about-status-checks):
 #   `cross-versions-tests-success` - .github/workflows/build.yml
 
 pull_request_rules:
 - name: Auto merge dependency updates
   conditions:
-  - author~=^(dependabot(-preview)?|renovate)\[bot\]$
-  - -files~=^(\.github/|\.gitlab/)?renovate\.json5?$
-  - -files~=^\.renovaterc(\.json5?)?$
-  - -conflict
-  - -closed
-  - -merged
-  - -draft
+  - 'author~=^(dependabot(-preview)?|renovate)\[bot\]$'
+  - '-files~=^(\.github/|\.gitlab/)?renovate\.json5?$'
+  - '-files~=^\.renovaterc(\.json5?)?$'
+  - '-conflict'
+  - '-closed'
+  - '-merged'
+  - '-draft'
   - '#changes-requested-reviews-by=0'
-  - check-success=cross-versions-tests-success
+  - 'check-success=cross-versions-tests-success'
   - '#check-pending=0'
   - '#check-failure=0'
   - '#check-timed-out=0'
@@ -25,16 +27,16 @@ pull_request_rules:
 
 - name: Sync with template
   conditions:
-  - author=remal
-  - label=sync-with-template
+  - 'author=remal'
+  - 'label=sync-with-template'
   - '#added-files=0'
   - '#removed-files=0'
-  - -conflict
-  - -closed
-  - -merged
-  - -draft
+  - '-conflict'
+  - '-closed'
+  - '-merged'
+  - '-draft'
   - '#changes-requested-reviews-by=0'
-  - check-success=cross-versions-tests-success
+  - 'check-success=cross-versions-tests-success'
   - '#check-pending=0'
   - '#check-failure=0'
   - '#check-timed-out=0'
@@ -42,6 +44,3 @@ pull_request_rules:
     review: { }
     merge:
       method: squash
-
-
-$schema: 'https://docs.mergify.com/mergify-configuration-schema.json'
