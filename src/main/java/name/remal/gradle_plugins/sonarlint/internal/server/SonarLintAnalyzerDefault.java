@@ -41,7 +41,6 @@ import org.sonar.api.rule.RuleKey;
 import org.sonar.api.server.rule.RulesDefinition.Rule;
 import org.sonarsource.sonarlint.core.analysis.api.AnalysisConfiguration;
 import org.sonarsource.sonarlint.core.analysis.api.ClientInputFile;
-import org.sonarsource.sonarlint.core.analysis.api.ClientModuleInfo;
 import org.sonarsource.sonarlint.core.commons.log.SonarLintLogger;
 
 @RequiredArgsConstructor
@@ -129,10 +128,6 @@ public class SonarLintAnalyzerDefault implements SonarLintAnalyzer {
                 };
 
                 var moduleRegistry = shared.getAnalysisContainer().getModuleRegistry();
-
-                var clientFileSystem = new SimpleClientModuleFileSystem(inputFiles);
-                var moduleInfo = new ClientModuleInfo(moduleId, clientFileSystem);
-                moduleRegistry.registerModule(moduleInfo);
 
                 try {
                     var moduleContainer = requireNonNull(moduleRegistry.getContainerFor(moduleId));
