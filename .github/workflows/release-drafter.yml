@@ -16,6 +16,7 @@ permissions:
 
 jobs:
   update-release-draft:
+    if: ${{false}}
     name: Update release draft
     runs-on: ubuntu-latest
     steps:
