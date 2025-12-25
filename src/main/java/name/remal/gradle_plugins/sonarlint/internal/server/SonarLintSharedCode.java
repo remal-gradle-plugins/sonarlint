@@ -121,7 +121,6 @@ public class SonarLintSharedCode implements AutoCloseable {
                     "sonar.userHome", homeDir.toString()
                 ))
                 .setClientPid(-1)
-                .setModulesProvider(List::of)
                 .build();
 
             var container = new GlobalAnalysisContainer(
