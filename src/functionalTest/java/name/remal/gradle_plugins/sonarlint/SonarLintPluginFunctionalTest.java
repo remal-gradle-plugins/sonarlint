@@ -1,6 +1,7 @@
 package name.remal.gradle_plugins.sonarlint;
 
 import static java.lang.String.join;
+import static java.nio.file.Files.readString;
 import static name.remal.gradle_plugins.sonarlint.RuleExamples.getSonarRuleLanguage;
 import static name.remal.gradle_plugins.sonarlint.RuleExamples.writeSonarRuleExample;
 import static name.remal.gradle_plugins.sonarlint.TestConstants.CURRENT_MINOR_GRADLE_VERSION;
@@ -45,6 +46,13 @@ import org.junit.jupiter.api.Test;
 @RequiredArgsConstructor
 @SuppressWarnings({"java:S5976", "java:S1854", "UnusedReturnValue"})
 class SonarLintPluginFunctionalTest {
+
+    private static final String XML_REPORT_DEFAULT_RELATIVE_PATH =
+        "build/reports/sonarLint/sonarlintMain/sonarlintMain.xml";
+
+    private static final String HTML_REPORT_DEFAULT_RELATIVE_PATH =
+        XML_REPORT_DEFAULT_RELATIVE_PATH.replaceFirst("\\.xml$", ".html");
+
 
     final GradleProject project;
 
@@ -395,14 +403,11 @@ class SonarLintPluginFunctionalTest {
                 ));
             });
 
-        project.getBuildFile().line(join("\n", new String[]{
-            "tasks.withType(JavaCompile).configureEach {",
+        project.getBuildFile().line(join("\n", "tasks.withType(JavaCompile).configureEach {",
             "    options.compilerArgs.add('-Xlint:none')",
-            "}"
-        }));
+            "}"));
 
-        project.writeTextFile("src/main/java/pkg/JavaDependency.java", join("\n", new String[]{
-            "package pkg;",
+        project.writeTextFile("src/main/java/pkg/JavaDependency.java", join("\n", "package pkg;",
             "",
             "public class JavaDependency {",
             "",
@@ -410,11 +415,9 @@ class SonarLintPluginFunctionalTest {
             "        return \"hello\";",
             "    }",
             "",
-            "}",
-        }));
+            "}"));
 
-        project.writeTextFile("src/test/java/pkg/JavaDependencyTest.java", join("\n", new String[]{
-            "package pkg;",
+        project.writeTextFile("src/test/java/pkg/JavaDependencyTest.java", join("\n", "package pkg;",
             "",
             "import static org.junit.jupiter.api.Assertions.assertTrue;",
             "",
@@ -429,8 +432,7 @@ class SonarLintPluginFunctionalTest {
             "        assertTrue(\"hello\".equals(dependency.hello()));",
             "    }",
             "",
-            "}",
-        }));
+            "}"));
 
         project.getBuildFile().line("sonarLint.rules.enable('java:S5785')");
 
@@ -446,13 +448,11 @@ class SonarLintPluginFunctionalTest {
 
     @Test
     void doesNotUseNonReproducibleVersions() {
-        project.getBuildFile().line(join("\n", new String[]{
-            "configurations.configureEach {",
+        project.getBuildFile().line(join("\n", "configurations.configureEach {",
             "    resolutionStrategy {",
             "        failOnNonReproducibleResolution()",
             "    }",
-            "}"
-        }));
+            "}"));
 
         writeRuleExample("java:S1171");
 
@@ -461,12 +461,10 @@ class SonarLintPluginFunctionalTest {
 
     @Test
     void javaWithGStringCompilerArgs() {
-        project.getBuildFile().line(join("\n", new String[]{
-            "def paramValue = 'value'",
+        project.getBuildFile().line(join("\n", "def paramValue = 'value'",
             "tasks.withType(JavaCompile).configureEach {",
             "  options.compilerArgs.add(\"-Aname=$paramValue\")",
-            "}",
-        }));
+            "}"));
 
         new Assertions()
             .rule("java:S100")
@@ -746,6 +744,7 @@ class SonarLintPluginFunctionalTest {
         }
 
         @CanIgnoreReturnValue
+        @SneakyThrows
         public Assertions assertRaisedIssues(Consumer<Collection<Issue>> issuesVerifier) {
             if (includeLanguageByDefault) {
                 for (var rule : writtenRuleExamples) {
@@ -759,6 +758,16 @@ class SonarLintPluginFunctionalTest {
             buildResult.get();
             var issues = parseSonarLintIssues();
             issuesVerifier.accept(issues);
+
+            var htmlReportFile = project.resolveRelativePath(HTML_REPORT_DEFAULT_RELATIVE_PATH);
+            assertThat(htmlReportFile).isRegularFile();
+            var htmlReportContent = readString(htmlReportFile);
+            for (var issue : issues) {
+                assertThat(htmlReportContent)
+                    .withFailMessage("HTML report does not contain issue: %s", issue)
+                    .contains(">" + issue.getRule() + "<");
+            }
+
             return this;
         }
 
@@ -771,7 +780,7 @@ class SonarLintPluginFunctionalTest {
 
     List<Issue> parseSonarLintIssues(@Nullable String reportRelativePath) {
         if (reportRelativePath == null) {
-            reportRelativePath = "build/reports/sonarLint/sonarlintMain/sonarlintMain.xml";
+            reportRelativePath = XML_REPORT_DEFAULT_RELATIVE_PATH;
         }
         var reportFile = project.resolveRelativePath(reportRelativePath);
         return new CheckstyleXmlIssuesParser().parseIssuesFrom(reportFile);

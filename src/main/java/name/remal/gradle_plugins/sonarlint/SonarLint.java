@@ -440,6 +440,7 @@ public abstract class SonarLint extends AbstractSonarLintTask
         params.getIsIgnoreFailures().set(getIgnoreFailures());
         params.getWithDescription().set(settings.getLogging().getWithDescription());
         params.getXmlReportLocation().fileProvider(getSonarLintReportFile(SonarLintReports::getXml));
+        params.getHtmlReportLocation().fileProvider(getSonarLintReportFile(SonarLintReports::getHtml));
     }
 
     @TaskAction
