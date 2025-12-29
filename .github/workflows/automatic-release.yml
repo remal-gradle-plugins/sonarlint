@@ -62,9 +62,11 @@ jobs:
           sync-with-template
         dependencyUpdatesPullRequestLabels: |
           dependencies
+        releaseFrequencyForDependencyUpdates: 4 months
         miscPullRequestLabels: |
           sync-with-template
           remal-gradle-plugins-toolkit
+        releaseFrequencyForMiscPullRequests: 4 months
         actionPathsAllowedToFail: |
           .github/workflows/automatic-release.yml
           .github/workflows/bump-repository-activity.yml
