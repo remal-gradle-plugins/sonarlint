@@ -24,6 +24,7 @@ pull_request_rules:
     review: { }
     merge:
       method: squash
+      commit_message_template: '{{ title }} (#{{ number }})'
 
 - name: Sync with template
   conditions:
@@ -44,3 +45,4 @@ pull_request_rules:
     review: { }
     merge:
       method: squash
+      commit_message_template: '{{ title }} (#{{ number }})'
