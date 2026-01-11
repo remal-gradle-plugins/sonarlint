@@ -432,6 +432,27 @@ indent_size = 2
 continuation_indent_size = 2
 ij_continuation_indent_size = 2
 
+[{*.tf,*.tfvars,*.tfvars.*}]
+max_line_length = 999
+tab_width = 2
+indent_size = 2
+continuation_indent_size = 2
+ij_continuation_indent_size = 2
+ij_hcl-terraform_array_wrapping = normal
+ij_hcl-terraform_import_providers_automatically = true
+ij_hcl-terraform_keep_blank_lines_in_code = 2
+ij_hcl-terraform_keep_indents_on_empty_lines = false
+ij_hcl-terraform_keep_line_breaks = true
+ij_hcl-terraform_object_wrapping = normal
+ij_hcl-terraform_property_alignment = on_equals
+ij_hcl-terraform_run_tf_fmt_on_reformat = true
+ij_hcl-terraform_space_after_comma = true
+ij_hcl-terraform_space_before_comma = false
+ij_hcl-terraform_spaces_around_assignment_operators = true
+ij_hcl-terraform_spaces_within_braces = false
+ij_hcl-terraform_spaces_within_brackets = false
+ij_hcl-terraform_wrap_long_lines = false
+
 [*.sql]
 max_line_length = 999
 

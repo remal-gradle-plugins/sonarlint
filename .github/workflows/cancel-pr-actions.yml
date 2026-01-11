@@ -4,7 +4,6 @@ on:
   pull_request:
     types:
     - closed
-    - merged
 
 permissions:
   pull-requests: 'read'
@@ -17,4 +16,5 @@ jobs:
     timeout-minutes: 5
     steps:
     - name: Cancel PR actions
-      uses: remal-github-actions/cancel-pr-actions@v1
+      uses: Mergifyio/gha-cancel-workflow-runs-on-pr-close@v1
+      #uses: remal-github-actions/cancel-pr-actions@v1

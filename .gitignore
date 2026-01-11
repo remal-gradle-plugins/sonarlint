@@ -1,3 +1,8 @@
+# Common:
+*~
+.DS_Store
+
+
 # Logs:
 log/
 !**/src/**/log/
@@ -26,6 +31,14 @@ build/
 
 # NodeJS:
 node_modules/
+
+
+# Terraform state and backup files
+*.tfstate
+*.tfstate.backup
+*.tfstate.lock.info
+.terraform/
+.terraform.lock.hcl
 
 
 # IntelliJ IDEA plugins:
@@ -67,10 +80,6 @@ out/
 .classpath
 .project
 .settings/
-
-
-# Mac:
-.DS_Store
 
 # Remal Gradle plugins:
 /gradle-ci.properties
