@@ -3,6 +3,10 @@
 .DS_Store
 
 
+# Claude
+.claude/*.local.*
+
+
 # Logs:
 log/
 !**/src/**/log/
@@ -38,7 +42,6 @@ node_modules/
 *.tfstate.backup
 *.tfstate.lock.info
 .terraform/
-.terraform.lock.hcl
 
 
 # IntelliJ IDEA plugins:
