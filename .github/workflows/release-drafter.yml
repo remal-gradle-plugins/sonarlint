@@ -18,6 +18,7 @@ jobs:
   update-release-draft:
     name: Update release draft
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
     - uses: actions/github-script@v8
       name: Evaluate conditions
@@ -37,7 +38,6 @@ jobs:
             core.warning("Config file doesn't exist: " + configFile)
           }
           core.setOutput('configFileExists', configFileExists ? 'true' : 'false')
-
           const repository = await github.rest.repos.get({
             owner: context.repo.owner,
             repo: context.repo.repo,
@@ -48,8 +48,14 @@ jobs:
           }
           core.setOutput('isTemplate', isTemplate ? 'true' : 'false')
 
-    - uses: release-drafter/release-drafter@v6
-      name: Update release draft
+    # see https://github.com/release-drafter/release-drafter/issues/493#issuecomment-3686135286
+    - name: Wait for 15 seconds to ensure GraphQL consistency
       if: ${{fromJSON(steps.conditions.outputs.configFileExists) && !fromJSON(steps.conditions.outputs.isTemplate)}}
+      shell: bash
+      run: sleep 15s
+
+    - name: Update release draft
+      if: ${{fromJSON(steps.conditions.outputs.configFileExists) && !fromJSON(steps.conditions.outputs.isTemplate)}}
+      uses: release-drafter/release-drafter@v6
       env:
         GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
