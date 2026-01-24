@@ -2,9 +2,6 @@
 
 #$schema: 'https://docs.mergify.com/mergify-configuration-schema.json'
 
-# All Status Checks should be listed explicitly (see https://docs.mergify.io/conditions/#about-status-checks):
-#   `cross-versions-tests-success` - .github/workflows/build.yml
-
 pull_request_rules:
 - name: Auto merge dependency updates
   conditions:
