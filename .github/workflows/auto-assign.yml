@@ -10,7 +10,7 @@ on:
 #    - opened
 
 env:
-  DEFAULT_ASSIGNEE: ${{secrets.DEFAULT_ASSIGNEE || 'remal'}}
+  DEFAULT_ASSIGNEE: ${{secrets.DEFAULT_ASSIGNEE || vars.DEFAULT_ASSIGNEE || 'remal'}}
 
 permissions:
   issues: write

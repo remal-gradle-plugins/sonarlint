@@ -67,4 +67,4 @@ jobs:
       with:
         dryRun: ${{inputs.dryRun}}
         githubToken: ${{env.PUSH_BACK_TOKEN}}
-        templateRepository: ${{secrets.TEMPLATE_REPOSITORY || ''}}
+        templateRepository: ${{secrets.TEMPLATE_REPOSITORY || vars.TEMPLATE_REPOSITORY || ''}}
