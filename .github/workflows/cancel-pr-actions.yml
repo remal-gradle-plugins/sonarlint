@@ -6,9 +6,9 @@ on:
     - closed
 
 permissions:
-  pull-requests: 'read'
-  checks: 'read'
-  actions: 'write'
+  pull-requests: read
+  checks: read
+  actions: write
 
 jobs:
   cancel-pr-actions:

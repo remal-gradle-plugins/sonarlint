@@ -14,49 +14,14 @@ on:
   workflow_dispatch: { }
 
 permissions:
-  contents: read
+  id-token: write
 
 concurrency:
   group: codeowners-validation-${{github.ref}}
   cancel-in-progress: true
 
-env:
-  VALIDATION_TOKEN: ${{secrets.CODEOWNERS_VALIDATOR_TOKEN && secrets.CODEOWNERS_VALIDATOR_TOKEN || github.token}}
-
 jobs:
-  rate-limits:
-    name: Check rate limits
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-    - name: Get rate limits
-      uses: remal-github-actions/get-rate-limits@v1
-      id: rate-limits
-      with:
-        githubToken: ${{env.VALIDATION_TOKEN || github.token}}
-    - name: Make decision
-      id: decision
-      run: |
-        echo "Core rate limit usage: ${{steps.rate-limits.outputs.coreUsage}}"
-        if [ "${{steps.rate-limits.outputs.coreUsage < 75}}" == "true" ]; then
-          echo "Enough rate limits"
-          echo 'enough=true' >> $GITHUB_OUTPUT
-        else
-          echo "::warning::Not enough rate limits!"
-          if [ "${{github.event_name != 'schedule'}}" == "true" ]; then
-            echo "::warning::Executing anyway, as event is '${{github.event_name}}'"
-            echo 'enough=true' >> $GITHUB_OUTPUT
-          else
-            echo 'enough=false' >> $GITHUB_OUTPUT
-          fi
-        fi
-    outputs:
-      enough: ${{steps.decision.outputs.enough}}
-
   codeowners-validation:
-    needs:
-    - rate-limits
-    if: ${{fromJSON(needs.rate-limits.outputs.enough) == true}}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -68,20 +33,22 @@ jobs:
     - name: Get repository owner type
       id: owner-type
       run: |
-        REPO_JSON=$(curl -s "${{github.api_url}}/repos/${{github.repository}}" -H "Authorization: token ${{env.VALIDATION_TOKEN}}")
+        REPO_JSON=$(curl -s "${{github.api_url}}/repos/${{github.repository}}" -H "Authorization: token ${{github.token}}")
         OWNER_TYPE=$(echo $REPO_JSON | jq -r '.owner.type')
         OWNER_TYPE=$(echo "$OWNER_TYPE" | tr '[:upper:]' '[:lower:]')
         echo "owner-type=$OWNER_TYPE" | tee -a $GITHUB_OUTPUT
 
-    - name: Basic CODEOWNERS validation
+    - name: Get GitHub Token
+      id: get-token
+      uses: remal/github-repository-token-issuer@v1
+      with:
+        scopes: |
+          contents: read
+          ${{steps.owner-type.outputs.owner-type == 'organization' && 'members:read' || ''}}
+
+    - name: CODEOWNERS validation
       if: ${{steps.owner-type.outputs.owner-type != 'organization'}}
       uses: mszostok/codeowners-validator@v0.7.4
       with:
-        github_access_token: '${{env.VALIDATION_TOKEN}}'
-        checks: 'syntax,duppatterns,files'
-
-    - name: Full CODEOWNERS validation
-      if: ${{steps.owner-type.outputs.owner-type == 'organization'}}
-      uses: mszostok/codeowners-validator@v0.7.4
-      with:
-        github_access_token: '${{env.VALIDATION_TOKEN}}'
+        github_access_token: '${{steps.get-token.outputs.token}}'
+        checks: ${{steps.owner-type.outputs.owner-type == 'organization' && '' || 'duppatterns,files,syntax'}}

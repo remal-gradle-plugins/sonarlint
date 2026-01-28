@@ -22,16 +22,19 @@ on:
         - 'true'
         - 'false'
 
+permissions:
+  id-token: write
+
 concurrency:
   group: sync-with-template-${{github.ref}}
   cancel-in-progress: true
 
+env:
+  TEMPLATE_REPOSITORY: ${{secrets.TEMPLATE_REPOSITORY || vars.TEMPLATE_REPOSITORY || ''}}
+
 defaults:
   run:
     shell: bash
-
-env:
-  PUSH_BACK_TOKEN: ${{secrets.PUSH_BACK_TOKEN}}
 
 jobs:
   sync-with-template:
@@ -39,32 +42,19 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-    - name: Get rate limits
-      uses: remal-github-actions/get-rate-limits@v1
-      id: rate-limits
+    - name: Get GitHub Token
+      id: get-token
+      uses: remal/github-repository-token-issuer@v1
       with:
-        githubToken: ${{env.PUSH_BACK_TOKEN || github.token}}
-    - name: Make rate limits decision
-      id: decision
-      run: |
-        echo "Core rate limit usage: ${{steps.rate-limits.outputs.coreUsage}}"
-        if [ "${{steps.rate-limits.outputs.coreUsage < 75}}" == "true" ]; then
-          echo "Enough rate limits"
-          echo 'enough=true' >> $GITHUB_OUTPUT
-        else
-          echo "::warning::Not enough rate limits!"
-          if [ "${{github.event_name != 'schedule'}}" == "true" ]; then
-            echo "::warning::Executing anyway, as event is '${{github.event_name}}'"
-            echo 'enough=true' >> $GITHUB_OUTPUT
-          else
-            echo 'enough=false' >> $GITHUB_OUTPUT
-          fi
-        fi
+        scopes: |
+          contents: write
+          workflows: write
+          pull_requests: write
+          issues: write
 
     - name: Sync with template repository
-      if: ${{env.PUSH_BACK_TOKEN && fromJSON(steps.decision.outputs.enough) == true}}
       uses: remal-github-actions/sync-with-template@v3
       with:
         dryRun: ${{inputs.dryRun}}
-        githubToken: ${{env.PUSH_BACK_TOKEN}}
-        templateRepository: ${{secrets.TEMPLATE_REPOSITORY || vars.TEMPLATE_REPOSITORY || ''}}
+        githubToken: ${{steps.get-token.outputs.token}}
+        templateRepository: ${{env.TEMPLATE_REPOSITORY}}

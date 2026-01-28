@@ -25,7 +25,7 @@ on:
         type: number
 
 permissions:
-  contents: write
+  id-token: write
 
 concurrency:
   group: bump-repository-activity-${{github.ref}}
@@ -35,42 +35,24 @@ defaults:
   run:
     shell: bash
 
-env:
-  PUSH_BACK_TOKEN: ${{secrets.PUSH_BACK_TOKEN || github.token}}
-
 jobs:
   bump-repository-activity:
     name: Bump repository activity
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-    - name: Get rate limits
-      uses: remal-github-actions/get-rate-limits@v1
-      id: rate-limits
+    - name: Get GitHub Token
+      id: get-token
+      uses: remal/github-repository-token-issuer@v1
       with:
-        githubToken: ${{env.PUSH_BACK_TOKEN}}
-    - name: Make rate limits decision
-      id: decision
-      run: |
-        echo "Core rate limit usage: ${{steps.rate-limits.outputs.coreUsage}}"
-        if [ "${{steps.rate-limits.outputs.coreUsage < 75}}" == "true" ]; then
-          echo "Enough rate limits"
-          echo 'enough=true' >> $GITHUB_OUTPUT
-        else
-          echo "::warning::Not enough rate limits!"
-          if [ "${{github.event_name != 'schedule'}}" == "true" ]; then
-            echo "::warning::Executing anyway, as event is '${{github.event_name}}'"
-            echo 'enough=true' >> $GITHUB_OUTPUT
-          else
-            echo 'enough=false' >> $GITHUB_OUTPUT
-          fi
-        fi
+        scopes: |
+          contents: write
 
     - name: Bump repository activity
-      if: ${{fromJSON(steps.decision.outputs.enough) == true}}
       uses: remal-github-actions/bump-repository-activity@v1
       with:
         dryRun: ${{inputs.dryRun || 'false'}}
-        githubToken: ${{env.PUSH_BACK_TOKEN}}
+        githubToken: ${{steps.get-token.outputs.token}}
+        maxInactivityDays: ${{inputs.maxInactivityDays || 14}}
         bumperFile: 'repository-activity.bumper'
         commitMessage: '[push-back] Bump repository activity'
