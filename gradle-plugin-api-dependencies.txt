@@ -9,8 +9,8 @@ org.sonarsource.java:sonar-java-symbolic-execution-plugin:8.19.0.1586:@sonar-plu
 org.sonarsource.javascript:sonar-javascript-plugin:11.8.0.37897:@sonar-plugin
 org.sonarsource.kotlin:sonar-kotlin-plugin:3.3.2.8811
 org.sonarsource.slang:sonar-scala-plugin:1.21.0.1997
-org.sonarsource.sonarlint.core:sonarlint-analysis-engine:10.43.0.84255
-org.sonarsource.sonarlint.core:sonarlint-rule-extractor:10.43.0.84255
+org.sonarsource.sonarlint.core:sonarlint-analysis-engine:10.44.0.84275
+org.sonarsource.sonarlint.core:sonarlint-rule-extractor:10.44.0.84275
 org.sonarsource.text:sonar-text-plugin:2.38.0.10279
 org.sonarsource.xml:sonar-xml-plugin:2.15.0.7513:@sonar-plugin
 zzzz-classes-relying-on-gradle-internal-api:name.remal.gradle_plugins.sonarlint.AbstractSonarLintHelpTask:18a022ece52ca79214914ed651a8c7cecc02a9bc81b7f2b6306cd8fba31e19ed
