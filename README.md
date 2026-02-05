@@ -23,24 +23,24 @@ This plugin executes [SonarLint](https://www.sonarlint.org/) inspections without
 The plugin uses these Sonar plugins:
 <!--sonar-plugins-list-->
 
-* [Azure Resource Manager](https://rules.sonarsource.com/azureresourcemanager/)
-* [CloudFormation](https://rules.sonarsource.com/cloudformation/)
-* [CSS](https://rules.sonarsource.com/css/)
-* [Docker](https://rules.sonarsource.com/docker/)
-* [Java](https://rules.sonarsource.com/java/)
-* [JavaScript](https://rules.sonarsource.com/javascript/)
-* [JSON](https://rules.sonarsource.com/json/)
+* Azure Resource Manager
+* CloudFormation
+* CSS
+* Docker
+* Java
+* JavaScript
+* JSON
 * JSP
-* [Kotlin](https://rules.sonarsource.com/kotlin/)
-* [Kubernetes](https://rules.sonarsource.com/kubernetes/)
-* [Scala](https://rules.sonarsource.com/scala/)
-* [Secrets](https://rules.sonarsource.com/secrets/)
-* [Terraform](https://rules.sonarsource.com/terraform/)
-* [Text](https://rules.sonarsource.com/text/)
-* [TypeScript](https://rules.sonarsource.com/typescript/)
-* [HTML](https://rules.sonarsource.com/web/)
-* [XML](https://rules.sonarsource.com/xml/)
-* [YAML](https://rules.sonarsource.com/yaml/)
+* Kotlin
+* Kubernetes
+* Scala
+* Secrets
+* Terraform
+* Text
+* TypeScript
+* HTML
+* XML
+* YAML
 
 <!--/sonar-plugins-list-->
 
