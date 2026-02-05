@@ -25,7 +25,7 @@ pull_request_rules:
 
 - name: Sync with template
   conditions:
-  - 'author=remal'
+  - 'author~=^(remal|repository-token-issuer\[bot\])$'
   - 'label=sync-with-template'
   - '#added-files=0'
   - '#removed-files=0'

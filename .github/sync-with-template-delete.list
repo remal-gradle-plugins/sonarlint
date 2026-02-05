@@ -1,2 +1,3 @@
 .github/workflows/auto-assign-issue.yml
 .github/workflows/codespell.yml
+.github/workflows/rebase-dependabot-pull-requests.yml
