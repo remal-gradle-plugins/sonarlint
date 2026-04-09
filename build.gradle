@@ -147,7 +147,7 @@ dependencies {
 
     // Plugins:
     // See full list of supported plugins here: https://github.com/SonarSource/sonarlint-intellij/blob/master/gradle/libs.versions.toml
-    sonarPluginArtifacts 'org.sonarsource.java:sonar-java-plugin:8.27.0.43088'
+    sonarPluginArtifacts 'org.sonarsource.java:sonar-java-plugin:8.28.0.43176'
     sonarPluginArtifacts 'org.sonarsource.java:sonar-java-symbolic-execution-plugin:8.20.0.1864'
     sonarPluginArtifacts 'org.sonarsource.javascript:sonar-javascript-plugin:12.3.0.39932'
     //sonarPluginArtifacts 'org.sonarsource.php:sonar-php-plugin:3.39.0.12526' // PHP projects are unlikely built with Gradle
