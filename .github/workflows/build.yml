@@ -154,7 +154,7 @@ jobs:
 
     - name: Prepare environment variables for cross-versions-tests
       id: prepare-env-for-cross-versions-tests
-      uses: actions/github-script@v8
+      uses: actions/github-script@v9
       env:
         ENV_JSON: ${{toJSON(env)}}
       with:
@@ -355,7 +355,7 @@ jobs:
     steps:
     - name: Parse Git tag
       id: parse-git-tag
-      uses: actions/github-script@v8
+      uses: actions/github-script@v9
       with:
         script: |
           const tagName = context.payload.ref.replace(/^refs\/tags\//, '')

@@ -53,7 +53,7 @@ jobs:
     steps:
     - name: Create matrix info
       id: matrix-info
-      uses: actions/github-script@v8
+      uses: actions/github-script@v9
       env:
         MATRIX: ${{inputs.job-matrix-json}}
       with:
@@ -70,7 +70,7 @@ jobs:
           core.info(`gradle-args=${gradleArgs}`)
           core.setOutput('gradle-args', gradleArgs)
     - name: Initialize environment variables
-      uses: actions/github-script@v8
+      uses: actions/github-script@v9
       env:
         PARENT_ENV_JSON: ${{inputs.env-json}}
       with:
