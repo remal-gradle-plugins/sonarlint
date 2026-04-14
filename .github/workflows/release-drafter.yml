@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-    - uses: actions/github-script@v9
+    - uses: actions/github-script@v8
       name: Evaluate conditions
       id: conditions
       with:
@@ -56,6 +56,6 @@ jobs:
 
     - name: Update release draft
       if: ${{fromJSON(steps.conditions.outputs.configFileExists) && !fromJSON(steps.conditions.outputs.isTemplate)}}
-      uses: release-drafter/release-drafter@v7
+      uses: release-drafter/release-drafter@v6
       env:
         GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
