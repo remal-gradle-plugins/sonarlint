@@ -56,6 +56,6 @@ jobs:
 
     - name: Update release draft
       if: ${{fromJSON(steps.conditions.outputs.configFileExists) && !fromJSON(steps.conditions.outputs.isTemplate)}}
-      uses: release-drafter/release-drafter@v6
+      uses: release-drafter/release-drafter@v7
       env:
         GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
