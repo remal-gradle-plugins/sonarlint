@@ -1,22 +1,23 @@
 $schema: https://raw.githubusercontent.com/remal-github-actions/sync-with-template/main/config.schema.json
 includes:
-- '.github/**'
-- '.mergify/*'
-- '.gitattributes'
-- '.gitignore'
-- '.editorconfig'
-- 'LICENSE'
-- 'retry-connection-timeouts'
-- '*-retry-connection-timeouts'
-- 'retry-connection-timeouts-*'
-- 'checkstyle.xml'
-- 'lombok.config'
-- '.eslint*'
-- '.prettier*'
-- '.yarn*'
+- .github/**
+- .mergify/*
+- .gitattributes
+- .gitignore
+- .editorconfig
+- LICENSE
+- retry-connection-timeouts
+- "*-retry-connection-timeouts"
+- retry-connection-timeouts-*
+- checkstyle.xml
+- lombok.config
+- .eslint*
+- .prettier*
+- .yarn*
+- .claude/rules/*.md
 excludes:
-- '.github/workflows/*template*-cleanup.*'
-- '.github/*template*-cleanup/**'
+- .github/workflows/*template*-cleanup.*
+- .github/*template*-cleanup/**
 modifiable-sections-exclusions:
-- '.yarn/plugins/**'
-- '.yarn/releases/**'
+- .yarn/plugins/**
+- .yarn/releases/**
