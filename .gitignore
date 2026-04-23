@@ -9,6 +9,8 @@ gha-creds-*.json
 
 # Claude
 .claude/*.local.*
+.claude/*.lock
+.claude/worktrees/
 
 
 # Logs:
