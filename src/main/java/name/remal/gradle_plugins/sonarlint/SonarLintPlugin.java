@@ -148,7 +148,7 @@ public abstract class SonarLintPlugin implements Plugin<Project> {
     }
 
 
-    @SuppressWarnings("java:S3776")
+    @SuppressWarnings({"java:S3776", "ReferenceEquality"})
     private void configureSonarLintConfiguration(
         Configuration configuration,
         boolean addExclusions,
