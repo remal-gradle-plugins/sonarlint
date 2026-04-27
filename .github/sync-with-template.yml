@@ -11,6 +11,7 @@ includes:
 - retry-connection-timeouts-*
 - checkstyle.xml
 - lombok.config
+- eslint.config.*
 - .eslint*
 - .prettier*
 - .yarn*

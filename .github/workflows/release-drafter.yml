@@ -49,13 +49,13 @@ jobs:
           core.setOutput('isTemplate', isTemplate ? 'true' : 'false')
 
     # see https://github.com/release-drafter/release-drafter/issues/493#issuecomment-3686135286
-    - name: Wait for 15 seconds to ensure GraphQL consistency
+    - name: Wait for 30 seconds to ensure GraphQL consistency
       if: ${{fromJSON(steps.conditions.outputs.configFileExists) && !fromJSON(steps.conditions.outputs.isTemplate)}}
       shell: bash
-      run: sleep 15s
+      run: sleep 30s
 
     - name: Update release draft
       if: ${{fromJSON(steps.conditions.outputs.configFileExists) && !fromJSON(steps.conditions.outputs.isTemplate)}}
       uses: release-drafter/release-drafter@v7
-      env:
-        GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+      with:
+        token: ${{secrets.GITHUB_TOKEN}}
