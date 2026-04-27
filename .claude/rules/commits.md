@@ -1,6 +1,6 @@
 # Commits
 
-- Every commit on `main` MUST start with one of these prefixes (the trailing space is part of the prefix):
+- Commits to the `main` branch must have one of these prefixes (the trailing space is part of the prefix):
   - `[release-later] ` - appears in the changelog
   - `[doc] ` - pure docs
   - `[no-changelog] ` - skipped
