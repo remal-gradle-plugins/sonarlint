@@ -8,6 +8,6 @@ import org.gradle.api.JavaVersion;
 @NoArgsConstructor(access = PRIVATE)
 abstract class SonarLintConstants {
 
-    public static final JavaVersion MIN_SUPPORTED_SONAR_RUNTIME_JAVA_VERSION = JavaVersion.VERSION_17;
+    public static final JavaVersion MIN_SUPPORTED_SONAR_RUNTIME_JAVA_VERSION = JavaVersion.VERSION_21;
 
 }
