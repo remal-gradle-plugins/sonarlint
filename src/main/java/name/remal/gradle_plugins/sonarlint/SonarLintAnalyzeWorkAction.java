@@ -2,6 +2,7 @@ package name.remal.gradle_plugins.sonarlint;
 
 import static java.lang.String.format;
 import static java.util.function.Predicate.not;
+import static java.util.stream.Collectors.toUnmodifiableList;
 import static lombok.AccessLevel.PUBLIC;
 import static name.remal.gradle_plugins.toolkit.ObjectUtils.unwrapProviders;
 import static name.remal.gradle_plugins.toolkit.PathUtils.tryToDeleteRecursivelyIgnoringFailure;
@@ -28,6 +29,7 @@ import name.remal.gradle_plugins.toolkit.CloseablesContainer;
 import name.remal.gradle_plugins.toolkit.issues.CheckstyleHtmlIssuesRenderer;
 import name.remal.gradle_plugins.toolkit.issues.CheckstyleXmlIssuesRenderer;
 import name.remal.gradle_plugins.toolkit.issues.Issue;
+import name.remal.gradle_plugins.toolkit.issues.IssueSeverity;
 import name.remal.gradle_plugins.toolkit.issues.TextIssuesRenderer;
 import org.jspecify.annotations.Nullable;
 
@@ -133,10 +135,38 @@ abstract class SonarLintAnalyzeWorkAction
             );
 
             if (!params.getIsIgnoreFailures().get()) {
-                throw newVerificationException(format(
-                    "SonarLint analysis failed with %d issues",
-                    issues.size()
-                ));
+                var threshold = params.getFailOnSeverity().getOrNull();
+                final Collection<Issue> failingIssues;
+                if (threshold == null) {
+                    failingIssues = issues;
+                } else {
+                    var thresholdAsToolkit = IssueSeverity.valueOf(threshold.name());
+                    failingIssues = issues.stream()
+                        .filter(issue -> {
+                            // null severity is treated as "always fails": the issue may have come
+                            // from a rule with no impacts mapping, and silently passing such an
+                            // issue would mask real problems.
+                            var severity = issue.getSeverity();
+                            return severity == null || severity.compareTo(thresholdAsToolkit) <= 0;
+                        })
+                        .collect(toUnmodifiableList());
+                }
+
+                if (!failingIssues.isEmpty()) {
+                    if (failingIssues.size() == issues.size()) {
+                        throw newVerificationException(format(
+                            "SonarLint analysis failed with %d issues",
+                            failingIssues.size()
+                        ));
+                    } else {
+                        throw newVerificationException(format(
+                            "SonarLint analysis failed with %d of %d issues at or above severity %s",
+                            failingIssues.size(),
+                            issues.size(),
+                            threshold
+                        ));
+                    }
+                }
             }
         }
     }

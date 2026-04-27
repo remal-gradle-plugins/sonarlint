@@ -62,7 +62,7 @@ public abstract class RuleExamples {
             "",
             "public class JavaS1133 {",
             "",
-            "    @Deprecated",
+            "    @Deprecated(forRemoval=true)",
             "    void method() {",
             "        System.exit(1);",
             "    }",

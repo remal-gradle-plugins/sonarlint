@@ -31,6 +31,8 @@ interface SonarLintAnalyzeWorkActionParams extends AbstractSonarLintTaskWorkActi
 
     Property<Boolean> getIsIgnoreFailures();
 
+    Property<SonarLintIssueSeverity> getFailOnSeverity();
+
     Property<Boolean> getWithDescription();
 
     RegularFileProperty getXmlReportLocation();
