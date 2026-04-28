@@ -1,6 +1,7 @@
 package name.remal.gradle_plugins.sonarlint;
 
 import static com.google.common.collect.ImmutableMap.toImmutableMap;
+import static java.lang.Integer.parseInt;
 import static java.lang.String.format;
 import static java.lang.System.lineSeparator;
 import static lombok.EqualsAndHashCode.CacheStrategy.LAZY;
@@ -74,14 +75,13 @@ public abstract class AbstractSonarLintTask
             var forkOptions = getSettings().getFork();
 
             boolean isForkEnabled = forkOptions.getEnabled().get();
-            if (!isForkEnabled
-                && JavaVersion.current().compareTo(MIN_SUPPORTED_SONAR_RUNTIME_JAVA_VERSION) < 0
-            ) {
+            var currentJavaMajorVersion = parseInt(JavaVersion.current().getMajorVersion());
+            if (!isForkEnabled && currentJavaMajorVersion < MIN_SUPPORTED_SONAR_RUNTIME_JAVA_VERSION) {
                 getLogger().warn(
                     "The current Java version ({}) is less than required for SonarLint {}."
                         + " Enabling forking for task {}.",
                     JavaVersion.current().getMajorVersion(),
-                    MIN_SUPPORTED_SONAR_RUNTIME_JAVA_VERSION.getMajorVersion(),
+                    MIN_SUPPORTED_SONAR_RUNTIME_JAVA_VERSION,
                     getPath()
                 );
                 isForkEnabled = true;

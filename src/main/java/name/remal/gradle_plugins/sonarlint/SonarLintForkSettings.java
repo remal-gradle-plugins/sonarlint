@@ -43,9 +43,7 @@ public abstract class SonarLintForkSettings {
 
     {
         getJavaLauncher().convention(getJavaLauncherProviderFor(getProject(), spec -> {
-            var minSupportedJavaLanguageVersion = JavaLanguageVersion.of(
-                MIN_SUPPORTED_SONAR_RUNTIME_JAVA_VERSION.getMajorVersion()
-            );
+            var minSupportedJavaLanguageVersion = JavaLanguageVersion.of(MIN_SUPPORTED_SONAR_RUNTIME_JAVA_VERSION);
             var javaMajorVersion = spec.getLanguageVersion()
                 .orElse(JavaLanguageVersion.of(JavaVersion.current().getMajorVersion()))
                 .map(JavaLanguageVersion::asInt)
