@@ -26,6 +26,7 @@ import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
@@ -282,6 +283,42 @@ class SonarLintPluginFunctionalTest {
                     .assertBuildOutput(output ->
                         assertThat(output)
                             .doesNotContain("\n  Why is this an issue?\n")
+                    );
+            }
+
+        }
+
+
+        @Nested
+        class FailOnSeverity {
+
+            @BeforeEach
+            void beforeEach() {
+                project.getBuildFile().line("sonarLint.ignoreFailures = false");
+            }
+
+            @Test
+            void buildFailsByDefault() {
+                new Assertions()
+                    .rule("java:S100")
+                    .expectFailedBuild()
+                    .assertAllRulesAreRaised()
+                    .assertBuildOutput(output ->
+                        assertThat(output)
+                            .contains("java:S100")
+                    );
+            }
+
+            @Test
+            void buildSucceedsAndIssueIsLoggedWhenSeverityBelowThreshold() {
+                project.getBuildFile().line("sonarLint.failOnSeverity('error')");
+
+                new Assertions()
+                    .rule("java:S100")
+                    .assertAllRulesAreRaised()
+                    .assertBuildOutput(output ->
+                        assertThat(output)
+                            .contains("java:S100")
                     );
             }
 
@@ -668,9 +705,15 @@ class SonarLintPluginFunctionalTest {
     @SuppressWarnings("UnusedReturnValue")
     class Assertions {
 
-        private final LazyValue<BuildResult> buildResult = lazyValue(() ->
-            project.assertBuildSuccessfully("sonarlintMain")
-        );
+        private final AtomicBoolean expectSuccess = new AtomicBoolean(true);
+
+        private final LazyValue<BuildResult> buildResult = lazyValue(() -> {
+            if (expectSuccess.get()) {
+                return project.assertBuildSuccessfully("sonarlintMain");
+            } else {
+                return project.assertBuildFails("sonarlintMain");
+            }
+        });
 
         private final Set<String> writtenRuleExamples = new LinkedHashSet<>();
 
@@ -699,6 +742,15 @@ class SonarLintPluginFunctionalTest {
             return this;
         }
 
+
+        @CanIgnoreReturnValue
+        public Assertions expectFailedBuild() {
+            if (buildResult.isInitialized()) {
+                throw new IllegalStateException("Project has been built");
+            }
+            expectSuccess.set(false);
+            return this;
+        }
 
         @CanIgnoreReturnValue
         public Assertions assertBuildOutput(Consumer<String> outputVerifier) {

@@ -95,6 +95,11 @@ Also, a single frontend language can be included like this: `sonarLint.languages
 sonarLint {
   isGeneratedCodeIgnored = false // `true` by default, set to `false` to validate generated code (code inside `./build/`)
 
+  // Build fails only on issues at or above this severity. Allowed: 'ERROR', 'WARNING', 'INFO'.
+  // When unset (default), every issue fails the build.
+  // All issues are still logged and written to XML/HTML reports regardless of this setting.
+  failOnSeverity('WARNING')
+
   rules {
     enable(
       'java:S100', // Enable `java:S100` rule (that is disabled by default)

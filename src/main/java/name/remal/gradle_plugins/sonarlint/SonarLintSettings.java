@@ -8,6 +8,7 @@ import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.Console;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.Nested;
+import org.jspecify.annotations.Nullable;
 
 public abstract class SonarLintSettings {
 
@@ -16,6 +17,20 @@ public abstract class SonarLintSettings {
 
     {
         getIgnoreFailures().convention(false);
+    }
+
+
+    @Input
+    @org.gradle.api.tasks.Optional
+    public abstract Property<SonarLintIssueSeverity> getFailOnSeverity();
+
+    public void failOnSeverity(@Nullable Object severity) {
+        if (severity == null) {
+            getFailOnSeverity().unset();
+            return;
+        }
+
+        getFailOnSeverity().set(SonarLintIssueSeverity.valueOf(severity.toString().toUpperCase()));
     }
 
 
