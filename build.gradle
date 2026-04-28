@@ -602,6 +602,11 @@ tasks.named('processReadme') {
     readmeFileProcessors.add({ File readmeFile ->
         String content = readmeFile.getText('UTF-8')
 
+        Closure getDocumentedLanguages = {
+            def root = loadJsonFromUrl('https://next.sonarqube.com/sonarqube/api/rules/search?facets=languages&p=1').toMap()
+            return root.facets.find { it.property == 'languages' }?.values?.collect { it.val } ?: []
+        }.memoize()
+
         content = content.replaceAll(
             /<!--\s*(sonar-plugins-list)\s*-->[\s\S]*?<!--\s*\/\s*\1\s*-->/
         ) {
@@ -609,33 +614,17 @@ tasks.named('processReadme') {
             logger.lifecycle('  Handling {}', tag)
             StringBuilder listContent = new StringBuilder()
 
-            Map<String, String> languageDocPaths = [
-                'js': 'javascript',
-                'ts': 'typescript',
-            ]
+            Map<String, String> languageDocPaths = [:]
 
             pluginLanguageInfos.get()
                 .toSorted { it.key }
                 .forEach { info ->
                     String languageDocPath = languageDocPaths[info.key] ?: info.key
-                    URL url = new URL("https://rules.sonarsource.com/${languageDocPath}/")
-                    HttpURLConnection connection = url.openConnection()
-                    connection.useCaches = false
-                    connection.connectTimeout = 5_000
-                    connection.readTimeout = 60_000
-                    connection.connect()
-                    try {
-                        int responseCode = connection.responseCode
-                        if (responseCode == 200) {
-                            listContent.append("\n* [${info.name}]($url)")
-                        } else if (responseCode == 404) {
-                            listContent.append("\n* ${info.name}")
-                        } else {
-                            throw new GradleException("$url returned unexpected status: $responseCode")
-                        }
-
-                    } finally {
-                        connection.disconnect()
+                    Collection<String> documentedLanguages = getDocumentedLanguages()
+                    if (documentedLanguages.contains(languageDocPath)) {
+                        listContent.append("\n* [${info.name}](https://next.sonarqube.com/sonarqube/coding_rules?languages=$languageDocPath)")
+                    } else {
+                        listContent.append("\n* ${info.name}")
                     }
                 }
 
