@@ -1,6 +1,6 @@
-**Tested on Java LTS versions from <!--property:java-runtime.min-version-->11<!--/property--> to <!--property:java-runtime.max-version-->25<!--/property-->.**
+**Tested on Java LTS versions from <!--property:java-runtime.min-version-->11<!--/property--> to <!--property:java-runtime.max-version-->26<!--/property-->.**
 
-**Tested on Gradle versions from <!--property:gradle-api.min-version-->7.5<!--/property--> to <!--property:gradle-api.max-version-->9.4.1<!--/property-->.**
+**Tested on Gradle versions from <!--property:gradle-api.min-version-->7.5<!--/property--> to <!--property:gradle-api.max-version-->9.5.0-rc-4<!--/property-->.**
 
 # `name.remal.sonarlint` plugin
 
@@ -23,24 +23,24 @@ This plugin executes [SonarLint](https://www.sonarlint.org/) inspections without
 The plugin uses these Sonar plugins:
 <!--sonar-plugins-list-->
 
-* Azure Resource Manager
-* CloudFormation
-* CSS
-* Docker
-* Java
-* JavaScript
-* JSON
+* [Azure Resource Manager](https://next.sonarqube.com/sonarqube/coding_rules?languages=azureresourcemanager)
+* [CloudFormation](https://next.sonarqube.com/sonarqube/coding_rules?languages=cloudformation)
+* [CSS](https://next.sonarqube.com/sonarqube/coding_rules?languages=css)
+* [Docker](https://next.sonarqube.com/sonarqube/coding_rules?languages=docker)
+* [Java](https://next.sonarqube.com/sonarqube/coding_rules?languages=java)
+* [JavaScript](https://next.sonarqube.com/sonarqube/coding_rules?languages=js)
+* [JSON](https://next.sonarqube.com/sonarqube/coding_rules?languages=json)
 * JSP
-* Kotlin
-* Kubernetes
-* Scala
-* Secrets
-* Terraform
-* Text
-* TypeScript
-* HTML
-* XML
-* YAML
+* [Kotlin](https://next.sonarqube.com/sonarqube/coding_rules?languages=kotlin)
+* [Kubernetes](https://next.sonarqube.com/sonarqube/coding_rules?languages=kubernetes)
+* [Scala](https://next.sonarqube.com/sonarqube/coding_rules?languages=scala)
+* [Secrets](https://next.sonarqube.com/sonarqube/coding_rules?languages=secrets)
+* [Terraform](https://next.sonarqube.com/sonarqube/coding_rules?languages=terraform)
+* [Text](https://next.sonarqube.com/sonarqube/coding_rules?languages=text)
+* [TypeScript](https://next.sonarqube.com/sonarqube/coding_rules?languages=ts)
+* [HTML](https://next.sonarqube.com/sonarqube/coding_rules?languages=web)
+* [XML](https://next.sonarqube.com/sonarqube/coding_rules?languages=xml)
+* [YAML](https://next.sonarqube.com/sonarqube/coding_rules?languages=yaml)
 
 <!--/sonar-plugins-list-->
 
