@@ -1,3 +1,6 @@
-# Running Tasks
+# Running Tests
 
-- Run a Gradle task against a specific Java or Gradle version by passing the `java-runtime.version` and/or `gradle-api.version` Gradle properties. Example: `./gradlew test -Pjava-runtime.version=17 -Pgradle-api.version=9.2.1`.
+- To run tests against a specific Java or Gradle version, first compile all classes with the default version, then run the tests with compilation disabled:
+  1. `./gradlew assemble allClasses`
+  2. `./gradlew test -Pdisable-compilation=true -Pjava-runtime.version=N -Pgradle-api.version=M`
+- Either `-Pjava-runtime.version` or `-Pgradle-api.version` can be omitted.
