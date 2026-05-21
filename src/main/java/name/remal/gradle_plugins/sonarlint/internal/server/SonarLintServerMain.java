@@ -11,7 +11,7 @@ import static name.remal.gradle_plugins.toolkit.JavaSerializationUtils.deseriali
 import static name.remal.gradle_plugins.toolkit.SneakyThrowUtils.sneakyThrowsRunnable;
 
 import java.nio.file.Paths;
-import java.util.Objects;
+import java.time.Duration;
 import lombok.SneakyThrows;
 import name.remal.gradle_plugins.sonarlint.SonarLintPlugin;
 import name.remal.gradle_plugins.sonarlint.internal.client.SonarLintClient;
@@ -21,6 +21,8 @@ import org.slf4j.bridge.SLF4JBridgeHandler;
 import org.slf4j.event.Level;
 
 public class SonarLintServerMain {
+
+    private static final Duration PARENT_START_INSTANT_TOLERANCE = Duration.ofSeconds(5);
 
     @SneakyThrows
     public static void main(String[] args) {
@@ -95,7 +97,7 @@ public class SonarLintServerMain {
             server.start();
 
 
-            monitorParentProcessExit(serverParams, server::close);
+            monitorParentProcessExit(serverParams, () -> stopServer(server));
 
             logger.info(
                 "Reporting {} RMI registry socket address back to the client: {}",
@@ -111,19 +113,53 @@ public class SonarLintServerMain {
         }
     }
 
+    private static void stopServer(SonarLintServer server) {
+        var logger = LoggerFactory.getLogger(SonarLintServerMain.class);
+
+        logger.info("Stopping server");
+        server.close();
+        logger.info("Stopped server");
+    }
+
     private static void monitorParentProcessExit(SonarLintServerParams serverParams, Runnable onExit) {
+        var logger = LoggerFactory.getLogger(SonarLintServerMain.class);
+
         var clientPid = serverParams.getClientPid();
         var parentHandle = ProcessHandle.of(clientPid).orElse(null);
         if (parentHandle == null) {
             onExit.run();
-            throw new IllegalStateException("Parent process already exited");
+            throw new IllegalStateException(format(
+                "Parent process already exited: PID %d not found",
+                clientPid
+            ));
         }
+
+        logger.info("Parent process PID: {}, info: {}", clientPid, parentHandle.info());
 
         var clientStartInstant = serverParams.getClientStartInstant().orElse(null);
         var currentParentStartInstant = parentHandle.info().startInstant().orElse(null);
-        if (!Objects.equals(currentParentStartInstant, clientStartInstant)) {
-            onExit.run();
-            throw new IllegalStateException("Parent process already exited");
+        logger.info(
+            "Parent process start instant check: recorded={}, current={}",
+            clientStartInstant,
+            currentParentStartInstant
+        );
+        if (clientStartInstant != null && currentParentStartInstant != null) {
+            var diff = Duration.between(clientStartInstant, currentParentStartInstant).abs();
+            if (diff.compareTo(PARENT_START_INSTANT_TOLERANCE) > 0) {
+                onExit.run();
+                throw new IllegalStateException(format(
+                    "Parent process already exited: start instant diff is %s (recorded=%s, current=%s)",
+                    diff,
+                    clientStartInstant,
+                    currentParentStartInstant
+                ));
+            }
+        } else if (currentParentStartInstant == null) {
+            logger.warn(
+                "Parent process start instant is unavailable (recorded={}, current={}), skipping check",
+                clientStartInstant,
+                currentParentStartInstant
+            );
         }
 
         var onExitFuture = parentHandle.onExit().thenRun(onExit);

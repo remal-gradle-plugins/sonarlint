@@ -350,11 +350,15 @@ public class SonarLintClient extends AbstractCloseablesContainer implements Auto
     @SneakyThrows
     @SuppressWarnings("java:S5443")
     private JavaExecProcess startServer(ServerRegistryFacade serverRuntimeInfoRegistry) {
+        var clientPid = ProcessHandle.current().pid();
+        var clientStartInstant = ProcessHandle.current().info().startInstant();
+        logger.info("Client PID: %d, start instant: %s", clientPid, clientStartInstant);
+
         var serverParams = ImmutableSonarLintServerParams.builder()
             .from(params)
             .loopbackAddress(loopbackAddress)
-            .clientPid(ProcessHandle.current().pid())
-            .clientStartInstant(ProcessHandle.current().info().startInstant())
+            .clientPid(clientPid)
+            .clientStartInstant(clientStartInstant)
             .serverRuntimeInfoSocketAddress(serverRuntimeInfoRegistry.getSocketAddress())
             .build();
 
