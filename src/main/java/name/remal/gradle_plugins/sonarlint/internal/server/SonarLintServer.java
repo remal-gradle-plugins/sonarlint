@@ -16,6 +16,7 @@ import name.remal.gradle_plugins.sonarlint.internal.server.SonarLintServerState.
 import name.remal.gradle_plugins.sonarlint.internal.server.SonarLintServerState.Started;
 import name.remal.gradle_plugins.sonarlint.internal.server.SonarLintServerState.Stopped;
 import name.remal.gradle_plugins.sonarlint.internal.server.api.SonarLintAnalyzer;
+import name.remal.gradle_plugins.sonarlint.internal.server.api.SonarLintHeartbeat;
 import name.remal.gradle_plugins.sonarlint.internal.server.api.SonarLintHelp;
 import name.remal.gradle_plugins.toolkit.AbstractCloseablesContainer;
 import org.slf4j.Logger;
@@ -31,6 +32,13 @@ public class SonarLintServer
 
 
     private final SonarLintServerParams params;
+
+
+    private volatile SonarLintHeartbeatDefault heartbeat;
+
+    public SonarLintHeartbeatDefault getHeartbeat() {
+        return heartbeat;
+    }
 
 
     private volatile SonarLintServerState state = SERVER_CREATED;
@@ -101,6 +109,15 @@ public class SonarLintServer
             help = usedThreads.withRegisterThreadEveryCall(SonarLintHelp.class, help);
             help = withServerExceptionCalls(SonarLintHelp.class, help);
             registry.bind(SonarLintHelp.class, help);
+        }
+
+        {
+            heartbeat = new SonarLintHeartbeatDefault();
+            SonarLintHeartbeat heartbeatRmi = withServerExceptionCalls(
+                SonarLintHeartbeat.class,
+                heartbeat
+            );
+            registry.bind(SonarLintHeartbeat.class, heartbeatRmi);
         }
 
 

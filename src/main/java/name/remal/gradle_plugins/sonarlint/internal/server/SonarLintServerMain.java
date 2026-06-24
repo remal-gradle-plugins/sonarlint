@@ -8,7 +8,6 @@ import static name.remal.gradle_plugins.sonarlint.internal.utils.JacocoUtils.dum
 import static name.remal.gradle_plugins.sonarlint.internal.utils.LogMessageRenderer.SIMPLE_LOG_MESSAGE_DATE_FORMAT;
 import static name.remal.gradle_plugins.sonarlint.internal.utils.RegistryFactory.connectToRegistry;
 import static name.remal.gradle_plugins.toolkit.JavaSerializationUtils.deserializeFrom;
-import static name.remal.gradle_plugins.toolkit.SneakyThrowUtils.sneakyThrowsRunnable;
 
 import java.nio.file.Paths;
 import java.time.Duration;
@@ -22,7 +21,7 @@ import org.slf4j.event.Level;
 
 public class SonarLintServerMain {
 
-    private static final Duration PARENT_START_INSTANT_TOLERANCE = Duration.ofSeconds(5);
+    private static final Duration HEARTBEAT_CHECK_INTERVAL = Duration.ofSeconds(5);
 
     @SneakyThrows
     public static void main(String[] args) {
@@ -97,7 +96,7 @@ public class SonarLintServerMain {
             server.start();
 
 
-            monitorParentProcessExit(serverParams, () -> stopServer(server));
+            startHeartbeatWatchdog(server, () -> stopServer(server));
 
             logger.info(
                 "Reporting {} RMI registry socket address back to the client: {}",
@@ -121,52 +120,28 @@ public class SonarLintServerMain {
         logger.info("Stopped server");
     }
 
-    private static void monitorParentProcessExit(SonarLintServerParams serverParams, Runnable onExit) {
+    @SuppressWarnings("BusyWait")
+    private static void startHeartbeatWatchdog(SonarLintServer server, Runnable onTimeout) {
         var logger = LoggerFactory.getLogger(SonarLintServerMain.class);
 
-        var clientPid = serverParams.getClientPid();
-        var parentHandle = ProcessHandle.of(clientPid).orElse(null);
-        if (parentHandle == null) {
-            onExit.run();
-            throw new IllegalStateException(format(
-                "Parent process already exited: PID %d not found",
-                clientPid
-            ));
-        }
-
-        logger.info("Parent process PID: {}, info: {}", clientPid, parentHandle.info());
-
-        var clientStartInstant = serverParams.getClientStartInstant().orElse(null);
-        var currentParentStartInstant = parentHandle.info().startInstant().orElse(null);
-        logger.info(
-            "Parent process start instant check: recorded={}, current={}",
-            clientStartInstant,
-            currentParentStartInstant
-        );
-        if (clientStartInstant != null && currentParentStartInstant != null) {
-            var diff = Duration.between(clientStartInstant, currentParentStartInstant).abs();
-            if (diff.compareTo(PARENT_START_INSTANT_TOLERANCE) > 0) {
-                onExit.run();
-                throw new IllegalStateException(format(
-                    "Parent process already exited: start instant diff is %s (recorded=%s, current=%s)",
-                    diff,
-                    clientStartInstant,
-                    currentParentStartInstant
-                ));
+        var watchdog = new Thread(() -> {
+            while (!Thread.currentThread().isInterrupted()) {
+                try {
+                    Thread.sleep(HEARTBEAT_CHECK_INTERVAL.toMillis());
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+                if (server.getHeartbeat().isTimedOut()) {
+                    logger.info("Heartbeat timeout, shutting down");
+                    onTimeout.run();
+                    return;
+                }
             }
-        } else if (currentParentStartInstant == null) {
-            logger.warn(
-                "Parent process start instant is unavailable (recorded={}, current={}), skipping check",
-                clientStartInstant,
-                currentParentStartInstant
-            );
-        }
-
-        var onExitFuture = parentHandle.onExit().thenRun(onExit);
-        var onExitMonitor = new Thread(sneakyThrowsRunnable(onExitFuture::get));
-        onExitMonitor.setName(SonarLintServerMain.class.getSimpleName() + "-parent-on-exit-monitor");
-        onExitMonitor.setDaemon(true);
-        onExitMonitor.start();
+        });
+        watchdog.setName(SonarLintServerMain.class.getSimpleName() + "-heartbeat-watchdog");
+        watchdog.setDaemon(true);
+        watchdog.start();
     }
 
 }

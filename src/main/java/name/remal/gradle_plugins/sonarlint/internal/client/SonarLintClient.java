@@ -51,6 +51,7 @@ import name.remal.gradle_plugins.sonarlint.internal.client.api.SonarLintServerRu
 import name.remal.gradle_plugins.sonarlint.internal.server.ImmutableSonarLintServerParams;
 import name.remal.gradle_plugins.sonarlint.internal.server.SonarLintServerMain;
 import name.remal.gradle_plugins.sonarlint.internal.server.api.SonarLintAnalyzer;
+import name.remal.gradle_plugins.sonarlint.internal.server.api.SonarLintHeartbeat;
 import name.remal.gradle_plugins.sonarlint.internal.server.api.SonarLintHelp;
 import name.remal.gradle_plugins.sonarlint.internal.utils.AccumulatingLogger;
 import name.remal.gradle_plugins.sonarlint.internal.utils.ServerRegistryFacade;
@@ -290,6 +291,35 @@ public class SonarLintClient extends AbstractCloseablesContainer implements Auto
                 close();
             }
         }
+
+        startHeartbeat();
+    }
+
+
+    private static final Duration HEARTBEAT_PING_INTERVAL = Duration.ofSeconds(5);
+
+    @SuppressWarnings("BusyWait")
+    private void startHeartbeat() {
+        var startedState = (Started) state;
+        SonarLintHeartbeat heartbeat = startedState.getServerRegistry().lookup(SonarLintHeartbeat.class);
+
+        var heartbeatThread = new Thread(() -> {
+            while (!Thread.currentThread().isInterrupted()) {
+                try {
+                    Thread.sleep(HEARTBEAT_PING_INTERVAL.toMillis());
+                    heartbeat.ping();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
+                } catch (Exception e) {
+                    break;
+                }
+            }
+        });
+        heartbeatThread.setName(SonarLintClient.class.getSimpleName() + "-heartbeat");
+        heartbeatThread.setDaemon(true);
+        registerCloseable(heartbeatThread::interrupt);
+        heartbeatThread.start();
     }
 
     @SuppressWarnings("java:S2259")
@@ -350,15 +380,9 @@ public class SonarLintClient extends AbstractCloseablesContainer implements Auto
     @SneakyThrows
     @SuppressWarnings("java:S5443")
     private JavaExecProcess startServer(ServerRegistryFacade serverRuntimeInfoRegistry) {
-        var clientPid = ProcessHandle.current().pid();
-        var clientStartInstant = ProcessHandle.current().info().startInstant();
-        logger.info("Client PID: %d, start instant: %s", clientPid, clientStartInstant);
-
         var serverParams = ImmutableSonarLintServerParams.builder()
             .from(params)
             .loopbackAddress(loopbackAddress)
-            .clientPid(clientPid)
-            .clientStartInstant(clientStartInstant)
             .serverRuntimeInfoSocketAddress(serverRuntimeInfoRegistry.getSocketAddress())
             .build();
 
