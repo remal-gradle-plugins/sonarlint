@@ -44,6 +44,9 @@ env:
 
 jobs:
   create-matrix:
+    permissions:
+      id-token: write
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
@@ -54,6 +57,9 @@ jobs:
       with:
         submodules: recursive
         fetch-depth: 1
+
+    - name: Cancel on newer run
+      uses: ./.github/workflows/actions/cancel-on-newer-run
 
     - name: Read min supported Java version
       id: min-java-version
