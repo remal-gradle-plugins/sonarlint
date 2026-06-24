@@ -1,0 +1,180 @@
+name: Cancel on newer run
+description: Cancel the current workflow run if a newer run exists for the same ref
+
+runs:
+  using: composite
+  steps:
+  - name: Get GitHub Token
+    id: get-token
+    uses: remal/github-repository-token-issuer@v1
+    with:
+      scopes: |
+        actions: write
+        checks: read
+
+  - name: Check for newer run
+    id: check
+    shell: bash
+    env:
+      GH_TOKEN: ${{steps.get-token.outputs.token}}
+      CURRENT_REF: ${{github.ref}}
+      REF_NAME: ${{github.ref_name}}
+      HEAD_REF: ${{github.head_ref}}
+      RUN_NUMBER: ${{github.run_number}}
+      RUN_ID: ${{github.run_id}}
+    run: |
+      # Determine ref type from the full ref path
+      if [[ "$CURRENT_REF" == refs/pull/* ]]; then
+        REF_TYPE="pull_request"
+        # Extract PR number from refs/pull/123/merge
+        PR_NUMBER="${CURRENT_REF#refs/pull/}"
+        PR_NUMBER="${PR_NUMBER%/merge}"
+        # For PRs, head_branch in the API is the source branch, not the merge ref
+        BRANCH_FILTER="$HEAD_REF"
+      elif [[ "$CURRENT_REF" == refs/tags/* ]]; then
+        REF_TYPE="tag"
+        BRANCH_FILTER="$REF_NAME"
+      else
+        REF_TYPE="branch"
+        BRANCH_FILTER="$REF_NAME"
+      fi
+      echo "Run #$RUN_NUMBER (ID: $RUN_ID)"
+      echo "Current ref: $CURRENT_REF (type: $REF_TYPE)"
+      echo "Branch filter: $BRANCH_FILTER"
+      [ "$REF_TYPE" = "pull_request" ] && echo "PR number: $PR_NUMBER"
+
+      # Get the caller workflow ID from the current run
+      WORKFLOW_ID=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID" --jq '.workflow_id')
+      echo "Workflow ID: $WORKFLOW_ID"
+
+      # Use the repo-level runs endpoint (the workflow-specific endpoint may 404
+      # with installation tokens). Filter by workflow_id in jq.
+      RUNS_JSON=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs" --method GET \
+        -f branch="$BRANCH_FILTER" \
+        -F per_page=25)
+
+      echo "Runs returned by API:"
+      echo "$RUNS_JSON" | jq -r '.workflow_runs[] | "  #\(.run_number) status=\(.status) event=\(.event) head_branch=\(.head_branch) prs=\([.pull_requests[].number] | join(","))"'
+
+      # The REST API doesn't expose the full ref (refs/heads/ vs refs/tags/).
+      # - PR runs:       filter by event == "pull_request" and matching PR number
+      # - Non-PR runs:   filter by event != "pull_request", then verify ref type via
+      #                  GraphQL (checkSuite.branch.prefix distinguishes tags from branches)
+      if [ "$REF_TYPE" = "pull_request" ]; then
+        NEWER_COUNT=$(echo "$RUNS_JSON" | jq \
+          --argjson run_number "$RUN_NUMBER" \
+          --argjson pr_number "$PR_NUMBER" \
+          --argjson workflow_id "$WORKFLOW_ID" \
+          --arg head_branch "$BRANCH_FILTER" \
+          '[.workflow_runs[] | select(
+            .run_number > $run_number
+            and .workflow_id == $workflow_id
+            and .head_branch == $head_branch
+            and .event == "pull_request"
+            and (.pull_requests | any(.number == $pr_number))
+          )] | length')
+        echo "Newer PR runs for #$PR_NUMBER: $NEWER_COUNT"
+      else
+        # Get check_suite_node_id for each candidate non-PR run
+        CANDIDATE_NODE_IDS=$(echo "$RUNS_JSON" | jq -r \
+          --argjson run_number "$RUN_NUMBER" \
+          --argjson workflow_id "$WORKFLOW_ID" \
+          --arg head_branch "$BRANCH_FILTER" \
+          '[.workflow_runs[] | select(
+            .run_number > $run_number
+            and .workflow_id == $workflow_id
+            and .head_branch == $head_branch
+            and .event != "pull_request"
+          )] | .[].check_suite_node_id')
+
+        if [ -z "$CANDIDATE_NODE_IDS" ]; then
+          echo "No candidate non-PR runs found"
+          NEWER_COUNT=0
+        else
+          echo "Candidate check suite node IDs:"
+          echo "$CANDIDATE_NODE_IDS" | sed 's/^/  /'
+
+          # Determine expected prefix from our ref type
+          if [ "$REF_TYPE" = "tag" ]; then
+            EXPECTED_PREFIX="refs/tags/"
+          else
+            EXPECTED_PREFIX="refs/heads/"
+          fi
+          echo "Expected ref prefix: $EXPECTED_PREFIX"
+
+          # Build a batched GraphQL query to get checkSuite.branch.prefix for all candidates
+          QUERY="{"
+          i=0
+          while IFS= read -r node_id; do
+            QUERY="$QUERY cs$i: node(id: \"$node_id\") { ... on CheckSuite { branch { prefix } } }"
+            i=$((i + 1))
+          done <<< "$CANDIDATE_NODE_IDS"
+          QUERY="$QUERY }"
+
+          # Count candidates whose ref type matches ours
+          GRAPHQL_RESULT=$(gh api graphql -f query="$QUERY")
+          echo "GraphQL ref prefixes:"
+          echo "$GRAPHQL_RESULT" | jq -r '.data | to_entries[] | "  \(.key): \(.value.branch.prefix)"'
+
+          NEWER_COUNT=$(echo "$GRAPHQL_RESULT" \
+            | jq "[.data | to_entries[] | select(.value.branch.prefix == \"$EXPECTED_PREFIX\")] | length")
+          echo "Newer runs with matching ref type: $NEWER_COUNT"
+        fi
+      fi
+
+      if [ "$NEWER_COUNT" -gt 0 ]; then
+        echo "cancel=true" | tee -a "$GITHUB_OUTPUT"
+        echo "::warning::Newer run detected for $CURRENT_REF, cancelling this run"
+        gh run cancel "$RUN_ID" --repo "$GITHUB_REPOSITORY"
+      else
+        echo "No newer runs found, continuing"
+      fi
+
+  - name: Wait for cancellation (1/12)
+    if: ${{steps.check.outputs.cancel == 'true'}}
+    shell: bash
+    run: sleep 5
+  - name: Wait for cancellation (2/12)
+    if: ${{steps.check.outputs.cancel == 'true'}}
+    shell: bash
+    run: sleep 5
+  - name: Wait for cancellation (3/12)
+    if: ${{steps.check.outputs.cancel == 'true'}}
+    shell: bash
+    run: sleep 5
+  - name: Wait for cancellation (4/12)
+    if: ${{steps.check.outputs.cancel == 'true'}}
+    shell: bash
+    run: sleep 5
+  - name: Wait for cancellation (5/12)
+    if: ${{steps.check.outputs.cancel == 'true'}}
+    shell: bash
+    run: sleep 5
+  - name: Wait for cancellation (6/12)
+    if: ${{steps.check.outputs.cancel == 'true'}}
+    shell: bash
+    run: sleep 5
+  - name: Wait for cancellation (7/12)
+    if: ${{steps.check.outputs.cancel == 'true'}}
+    shell: bash
+    run: sleep 5
+  - name: Wait for cancellation (8/12)
+    if: ${{steps.check.outputs.cancel == 'true'}}
+    shell: bash
+    run: sleep 5
+  - name: Wait for cancellation (9/12)
+    if: ${{steps.check.outputs.cancel == 'true'}}
+    shell: bash
+    run: sleep 5
+  - name: Wait for cancellation (10/12)
+    if: ${{steps.check.outputs.cancel == 'true'}}
+    shell: bash
+    run: sleep 5
+  - name: Wait for cancellation (11/12)
+    if: ${{steps.check.outputs.cancel == 'true'}}
+    shell: bash
+    run: sleep 5
+  - name: Wait for cancellation (12/12)
+    if: ${{steps.check.outputs.cancel == 'true'}}
+    shell: bash
+    run: sleep 5

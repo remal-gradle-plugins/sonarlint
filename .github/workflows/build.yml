@@ -22,6 +22,10 @@ on:
         - 'true'
         - 'false'
 
+concurrency:
+  group: build-${{github.ref}}
+  cancel-in-progress: ${{github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/')}}
+
 defaults:
   run:
     shell: bash
@@ -34,6 +38,8 @@ env:
   GITHUB_ACTIONS_RUN_ID: ${{github.run_id}}
   GITHUB_ACTIONS_RUN_ATTEMPT: ${{github.run_attempt}}
   GITHUB_ACTIONS_JOB: ${{github.job}}
+  GRADLE_OPTS: >-
+    -Dorg.gradle.console.interactive=false
 
 jobs:
   populate-cache:
@@ -43,6 +49,9 @@ jobs:
         || (github.event_name == 'push' && !contains(github.event.head_commit.message, '[push-back]') && !contains(github.event.head_commit.message, '[noci]') && !contains(github.event.head_commit.message, '[no-ci]'))
         || github.event_name != 'push'
       }}
+    permissions:
+      id-token: write
+      contents: read
     concurrency:
       group: build-populate-cache-${{github.ref}}
       cancel-in-progress: true
@@ -54,6 +63,9 @@ jobs:
       with:
         submodules: recursive
         fetch-depth: 1
+
+    - name: Cancel on newer run
+      uses: ./.github/workflows/actions/cancel-on-newer-run
 
     - name: Cache Gradle
       id: cache-gradle
@@ -97,6 +109,9 @@ jobs:
       publish-isGradlePlugin: ${{steps.publish-flags.outputs.isGradlePlugin}}
       publish-isMavenCentral: ${{steps.publish-flags.outputs.isMavenCentral}}
       env-json: ${{steps.prepare-env-for-cross-versions-tests.outputs.env-json}}
+    permissions:
+      id-token: write
+      contents: read
     concurrency:
       group: build-build-${{github.ref}}
       cancel-in-progress: true
@@ -108,6 +123,10 @@ jobs:
       with:
         submodules: recursive
         fetch-depth: 1
+
+    - name: Cancel on newer run
+      uses: ./.github/workflows/actions/cancel-on-newer-run
+
     - name: Cache Gradle
       uses: remal-github-actions/cache-gradle@v1
     - name: Set DEFAULT_JAVA_VERSION
