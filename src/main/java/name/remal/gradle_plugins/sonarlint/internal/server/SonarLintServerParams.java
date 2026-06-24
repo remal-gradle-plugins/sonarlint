@@ -4,8 +4,6 @@ import static org.slf4j.event.Level.INFO;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.time.Instant;
-import java.util.Optional;
 import org.immutables.value.Value;
 import org.slf4j.event.Level;
 
@@ -14,10 +12,6 @@ import org.slf4j.event.Level;
 public interface SonarLintServerParams extends SonarLintParams {
 
     InetAddress getLoopbackAddress();
-
-    long getClientPid();
-
-    Optional<Instant> getClientStartInstant();
 
     InetSocketAddress getServerRuntimeInfoSocketAddress();
 
