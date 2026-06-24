@@ -2,6 +2,9 @@
 
 #$schema: 'https://docs.mergify.com/mergify-configuration-schema.json'
 
+merge_queue:
+  queue_controls_comment: false
+
 pull_request_rules:
 - name: Auto merge dependency updates
   conditions:
@@ -14,8 +17,8 @@ pull_request_rules:
   - '-draft'
   - '#changes-requested-reviews-by=0'
   - 'check-success=cross-versions-tests-success'
-  - '-check-pending~=^(?!(Mergify Merge Queue)$).+'
-  - '-check-neutral~=^(?!(Mergify Merge Queue)$).+'
+  - '-check-pending~=^(?!(@mergify/)?Mergify Merge Queue$).+'
+  - '-check-neutral~=^(?!(@mergify/)?Mergify Merge Queue$).+'
   - '#check-failure=0'
   - '#check-timed-out=0'
   actions:
@@ -36,8 +39,8 @@ pull_request_rules:
   - '-draft'
   - '#changes-requested-reviews-by=0'
   - 'check-success=cross-versions-tests-success'
-  - '-check-pending~=^(?!(Mergify Merge Queue)$).+'
-  - '-check-neutral~=^(?!(Mergify Merge Queue)$).+'
+  - '-check-pending~=^(?!(@mergify/)?Mergify Merge Queue$).+'
+  - '-check-neutral~=^(?!(@mergify/)?Mergify Merge Queue$).+'
   - '#check-failure=0'
   - '#check-timed-out=0'
   actions:
