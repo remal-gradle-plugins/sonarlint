@@ -17,9 +17,8 @@ pull_request_rules:
   - '-draft'
   - '#changes-requested-reviews-by=0'
   - 'check-success=cross-versions-tests-success'
-  - '-check-pending~=^(?!(@mergify/)?Mergify Merge Queue$).+'
-  - '#check-failure=0'
-  - '#check-timed-out=0'
+  - '-check-pending~=^(?!@mergify/|Mergify Merge Queue$).+'
+  - '-check-failure~=^(?!@mergify/).+'
   actions:
     review: { }
     merge:
@@ -38,9 +37,8 @@ pull_request_rules:
   - '-draft'
   - '#changes-requested-reviews-by=0'
   - 'check-success=cross-versions-tests-success'
-  - '-check-pending~=^(?!(@mergify/)?Mergify Merge Queue$).+'
-  - '#check-failure=0'
-  - '#check-timed-out=0'
+  - '-check-pending~=^(?!@mergify/|Mergify Merge Queue$).+'
+  - '-check-failure~=^(?!@mergify/).+'
   actions:
     review: { }
     merge:
