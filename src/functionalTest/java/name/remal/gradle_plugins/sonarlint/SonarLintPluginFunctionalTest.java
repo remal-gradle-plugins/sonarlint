@@ -91,6 +91,10 @@ class SonarLintPluginFunctionalTest {
 
         @Test
         void sonarLintProperties() {
+            assertSonarLintProperties();
+        }
+
+        private void assertSonarLintProperties() {
             var buildResult = project.assertBuildSuccessfully("sonarLintProperties");
 
             assertThat(buildResult.getOutput())
@@ -119,6 +123,10 @@ class SonarLintPluginFunctionalTest {
 
         @Test
         void java() {
+            assertJavaRule();
+        }
+
+        private void assertJavaRule() {
             new Assertions()
                 .rule("java:S1133")
                 .assertAllRulesAreRaised();
@@ -222,19 +230,19 @@ class SonarLintPluginFunctionalTest {
                 @Test
                 void analyzeWithForkEnabled() {
                     project.getBuildFile().line("sonarLint.fork.enabled = true");
-                    new RulePerLanguage().java();
+                    new RulePerLanguage().assertJavaRule();
                 }
 
                 @Test
                 void analyzeWithForkDisabled() {
                     project.getBuildFile().line("sonarLint.fork.enabled = false");
-                    new RulePerLanguage().java();
+                    new RulePerLanguage().assertJavaRule();
                 }
 
                 @Test
                 void analyzeWithBuildServiceDisabled() {
                     project.getBuildFile().line("sonarLint.fork.buildService = false");
-                    new RulePerLanguage().java();
+                    new RulePerLanguage().assertJavaRule();
                 }
 
             }
@@ -245,13 +253,13 @@ class SonarLintPluginFunctionalTest {
                 @Test
                 void sonarLintPropertiesWithForkEnabled() {
                     project.getBuildFile().line("sonarLint.fork.enabled = true");
-                    new HelpTasks().sonarLintProperties();
+                    new HelpTasks().assertSonarLintProperties();
                 }
 
                 @Test
                 void sonarLintPropertiesWithForkDisabled() {
                     project.getBuildFile().line("sonarLint.fork.enabled = false");
-                    new HelpTasks().sonarLintProperties();
+                    new HelpTasks().assertSonarLintProperties();
                 }
 
             }
