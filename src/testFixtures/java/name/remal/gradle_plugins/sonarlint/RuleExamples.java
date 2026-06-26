@@ -44,7 +44,7 @@ public abstract class RuleExamples {
             "FROM node:latest",
         }))
         .put("Web:S5725", join("\n", new String[]{
-            "<script src=\"https://cdn.example.com/latest/script.js\"/>",
+            "<script src=\"https://cdn.example.com/1.2.3/script.js\"/>",
         }))
         .put("java:S100", join("\n", new String[]{
             "package pkg;",
