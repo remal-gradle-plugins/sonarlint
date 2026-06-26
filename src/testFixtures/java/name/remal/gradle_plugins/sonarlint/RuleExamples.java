@@ -38,7 +38,7 @@ public abstract class RuleExamples {
             "    Type: AWS::ApiGateway::Method",
             "    Properties:",
             "      AuthorizationType: NONE",
-            "      HttpMethod: GET",
+            "      HttpMethod: POST",
         }))
         .put("docker:S6596", join("\n", new String[]{
             "FROM node:latest",
