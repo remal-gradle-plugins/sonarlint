@@ -209,7 +209,7 @@ ListProperty<List<PluginLanguageInfo>> pluginLanguageInfos = rootProject.ext.plu
                             .existingSecretSpecifications()
                             .collect { it.startsWith('**/') ? it : "**/$it" }
                             .forEach { patterns.add(it.toString()) }
-                        Class.forName('org.sonar.plugins.common.TextAndSecretsSensor', true, classLoader)
+                        Class.forName('org.sonar.plugins.common.predicates.TextAndSecretsPredicates', true, classLoader)
                             .TEXT_INCLUSIONS_DEFAULT_VALUE
                             .split(/\s*,\s*/)
                             .findAll { !it.isEmpty() }
