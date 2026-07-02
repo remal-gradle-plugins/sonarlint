@@ -23,7 +23,9 @@ pull_request_rules:
     review: { }
     merge:
       method: squash
-      commit_message_template: '{{ title }} (#{{ number }})'
+      commit_message_format:
+        title: pr-title
+        body: empty
 
 - name: Sync with template
   conditions:
@@ -43,4 +45,6 @@ pull_request_rules:
     review: { }
     merge:
       method: squash
-      commit_message_template: '{{ title }} (#{{ number }})'
+      commit_message_format:
+        title: pr-title
+        body: empty
