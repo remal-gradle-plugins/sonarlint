@@ -5,5 +5,5 @@
   - `[doc] ` - pure docs
   - `[no-changelog] ` - skipped
 - The prefix is NOT used on PR titles or feature-branch commits.
-- Default to `[release-later]`. All Gradle code is user-facing, so it uses `[release-later]`. Ask if unsure.
+- Default to `[release-later]`. All Gradle code is user-facing, so it uses `[release-later]`. Use `[no-changelog]` when only test code is changed. Ask if unsure.
 - Commit messages MUST be a single line, no body.
