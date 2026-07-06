@@ -18,7 +18,7 @@ public class SonarLintServerException extends RuntimeException {
         resetStackTrace();
     }
 
-    public void resetStackTrace() {
+    private void resetStackTrace() {
         setStackTrace(new StackTraceElement[]{
             new StackTraceElement("see.server.logs.for", "details", "", -1)
         });

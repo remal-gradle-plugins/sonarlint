@@ -221,7 +221,10 @@ public class SonarLintClient extends AbstractCloseablesContainer implements Auto
                 exception = unwrapException(exception);
 
                 if (exception instanceof SonarLintServerException) {
-                    ((SonarLintServerException) exception).resetStackTrace();
+                    throw new SonarLintRmiMethodCallException(
+                        realMethod,
+                        renderDebugInfo()
+                    );
                 }
 
                 try {
