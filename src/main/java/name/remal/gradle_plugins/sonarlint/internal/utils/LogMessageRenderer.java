@@ -16,7 +16,7 @@ public abstract class LogMessageRenderer {
     public static final String SIMPLE_LOG_MESSAGE_DATE_FORMAT = "HH:mm:ss.SSS";
 
     @SneakyThrows
-    @SuppressWarnings("JavaUtilDate")
+    @SuppressWarnings({"JavaUtilDate", "java:S2143"})
     public static void renderLogMessageTo(LogMessage logMessage, Appendable buf) {
         buf.append(new SimpleDateFormat(SIMPLE_LOG_MESSAGE_DATE_FORMAT).format(new Date(logMessage.getTimestamp())));
         buf.append(' ');
