@@ -128,9 +128,10 @@ public class SonarLintAnalyzerDefault implements SonarLintAnalyzer {
                 };
 
                 var moduleRegistry = shared.getAnalysisContainer().getModuleRegistry();
+                var registryModuleId = moduleId + "#" + params.getJobId();
 
                 try {
-                    var moduleContainer = requireNonNull(moduleRegistry.getContainerFor(moduleId));
+                    var moduleContainer = requireNonNull(moduleRegistry.getContainerFor(registryModuleId));
                     moduleContainer.analyze(
                         analysisConfiguration,
                         issueListener,
@@ -139,7 +140,7 @@ public class SonarLintAnalyzerDefault implements SonarLintAnalyzer {
                     );
 
                 } finally {
-                    moduleRegistry.unregisterModule(moduleId);
+                    moduleRegistry.unregisterModule(registryModuleId);
                 }
 
                 return issues;
