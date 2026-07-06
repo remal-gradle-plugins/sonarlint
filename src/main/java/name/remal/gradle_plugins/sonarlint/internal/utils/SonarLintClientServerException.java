@@ -5,7 +5,7 @@ import static name.remal.gradle_plugins.build_time_constants.api.BuildTimeConsta
 
 import java.time.LocalTime;
 
-@SuppressWarnings("JavaTimeDefaultTimeZone")
+@SuppressWarnings({"JavaTimeDefaultTimeZone", "java:S8688"})
 public abstract class SonarLintClientServerException extends RuntimeException {
 
     private static String enrichMessage(String message) {
