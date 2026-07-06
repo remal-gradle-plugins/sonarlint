@@ -5,8 +5,9 @@ import static name.remal.gradle_plugins.toolkit.SneakyThrowUtils.sneakyThrowsCon
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;
 
@@ -15,10 +16,13 @@ public abstract class LogMessageRenderer {
 
     public static final String SIMPLE_LOG_MESSAGE_DATE_FORMAT = "HH:mm:ss.SSS";
 
+    private static final DateTimeFormatter LOG_DATE_FORMATTER =
+        DateTimeFormatter.ofPattern(SIMPLE_LOG_MESSAGE_DATE_FORMAT)
+            .withZone(ZoneId.systemDefault());
+
     @SneakyThrows
-    @SuppressWarnings({"JavaUtilDate", "java:S2143"})
     public static void renderLogMessageTo(LogMessage logMessage, Appendable buf) {
-        buf.append(new SimpleDateFormat(SIMPLE_LOG_MESSAGE_DATE_FORMAT).format(new Date(logMessage.getTimestamp())));
+        buf.append(LOG_DATE_FORMATTER.format(Instant.ofEpochMilli(logMessage.getTimestamp())));
         buf.append(' ');
 
         buf.append('[');
