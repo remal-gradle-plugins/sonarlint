@@ -1,5 +1,6 @@
 package name.remal.gradle_plugins.sonarlint;
 
+import static java.lang.Boolean.parseBoolean;
 import static java.lang.String.join;
 import static java.nio.file.Files.readString;
 import static name.remal.gradle_plugins.sonarlint.RuleExamples.getSonarRuleLanguage;
@@ -59,6 +60,8 @@ class SonarLintPluginFunctionalTest {
 
     @BeforeEach
     void beforeEach() {
+        project.inheritEnvironmentVariable("CI");
+
         configureSonarLintProject(project);
 
         project.addForbiddenMessage("Provided Node.js executable file does not exist.");
@@ -76,7 +79,16 @@ class SonarLintPluginFunctionalTest {
             build.applyPlugin("name.remal.sonarlint");
             build.applyPlugin("java");
             build.addBuildDirMavenRepositories();
-            build.line("repositories { mavenCentral() }");
+            build.block("repositories", repos -> {
+                if (parseBoolean(System.getenv("CI"))) {
+                    repos.block("maven", repo -> {
+                        repo.line("name = \"googleMavenCentralMirror\"");
+                        repo.line("url = uri(\"https://maven-central.storage-download.googleapis.com/maven2/\")");
+                        repo.line("mavenContent { releasesOnly() }");
+                    });
+                }
+                repos.line("mavenCentral()");
+            });
             build.block("sonarLint", sonarLint -> {
                 sonarLint.line("ignoreFailures = true");
                 sonarLint.line("rules.enable('no-rules:enabled-by-default')");
