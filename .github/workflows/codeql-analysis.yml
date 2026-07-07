@@ -13,7 +13,14 @@ on:
 
 env:
   DEFAULT_JAVA_VERSION: 17
-  GRADLE_OPTS: -Dorg.gradle.parallel=true -Dorg.gradle.workers.max=4 -Dorg.gradle.warning.mode=all -Dorg.gradle.daemon=false -Dhttp.keepAlive=false -Dsun.net.client.defaultConnectTimeout=15000 -Dsun.net.client.defaultReadTimeout=600000 -Dsun.net.http.retryPost=false -Dsun.io.useCanonCaches=false -Djava.awt.headless=true -Dorg.gradle.internal.launcher.welcomeMessageEnabled=false
+  GIT_REF: ${{github.ref}}
+  GIT_SHA: ${{github.sha}}
+  GITHUB_ACTIONS_TOKEN: ${{github.token}}
+  GITHUB_ACTIONS_RUN_ID: ${{github.run_id}}
+  GITHUB_ACTIONS_RUN_ATTEMPT: ${{github.run_attempt}}
+  GITHUB_ACTIONS_JOB: ${{github.job}}
+  GRADLE_OPTS: >-
+    -Dorg.gradle.console.interactive=false
 
 jobs:
   codeql-analysis:
