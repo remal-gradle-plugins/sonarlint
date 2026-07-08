@@ -1,13 +1,14 @@
 package name.remal.gradle_plugins.sonarlint.internal.utils;
 
+import static java.lang.Math.min;
 import static java.lang.String.format;
 import static lombok.AccessLevel.PRIVATE;
 import static name.remal.gradle_plugins.sonarlint.internal.utils.AvailablePorts.getAvailablePort;
 
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.rmi.registry.LocateRegistry;
-import java.rmi.server.ExportException;
 import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;
 import name.remal.gradle_plugins.sonarlint.internal.client.SonarLintClient;
@@ -31,8 +32,8 @@ public abstract class RegistryFactory {
         var socketFactory = new RmiSocketFactory(address);
 
         for (var attempt = 1; attempt <= REGISTRY_START_ATTEMPTS; attempt++) {
-            var port = getAvailablePort(socketFactory.getBindAddr());
             try {
+                var port = getAvailablePort(socketFactory.getBindAddr());
                 var registry = LocateRegistry.createRegistry(port, socketFactory, socketFactory);
                 var socketAddress = new InetSocketAddress(socketFactory.getBindAddr(), port);
                 logger.info("%s RMI registry created at %s", registryName, socketAddress);
@@ -43,10 +44,13 @@ public abstract class RegistryFactory {
                     .socketFactory(socketFactory)
                     .build();
 
-            } catch (ExportException e) {
+            } catch (IOException e) {
                 if (attempt >= REGISTRY_START_ATTEMPTS) {
                     throw new RegistryFactoryException(REGISTRY_START_FAILED_MESSAGE, e);
                 }
+
+                logger.debug("Failed to create %s RMI registry (attempt %s): %s", registryName, attempt, e);
+                Thread.sleep(min(attempt * 10L, 100L));
             }
         }
 
