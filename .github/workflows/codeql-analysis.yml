@@ -21,6 +21,7 @@ env:
   GITHUB_ACTIONS_JOB: ${{github.job}}
   GRADLE_OPTS: >-
     -Dorg.gradle.console.interactive=false
+    -Dorg.gradle.caching=false
 
 jobs:
   codeql-analysis:
@@ -45,11 +46,10 @@ jobs:
         action: gradle/actions/wrapper-validation@v6
         attempt_limit: 3
         attempt_delay: 5000
-    - name: Cache Gradle
-      id: cache-gradle
-      uses: remal-github-actions/cache-gradle@v1
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v6
       with:
-        build-cache-enabled: 'false'
+        validate-wrappers: false
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v4
       with:

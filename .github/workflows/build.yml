@@ -42,19 +42,26 @@ env:
   GITHUB_ACTIONS_RUN_ID: ${{github.run_id}}
   GITHUB_ACTIONS_RUN_ATTEMPT: ${{github.run_attempt}}
   GITHUB_ACTIONS_JOB: ${{github.job}}
+  GRADLE_BUILD_CACHE_ENABLED: ${{!startsWith(github.ref, 'refs/tags/')}}
   GRADLE_OPTS: >-
     -Dorg.gradle.console.interactive=false
+    -Dorg.gradle.caching=${{!startsWith(github.ref, 'refs/tags/')}}
 
 jobs:
-  populate-cache:
+  build:
     if: >-
       ${{
         (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/'))
         || (github.event_name == 'push' && !contains(github.event.head_commit.message, '[push-back]') && !contains(github.event.head_commit.message, '[noci]') && !contains(github.event.head_commit.message, '[no-ci]'))
         || github.event_name != 'push'
       }}
+    outputs:
+      repository-isTemplate: ${{fromJSON(steps.repository-info.outputs.result).isTemplate}}
+      publish-isGradlePlugin: ${{steps.publish-flags.outputs.isGradlePlugin}}
+      publish-isMavenCentral: ${{steps.publish-flags.outputs.isMavenCentral}}
+      env-json: ${{steps.prepare-env-for-cross-versions-tests.outputs.env-json}}
     concurrency:
-      group: build-populate-cache-${{github.ref}}
+      group: build-build-${{github.ref}}
       cancel-in-progress: true
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -74,81 +81,30 @@ jobs:
     - name: Cancel on newer run
       uses: ./.github/workflows/actions/cancel-on-newer-run
 
-    - name: Cache Gradle
-      id: cache-gradle
-      uses: remal-github-actions/cache-gradle@v1
-      with:
-        build-cache-enabled: 'false'
-
     - name: Set DEFAULT_JAVA_VERSION
-      if: ${{steps.cache-gradle.outputs.gradle-wrapper-cache-hit != 'true' || steps.cache-gradle.outputs.gradle-caches-cache-hit != 'true'}}
       uses: ./.github/workflows/actions/set-default-java-version
     - name: Setup Java ${{env.DEFAULT_JAVA_VERSION}}
-      if: ${{steps.cache-gradle.outputs.gradle-wrapper-cache-hit != 'true' || steps.cache-gradle.outputs.gradle-caches-cache-hit != 'true'}}
       uses: actions/setup-java@v5
       with:
         java-version: ${{env.DEFAULT_JAVA_VERSION}}
         distribution: temurin
     - name: Validate Gradle Wrapper
-      if: ${{steps.cache-gradle.outputs.gradle-wrapper-cache-hit != 'true' || steps.cache-gradle.outputs.gradle-caches-cache-hit != 'true'}}
       uses: Wandalen/wretry.action/main@v3.8.0
       with:
         action: gradle/actions/wrapper-validation@v6
         attempt_limit: 3
         attempt_delay: 5000
-
-    - name: Create Gradle wrapper cache content
-      if: ${{steps.cache-gradle.outputs.gradle-wrapper-cache-hit != 'true'}}
-      run: |
-        ./gradlew-retry-connection-timeouts help
-
-    - name: Create Gradle caches cache content
-      if: ${{steps.cache-gradle.outputs.gradle-caches-cache-hit != 'true'}}
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v6
+      with:
+        validate-wrappers: false
+    - name: Download dependencies
       run: |
         ./gradlew-retry-connection-timeouts downloadDependencies
-
-
-  build:
-    needs:
-    - populate-cache
-    outputs:
-      repository-isTemplate: ${{fromJSON(steps.repository-info.outputs.result).isTemplate}}
-      publish-isGradlePlugin: ${{steps.publish-flags.outputs.isGradlePlugin}}
-      publish-isMavenCentral: ${{steps.publish-flags.outputs.isMavenCentral}}
-      env-json: ${{steps.prepare-env-for-cross-versions-tests.outputs.env-json}}
-    concurrency:
-      group: build-build-${{github.ref}}
-      cancel-in-progress: true
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v7
-      with:
-        submodules: recursive
-        fetch-depth: 1
-
-    - name: Cancel on newer run
-      uses: ./.github/workflows/actions/cancel-on-newer-run
-
-    - name: Cache Gradle
-      uses: remal-github-actions/cache-gradle@v1
-    - name: Set DEFAULT_JAVA_VERSION
-      uses: ./.github/workflows/actions/set-default-java-version
-    - name: Setup Java ${{env.DEFAULT_JAVA_VERSION}}
-      uses: actions/setup-java@v5
-      with:
-        java-version: ${{env.DEFAULT_JAVA_VERSION}}
-        distribution: temurin
 
     - name: Retrieve repository info
       id: repository-info
       uses: remal-github-actions/retrieve-repository-info@v1
-
-    - name: Submit dependencies to GitHub
-      if: ${{(github.event_name == 'push' || github.event_name == 'workflow_dispatch') && startsWith(github.ref, 'refs/heads/')}}
-      run: |
-        ./gradlew-retry-connection-timeouts githubSubmitDependencies
 
     - name: Compile classes
       run: |
@@ -184,7 +140,15 @@ jobs:
         script: |
           const envObj = JSON.parse(process.env.ENV_JSON)
           for (const name of Object.keys(envObj)) {
-            if (name.startsWith('GITHUB_')) {
+            if (name.startsWith('GITHUB_')
+              || name.startsWith('INPUT_')
+              || name.startsWith('JAVA_HOME')
+              || name.startsWith('GRADLE_BUILD_ACTION_')
+              || name.startsWith('DEVELOCITY_INJECTION_')
+              || name === 'GRADLE_ACTION_ID'
+              || name === 'GRADLE_USER_HOME'
+              || name === 'MAVEN_ARGS'
+            ) {
               delete envObj[name]
             }
           }
@@ -250,8 +214,6 @@ jobs:
       with:
         submodules: recursive
         fetch-depth: 1
-    - name: Cache Gradle
-      uses: remal-github-actions/cache-gradle@v1
     - name: Set DEFAULT_JAVA_VERSION
       uses: ./.github/workflows/actions/set-default-java-version
     - name: Setup Java ${{env.DEFAULT_JAVA_VERSION}}
@@ -259,6 +221,11 @@ jobs:
       with:
         java-version: ${{env.DEFAULT_JAVA_VERSION}}
         distribution: temurin
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v6
+      with:
+        validate-wrappers: false
+        cache-read-only: true
     - name: Download and extract workspace
       uses: ./.github/workflows/actions/download-extract-workspace
 
@@ -309,8 +276,6 @@ jobs:
         token: ${{secrets.PUSH_BACK_TOKEN}}
         submodules: recursive
         fetch-depth: 1
-    - name: Cache Gradle
-      uses: remal-github-actions/cache-gradle@v1
     - name: Set DEFAULT_JAVA_VERSION
       uses: ./.github/workflows/actions/set-default-java-version
     - name: Setup Java ${{env.DEFAULT_JAVA_VERSION}}
@@ -318,6 +283,11 @@ jobs:
       with:
         java-version: ${{env.DEFAULT_JAVA_VERSION}}
         distribution: temurin
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v6
+      with:
+        validate-wrappers: false
+        cache-read-only: true
     - name: Download and extract workspace
       uses: ./.github/workflows/actions/download-extract-workspace
 
@@ -416,8 +386,6 @@ jobs:
       with:
         submodules: recursive
         fetch-depth: 1
-    - name: Cache Gradle
-      uses: remal-github-actions/cache-gradle@v1
     - name: Set DEFAULT_JAVA_VERSION
       uses: ./.github/workflows/actions/set-default-java-version
     - name: Setup Java ${{env.DEFAULT_JAVA_VERSION}}
@@ -425,6 +393,11 @@ jobs:
       with:
         java-version: ${{env.DEFAULT_JAVA_VERSION}}
         distribution: temurin
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v6
+      with:
+        validate-wrappers: false
+        cache-read-only: true
     - name: Download and extract workspace
       uses: ./.github/workflows/actions/download-extract-workspace
 
@@ -465,8 +438,6 @@ jobs:
       with:
         submodules: recursive
         fetch-depth: 1
-    - name: Cache Gradle
-      uses: remal-github-actions/cache-gradle@v1
     - name: Set DEFAULT_JAVA_VERSION
       uses: ./.github/workflows/actions/set-default-java-version
     - name: Setup Java ${{env.DEFAULT_JAVA_VERSION}}
@@ -474,6 +445,11 @@ jobs:
       with:
         java-version: ${{env.DEFAULT_JAVA_VERSION}}
         distribution: temurin
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v6
+      with:
+        validate-wrappers: false
+        cache-read-only: true
     - name: Download and extract workspace
       uses: ./.github/workflows/actions/download-extract-workspace
 

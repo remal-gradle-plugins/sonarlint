@@ -1,0 +1,35 @@
+name: Dependency Submission
+
+on:
+  push:
+    branches:
+    - main
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dependency-submission-${{github.ref}}
+
+jobs:
+  dependency-submission:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v7
+      with:
+        submodules: recursive
+        fetch-depth: 1
+
+    - name: Set DEFAULT_JAVA_VERSION
+      uses: ./.github/workflows/actions/set-default-java-version
+
+    - name: Setup Java
+      uses: actions/setup-java@v5
+      with:
+        distribution: temurin
+        java-version: ${{env.DEFAULT_JAVA_VERSION}}
+
+    - name: Generate and submit dependency graph
+      uses: gradle/actions/dependency-submission@v6

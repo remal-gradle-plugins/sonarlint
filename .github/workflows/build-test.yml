@@ -87,20 +87,20 @@ jobs:
         PARENT_ENV_JSON: ${{inputs.env-json}}
       with:
         script: |
+          function setEnvVar(name, value) {
+            core.exportVariable(name, value)
+            core.info(`  ${name}=${value}`)
+          }
           const parentEnv = JSON.parse(process.env.PARENT_ENV_JSON)
           for (const [name, value] of Object.entries(parentEnv)) {
             if (process.env[name] == null) {
               process.env[name] = value
-              core.exportVariable(name, value)
+              setEnvVar(name, value)
             }
           }
-          core.exportVariable('CURRENT_JAVA_VERSION', '${{fromJSON(inputs.job-matrix-json)['java-runtime'] || ''}}' || process.env.DEFAULT_JAVA_VERSION || '')
-          core.exportVariable('DISABLE_COMPILATION', 'true')
-          core.exportVariable('DISABLE_VERIFICATION_EXCEPT_TESTS', 'true')
-    - name: Cache Gradle
-      uses: remal-github-actions/cache-gradle@v1
-      with:
-        github-job: 'test-${{inputs.os}}-${{inputs.job-matrix-json}}'
+          setEnvVar('CURRENT_JAVA_VERSION', '${{fromJSON(inputs.job-matrix-json)['java-runtime'] || ''}}' || process.env.DEFAULT_JAVA_VERSION || '')
+          setEnvVar('DISABLE_COMPILATION', 'true')
+          setEnvVar('DISABLE_VERIFICATION_EXCEPT_TESTS', 'true')
     - name: Setup Java ${{env.CURRENT_JAVA_VERSION != env.DEFAULT_JAVA_VERSION && format('{0} and {1}', env.DEFAULT_JAVA_VERSION, env.CURRENT_JAVA_VERSION) || env.DEFAULT_JAVA_VERSION}}
       uses: actions/setup-java@v5
       with:
@@ -108,6 +108,20 @@ jobs:
           ${{env.CURRENT_JAVA_VERSION != env.DEFAULT_JAVA_VERSION && env.CURRENT_JAVA_VERSION || ''}}
           ${{env.DEFAULT_JAVA_VERSION}}
         distribution: temurin
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v6
+      with:
+        validate-wrappers: false
+        workflow-job-context: ${{inputs.job-matrix-json}}
+        cache-read-only: ${{inputs.os == 'ubuntu'}}
+    - name: Cache Gradle build cache
+      if: ${{inputs.os == 'ubuntu' && env.GRADLE_BUILD_CACHE_ENABLED == 'true'}}
+      uses: actions/cache@v6
+      with:
+        path: ~/.gradle/caches/build-cache-*
+        key: gradle-build-cache-${{inputs.os}}-${{steps.matrix-info.outputs.token}}-${{github.sha}}
+        restore-keys: |
+          gradle-build-cache-${{inputs.os}}-${{steps.matrix-info.outputs.token}}-
     - name: Download and extract workspace
       uses: ./.github/workflows/actions/download-extract-workspace
 
