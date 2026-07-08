@@ -42,11 +42,16 @@ runs:
       listFile="$(mktemp)"
       git ls-files --modified --others -z > "$listFile"
 
+      extra=()
+      if tar --version 2>/dev/null | grep -q 'GNU tar'; then
+        extra+=(--force-local)
+      fi
+
       if [ -s "$listFile" ]; then
-          tar --create --gzip --no-recursion "--file=$archive" --null -T "$listFile"
+          tar --create --gzip --no-recursion "${extra[@]}" "--file=$archive" --null -T "$listFile"
       else
           echo "No modified or uncommitted files to archive"
-          tar --create --gzip --no-recursion "--file=$archive" --files-from /dev/null
+          tar --create --gzip --no-recursion "${extra[@]}" "--file=$archive" --files-from /dev/null
       fi
 
   - name: Upload workspace archive
