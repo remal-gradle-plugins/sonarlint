@@ -1,5 +1,7 @@
 $schema: https://raw.githubusercontent.com/remal-github-actions/sync-with-template/main/config.schema.json
 includes:
+- .agents/rules/**
+- .claude/rules/**
 - .github/**
 - .mergify/*
 - .gitattributes
