@@ -30,7 +30,7 @@ jobs:
   automatic-release:
     name: Automatic release
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 90
     concurrency: automatic-release
     steps:
     - name: Automatic release
