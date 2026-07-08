@@ -5,11 +5,12 @@ import static java.util.Arrays.stream;
 import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toUnmodifiableList;
+import static name.remal.gradle_plugins.toolkit.PluginManagerUtils.withAnyOfPlugins;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
-import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import javax.inject.Inject;
 import org.gradle.api.Project;
 import org.gradle.api.provider.Property;
@@ -48,11 +49,16 @@ public abstract class SonarLintLanguagesSettings {
     public abstract Property<Boolean> getIncludeJvm();
 
     {
-        var jvmPlugins = List.of("jvm-ecosystem", "java-base", "java");
-        getIncludeJvm().convention(getProviders().provider(() ->
-            jvmPlugins.stream()
-                .anyMatch(getProject().getPluginManager()::hasPlugin)
-        ));
+        var hasAnyJvmPlugin = new AtomicBoolean();
+        withAnyOfPlugins(
+            getProject().getPluginManager(),
+            "jvm-ecosystem",
+            "java-base",
+            "java",
+            __ -> hasAnyJvmPlugin.set(true)
+        );
+
+        getIncludeJvm().convention(getProviders().provider(hasAnyJvmPlugin::get));
     }
 
     @Input
