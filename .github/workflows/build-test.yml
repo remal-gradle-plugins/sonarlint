@@ -61,7 +61,7 @@ jobs:
         fetch-depth: 1
 
     - name: Cancel on newer run
-      uses: ./.github/workflows/actions/cancel-on-newer-run
+      uses: ./.github/actions/cancel-on-newer-run
 
     - name: Create matrix info
       id: matrix-info
@@ -124,7 +124,7 @@ jobs:
         restore-keys: |
           gradle-build-cache-${{inputs.os}}-${{steps.matrix-info.outputs.token}}-
     - name: Download and extract workspace
-      uses: ./.github/workflows/actions/download-extract-workspace
+      uses: ./.github/actions/download-extract-workspace
 
     - name: Execute tests
       run: |
@@ -132,7 +132,7 @@ jobs:
 
     - name: Archive and upload workspace if tests failed
       if: ${{failure()}}
-      uses: ./.github/workflows/actions/archive-upload-workspace
+      uses: ./.github/actions/archive-upload-workspace
       with:
         archive-name: workspace-test-${{inputs.os}}-${{steps.matrix-info.outputs.token}}
         artifact-name: workspace-test-${{inputs.os}}-${{steps.matrix-info.outputs.token}}

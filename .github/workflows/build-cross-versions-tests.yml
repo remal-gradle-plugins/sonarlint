@@ -59,7 +59,7 @@ jobs:
         fetch-depth: 1
 
     - name: Cancel on newer run
-      uses: ./.github/workflows/actions/cancel-on-newer-run
+      uses: ./.github/actions/cancel-on-newer-run
 
     - name: Read min supported Java version
       id: min-java-version

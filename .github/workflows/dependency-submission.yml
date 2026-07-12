@@ -23,7 +23,7 @@ jobs:
         fetch-depth: 1
 
     - name: Set DEFAULT_JAVA_VERSION
-      uses: ./.github/workflows/actions/set-default-java-version
+      uses: ./.github/actions/set-default-java-version
 
     - name: Setup Java
       uses: actions/setup-java@v5

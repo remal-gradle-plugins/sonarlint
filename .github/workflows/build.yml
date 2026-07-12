@@ -79,10 +79,10 @@ jobs:
         fetch-depth: 1
 
     - name: Cancel on newer run
-      uses: ./.github/workflows/actions/cancel-on-newer-run
+      uses: ./.github/actions/cancel-on-newer-run
 
     - name: Set DEFAULT_JAVA_VERSION
-      uses: ./.github/workflows/actions/set-default-java-version
+      uses: ./.github/actions/set-default-java-version
     - name: Setup Java ${{env.DEFAULT_JAVA_VERSION}}
       uses: actions/setup-java@v5
       with:
@@ -129,7 +129,7 @@ jobs:
         fi
     - name: Archive and upload workspace
       if: ${{!cancelled()}}
-      uses: ./.github/workflows/actions/archive-upload-workspace
+      uses: ./.github/actions/archive-upload-workspace
 
     - name: Prepare environment variables for cross-versions-tests
       id: prepare-env-for-cross-versions-tests
@@ -215,7 +215,7 @@ jobs:
         submodules: recursive
         fetch-depth: 1
     - name: Set DEFAULT_JAVA_VERSION
-      uses: ./.github/workflows/actions/set-default-java-version
+      uses: ./.github/actions/set-default-java-version
     - name: Setup Java ${{env.DEFAULT_JAVA_VERSION}}
       uses: actions/setup-java@v5
       with:
@@ -227,7 +227,7 @@ jobs:
         validate-wrappers: false
         cache-read-only: true
     - name: Download and extract workspace
-      uses: ./.github/workflows/actions/download-extract-workspace
+      uses: ./.github/actions/download-extract-workspace
 
     - name: Download all exec files
       id: download-exec-files
@@ -277,7 +277,7 @@ jobs:
         submodules: recursive
         fetch-depth: 1
     - name: Set DEFAULT_JAVA_VERSION
-      uses: ./.github/workflows/actions/set-default-java-version
+      uses: ./.github/actions/set-default-java-version
     - name: Setup Java ${{env.DEFAULT_JAVA_VERSION}}
       uses: actions/setup-java@v5
       with:
@@ -289,7 +289,7 @@ jobs:
         validate-wrappers: false
         cache-read-only: true
     - name: Download and extract workspace
-      uses: ./.github/workflows/actions/download-extract-workspace
+      uses: ./.github/actions/download-extract-workspace
 
     - name: Read min supported Java version
       id: min-java-version
@@ -390,7 +390,7 @@ jobs:
         submodules: recursive
         fetch-depth: 1
     - name: Set DEFAULT_JAVA_VERSION
-      uses: ./.github/workflows/actions/set-default-java-version
+      uses: ./.github/actions/set-default-java-version
     - name: Setup Java ${{env.DEFAULT_JAVA_VERSION}}
       uses: actions/setup-java@v5
       with:
@@ -402,7 +402,7 @@ jobs:
         validate-wrappers: false
         cache-read-only: true
     - name: Download and extract workspace
-      uses: ./.github/workflows/actions/download-extract-workspace
+      uses: ./.github/actions/download-extract-workspace
 
     - name: Publish to Gradle Plugin Portal
       env:
@@ -445,7 +445,7 @@ jobs:
         submodules: recursive
         fetch-depth: 1
     - name: Set DEFAULT_JAVA_VERSION
-      uses: ./.github/workflows/actions/set-default-java-version
+      uses: ./.github/actions/set-default-java-version
     - name: Setup Java ${{env.DEFAULT_JAVA_VERSION}}
       uses: actions/setup-java@v5
       with:
@@ -457,7 +457,7 @@ jobs:
         validate-wrappers: false
         cache-read-only: true
     - name: Download and extract workspace
-      uses: ./.github/workflows/actions/download-extract-workspace
+      uses: ./.github/actions/download-extract-workspace
 
     - name: Publish to Maven Central
       env:
