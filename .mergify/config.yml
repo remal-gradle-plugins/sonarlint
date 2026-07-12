@@ -31,8 +31,6 @@ pull_request_rules:
   conditions:
   - 'author~=^(remal|repository-token-issuer\[bot\])$'
   - 'label=sync-with-template'
-  - '#added-files=0'
-  - '#removed-files=0'
   - '-conflict'
   - '-closed'
   - '-merged'
