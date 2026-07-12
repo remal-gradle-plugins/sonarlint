@@ -41,6 +41,7 @@ import org.sonar.api.rule.RuleKey;
 import org.sonar.api.server.rule.RulesDefinition.Rule;
 import org.sonarsource.sonarlint.core.analysis.api.AnalysisConfiguration;
 import org.sonarsource.sonarlint.core.analysis.api.ClientInputFile;
+import org.sonarsource.sonarlint.core.analysis.container.module.ModuleContainer;
 import org.sonarsource.sonarlint.core.commons.log.SonarLintLogger;
 
 @RequiredArgsConstructor
@@ -51,6 +52,11 @@ public class SonarLintAnalyzerDefault implements SonarLintAnalyzer {
 
     private final SonarLintSharedCode shared;
 
+
+    // SonarLint keeps child containers in SpringComponentContainer.children, a plain ArrayList.
+    // Module container registration and unregistration both mutate that list, so concurrent
+    // ModuleRegistry calls corrupt it. All ModuleRegistry mutations are serialized on this mutex.
+    private final Object moduleRegistryMutex = new Object[0];
 
     @Override
     public Collection<Issue> analyze(
@@ -131,7 +137,10 @@ public class SonarLintAnalyzerDefault implements SonarLintAnalyzer {
                 var registryModuleId = moduleId + "#" + params.getJobId();
 
                 try {
-                    var moduleContainer = requireNonNull(moduleRegistry.getContainerFor(registryModuleId));
+                    final ModuleContainer moduleContainer;
+                    synchronized (moduleRegistryMutex) {
+                        moduleContainer = requireNonNull(moduleRegistry.getContainerFor(registryModuleId));
+                    }
                     moduleContainer.analyze(
                         analysisConfiguration,
                         issueListener,
@@ -140,7 +149,9 @@ public class SonarLintAnalyzerDefault implements SonarLintAnalyzer {
                     );
 
                 } finally {
-                    moduleRegistry.unregisterModule(registryModuleId);
+                    synchronized (moduleRegistryMutex) {
+                        moduleRegistry.unregisterModule(registryModuleId);
+                    }
                 }
 
                 return issues;
