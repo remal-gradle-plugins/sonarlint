@@ -1,0 +1,38 @@
+name: actionlint
+
+on:
+  push:
+    branches:
+    - 'main'
+    - 'master'
+    paths:
+    - '.github/workflows/*.yml'
+  pull_request:
+    paths:
+    - '.github/workflows/*.yml'
+  schedule:
+  - cron: '47 18 * * *' # sync-with-template: adjust
+  workflow_dispatch: { }
+
+permissions:
+  contents: read
+
+concurrency:
+  group: actionlint-${{github.ref}}
+  cancel-in-progress: true
+
+jobs:
+  actionlint:
+    name: actionlint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v7
+      with:
+        fetch-depth: 1
+
+    - name: Run actionlint
+      uses: raven-actions/actionlint@v2
+      with:
+        fail-on-error: true
