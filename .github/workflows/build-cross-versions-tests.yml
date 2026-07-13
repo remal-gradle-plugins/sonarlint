@@ -45,8 +45,9 @@ env:
 jobs:
   create-matrix:
     permissions:
-      id-token: write
       contents: read
+      actions: write
+      checks: read
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:

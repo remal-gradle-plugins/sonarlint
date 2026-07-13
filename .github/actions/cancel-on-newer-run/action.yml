@@ -4,19 +4,11 @@ description: Cancel the current workflow run if a newer run exists for the same 
 runs:
   using: composite
   steps:
-  - name: Get GitHub Token
-    id: get-token
-    uses: remal/github-repository-token-issuer@v1
-    with:
-      scopes: |
-        actions: write
-        checks: read
-
   - name: Check for newer run
     id: check
     shell: bash
     env:
-      GH_TOKEN: ${{steps.get-token.outputs.token}}
+      GH_TOKEN: ${{github.token}}
       CURRENT_REF: ${{github.ref}}
       REF_NAME: ${{github.ref_name}}
       HEAD_REF: ${{github.head_ref}}
