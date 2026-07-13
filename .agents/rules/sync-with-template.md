@@ -5,7 +5,7 @@ Files matching `includes`/`excludes` in `.github/sync-with-template.yml` are syn
 **IMPORTANT: treat every repo as a generated one; do not edit synced files.** The next sync reverts local edits. Before committing, read `.github/sync-with-template.yml` and check which changed files are synced. For changes to synced files, suggest making them in the template project(s) instead, or use an escape hatch:
 
 - `.github/sync-with-template-local-transformations.yml` (never synced itself): per-file `ignore`/`delete`/replace/`script` transformations, see the [schema](https://github.com/remal-github-actions/sync-with-template/blob/main/local-transformations.schema.json). This is also how repos extend the sync config itself, since the config file is synced too.
-- Modifiable sections: lines between `$$$sync-with-template-modifiable: <name> $$$` and `$$$sync-with-template-modifiable-end$$$` markers keep their local content across syncs. Keep the markers.
+- Modifiable sections: lines between `$$$sync-with-template-modifiable: <name> $$$` and `$$$sync-with-template-modifiable-end$$$` markers keep their local content across syncs. Keep the markers. Marker syntax ([modifiableSections.ts](https://github.com/remal-github-actions/sync-with-template/blob/main/src/internal/modifiableSections.ts)):
 
 Notes:
 
