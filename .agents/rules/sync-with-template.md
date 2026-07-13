@@ -1,6 +1,6 @@
 # Sync with Template
 
-Files matching `includes`/`excludes` in `.github/sync-with-template.yml` are synced automatically from the template repository through PRs (label `sync-with-template`, auto-merged) created by the [sync-with-template action](https://github.com/remal-github-actions/sync-with-template). The template is the `TEMPLATE_REPOSITORY` secret/variable, or GitHub's "generated from" relationship when unset. The root of all template chains is [remal/oss-template](https://github.com/remal/oss-template). Files that exist only in the current repo are never touched.
+Files matching `includes`/`excludes` in `.github/sync-with-template.yml` are synced automatically from the template repository through PRs (label `sync-with-template`, auto-merged) created by the [sync-with-template action](https://github.com/remal-github-actions/sync-with-template). The template is the repository variable `TEMPLATE_REPOSITORY` (an `owner/repo` value, never an org variable), or GitHub's "generated from" relationship when it is unset. The root of all template chains is [remal/oss-template](https://github.com/remal/oss-template). Files that exist only in the current repo are never touched.
 
 **IMPORTANT: treat every repo as a generated one; do not edit synced files.** The next sync reverts local edits. Before committing, read `.github/sync-with-template.yml` and check which changed files are synced. For changes to synced files, suggest making them in the template project(s) instead, or use an escape hatch:
 
