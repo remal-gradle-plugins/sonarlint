@@ -27,8 +27,15 @@ buildscript {
         classpath 'org.ow2.asm:asm-tree'
     }
     repositories {
-        mavenCentral()
+        if (System.getenv('CI') == 'true') {
+            maven {
+                name = "googleMavenCentralMirror"
+                url = uri("https://maven-central.storage-download.googleapis.com/maven2/")
+                mavenContent { releasesOnly() }
+            }
+        }
         gradlePluginPortal()
+        mavenCentral()
     }
 
     project.ext.rootBuildscriptClasspathVersionOf = { String notation ->
