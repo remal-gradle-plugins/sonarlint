@@ -23,8 +23,9 @@ on:
         - 'false'
 
 permissions:
-  id-token: write
   contents: write
+  actions: write
+  checks: read
 
 concurrency:
   group: build-${{github.ref}}
@@ -56,7 +57,7 @@ jobs:
         || github.event_name != 'push'
       }}
     outputs:
-      repository-isTemplate: ${{fromJSON(steps.repository-info.outputs.result).isTemplate}}
+      repository-isTemplate: ${{fromJSON(steps.repository-info.outputs.result || '{}').isTemplate}}
       publish-isGradlePlugin: ${{steps.publish-flags.outputs.isGradlePlugin}}
       publish-isMavenCentral: ${{steps.publish-flags.outputs.isMavenCentral}}
       env-json: ${{steps.prepare-env-for-cross-versions-tests.outputs.env-json}}
@@ -73,6 +74,7 @@ jobs:
         exit 1
 
     - name: Checkout repository
+      id: checkout
       uses: actions/checkout@v7
       with:
         submodules: recursive
@@ -128,7 +130,7 @@ jobs:
           echo "isMavenCentral=false" | tee -a "$GITHUB_OUTPUT"
         fi
     - name: Archive and upload workspace
-      if: ${{!cancelled()}}
+      if: ${{!cancelled() && steps.checkout.outcome == 'success'}}
       uses: ./.github/actions/archive-upload-workspace
 
     - name: Prepare environment variables for cross-versions-tests
@@ -347,7 +349,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
-      isVersion: ${{fromJSON(steps.parse-git-tag.outputs.result).isVersion}}
+      isVersion: ${{fromJSON(steps.parse-git-tag.outputs.result || '{}').isVersion}}
     steps:
     - name: Parse Git tag
       id: parse-git-tag
