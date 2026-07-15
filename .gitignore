@@ -91,6 +91,8 @@ out/
 .classpath
 .project
 .settings/
+bin/
+!**/src/**/bin/
 
 # Remal Gradle plugins:
 /gradle-ci.properties
