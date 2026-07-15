@@ -1,5 +1,6 @@
 # Commits
 
+- Prefer committing directly to `main` unless asked otherwise.
 - Direct commits to `main` (not via PR) must start with one of these prefixes (the trailing space is part of the prefix):
   - `[release-later] ` - appears in the changelog
   - `[doc] ` - pure docs

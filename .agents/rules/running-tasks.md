@@ -1,4 +1,4 @@
-# Running Tests
+# Running Tasks
 
 - To run tests against a specific Java or Gradle version, first compile all classes with the default version, then run the tests with compilation disabled:
   1. `./gradlew assemble allClasses`
