@@ -1,5 +1,6 @@
 package name.remal.gradle_plugins.sonarlint;
 
+import static name.remal.gradle_plugins.toolkit.CiUtils.isRunningOnCiIncludingTests;
 import static name.remal.gradle_plugins.toolkit.reflection.ReflectionUtils.packageNameOf;
 import static name.remal.gradle_plugins.toolkit.reflection.ReflectionUtils.unwrapGeneratedSubclass;
 import static name.remal.gradle_plugins.toolkit.testkit.ProjectValidations.executeAfterEvaluateActions;
@@ -7,6 +8,7 @@ import static name.remal.gradle_plugins.toolkit.testkit.ProjectValidations.execu
 import lombok.RequiredArgsConstructor;
 import name.remal.gradle_plugins.toolkit.testkit.TaskValidations;
 import org.gradle.api.Project;
+import org.gradle.api.artifacts.repositories.MavenRepositoryContentDescriptor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -18,7 +20,15 @@ class SonarLintPluginTest {
     @BeforeEach
     void beforeEach() {
         project.getPluginManager().apply(SonarLintPlugin.class);
-        project.getRepositories().mavenCentral();
+        var repositories = project.getRepositories();
+        if (isRunningOnCiIncludingTests()) {
+            repositories.maven(repo -> {
+                repo.setName("googleMavenCentralMirror");
+                repo.setUrl("https://maven-central.storage-download.googleapis.com/maven2/");
+                repo.mavenContent(MavenRepositoryContentDescriptor::releasesOnly);
+            });
+        }
+        repositories.mavenCentral();
     }
 
     @Test

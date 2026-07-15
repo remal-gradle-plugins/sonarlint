@@ -1,6 +1,5 @@
 package name.remal.gradle_plugins.sonarlint;
 
-import static java.lang.Boolean.parseBoolean;
 import static java.lang.String.join;
 import static java.nio.file.Files.readString;
 import static name.remal.gradle_plugins.sonarlint.RuleExamples.getSonarRuleLanguage;
@@ -14,6 +13,7 @@ import static name.remal.gradle_plugins.toolkit.SneakyThrowUtils.sneakyThrows;
 import static name.remal.gradle_plugins.toolkit.StringUtils.normalizeString;
 import static name.remal.gradle_plugins.toolkit.StringUtils.substringBeforeLast;
 import static name.remal.gradle_plugins.toolkit.testkit.TestClasspath.getTestClasspathLibraryVersion;
+import static name.remal.gradle_plugins.toolkit.testkit.functional.generator.utils.MavenCentralRepositoryUtils.addMavenCentralRepository;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
@@ -79,16 +79,7 @@ class SonarLintPluginFunctionalTest {
             build.applyPlugin("name.remal.sonarlint");
             build.applyPlugin("java");
             build.addBuildDirMavenRepositories();
-            build.block("repositories", repos -> {
-                if (parseBoolean(System.getenv("CI"))) {
-                    repos.block("maven", repo -> {
-                        repo.line("name = \"googleMavenCentralMirror\"");
-                        repo.line("url = uri(\"https://maven-central.storage-download.googleapis.com/maven2/\")");
-                        repo.line("mavenContent { releasesOnly() }");
-                    });
-                }
-                repos.line("mavenCentral()");
-            });
+            addMavenCentralRepository(build);
             build.block("sonarLint", sonarLint -> {
                 sonarLint.line("ignoreFailures = true");
                 sonarLint.line("rules.enable('no-rules:enabled-by-default')");
