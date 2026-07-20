@@ -35,10 +35,10 @@ jobs:
       env:
         TOKEN: ${{github.token}}
       run: |
-        REPO_JSON=$(curl -s "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY" -H "Authorization: token $TOKEN")
-        OWNER_TYPE=$(echo "$REPO_JSON" | jq -r '.owner.type')
-        OWNER_TYPE=$(echo "$OWNER_TYPE" | tr '[:upper:]' '[:lower:]')
-        echo "owner-type=$OWNER_TYPE" | tee -a "$GITHUB_OUTPUT"
+        REPO_JSON=$(curl -s "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}" -H "Authorization: token ${TOKEN}")
+        OWNER_TYPE=$(echo "${REPO_JSON}" | jq -r '.owner.type')
+        OWNER_TYPE=$(echo "${OWNER_TYPE}" | tr '[:upper:]' '[:lower:]')
+        echo "owner-type=${OWNER_TYPE}" | tee -a "${GITHUB_OUTPUT}"
 
     - name: Get GitHub Token
       id: get-token

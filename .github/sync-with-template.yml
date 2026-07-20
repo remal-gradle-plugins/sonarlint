@@ -7,7 +7,6 @@ includes:
 - '.gitattributes'
 - '.gitignore'
 - '.editorconfig'
-- 'LICENSE'
 - 'retry-connection-timeouts'
 - '*-retry-connection-timeouts'
 - 'retry-connection-timeouts-*'
