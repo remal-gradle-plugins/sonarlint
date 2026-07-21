@@ -11,6 +11,7 @@ gha-creds-*.json
 .claude/*.local.*
 .claude/*.lock
 .claude/worktrees/
+CLAUDE.local.md
 
 
 # Design specs and implementation plans written by the Superpowers skill (brainstorming/writing-plans) - local planning notes, not meant to be shared in the repo
