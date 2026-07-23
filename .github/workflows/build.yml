@@ -111,7 +111,7 @@ jobs:
     - name: Compile classes
       run: |
         ./gradlew-retry-connection-timeouts allClasses
-        echo "DISABLE_COMPILATION=true" | tee -a "$GITHUB_ENV"
+        echo "DISABLE_COMPILATION=true" | tee -a "${GITHUB_ENV}"
     - name: Build without tests
       run: |
         ./gradlew-retry-connection-timeouts build publishToMavenLocal -Pdisable-tests=true
@@ -119,15 +119,15 @@ jobs:
     - name: Read publish flags
       id: publish-flags
       run: |
-        if [ -f "build/publish-gradle-plugin.flag" ]; then
-          echo "isGradlePlugin=true" | tee -a "$GITHUB_OUTPUT"
+        if [[ -f "build/publish-gradle-plugin.flag" ]]; then
+          echo "isGradlePlugin=true" | tee -a "${GITHUB_OUTPUT}"
         else
-          echo "isGradlePlugin=false" | tee -a "$GITHUB_OUTPUT"
+          echo "isGradlePlugin=false" | tee -a "${GITHUB_OUTPUT}"
         fi
-        if [ -f "build/publish-maven-central.flag" ]; then
-          echo "isMavenCentral=true" | tee -a "$GITHUB_OUTPUT"
+        if [[ -f "build/publish-maven-central.flag" ]]; then
+          echo "isMavenCentral=true" | tee -a "${GITHUB_OUTPUT}"
         else
-          echo "isMavenCentral=false" | tee -a "$GITHUB_OUTPUT"
+          echo "isMavenCentral=false" | tee -a "${GITHUB_OUTPUT}"
         fi
     - name: Archive and upload workspace
       if: ${{!cancelled() && steps.checkout.outcome == 'success'}}
@@ -333,7 +333,7 @@ jobs:
         JAVA_MAX_VERSION: ${{fromJSON(steps.max-tested-versions.outputs.allMatrixIncludes)[0].java}}
         GRADLE_MAX_VERSION: ${{fromJSON(steps.max-tested-versions.outputs.allMatrixIncludes)[0].gradle}}
       run: |
-        ./gradlew-retry-connection-timeouts pushBackTasks "-Pjava-runtime.max-version=$JAVA_MAX_VERSION" "-Pgradle-api.max-version=$GRADLE_MAX_VERSION"
+        ./gradlew-retry-connection-timeouts pushBackTasks "-Pjava-runtime.max-version=${JAVA_MAX_VERSION}" "-Pgradle-api.max-version=${GRADLE_MAX_VERSION}"
 
     - name: Push back
       if: ${{github.event_name == 'push' && startsWith(github.ref, 'refs/heads/')}}
@@ -411,7 +411,7 @@ jobs:
         PLUGINS_PORTAL_KEY: ${{secrets.GRADLE_PLUGINS_PORTAL_KEY}}
         PLUGINS_PORTAL_SECRET: ${{secrets.GRADLE_PLUGINS_PORTAL_SECRET}}
       run: |
-        ./gradlew-retry-connection-timeouts publishPlugins "-Pgradle.publish.key=$PLUGINS_PORTAL_KEY" "-Pgradle.publish.secret=$PLUGINS_PORTAL_SECRET"
+        ./gradlew-retry-connection-timeouts publishPlugins "-Pgradle.publish.key=${PLUGINS_PORTAL_KEY}" "-Pgradle.publish.secret=${PLUGINS_PORTAL_SECRET}"
     - name: Push back published versions
       if: ${{env.PUSH_BACK_TOKEN}}
       env:
@@ -431,6 +431,11 @@ jobs:
     needs:
     - parse-git-tag
     - build
+    permissions:
+      contents: write
+      actions: write
+      checks: read
+      id-token: write
     concurrency:
       group: build-publish-to-maven-central-${{github.ref}}
       cancel-in-progress: false
@@ -461,15 +466,29 @@ jobs:
     - name: Download and extract workspace
       uses: ./.github/actions/download-extract-workspace
 
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v3
+      with:
+        workload_identity_provider: projects/203220814345/locations/global/workloadIdentityPools/github-pool/providers/allowed-owners
+        service_account: secrets-reader@remal-secrets.iam.gserviceaccount.com
+
+    - name: Retrieve secrets
+      id: retrieve-secrets
+      uses: google-github-actions/get-secretmanager-secrets@v3
+      with:
+        export_to_environment: false
+        secrets: |-
+          signing-key:remal-secrets/artifact-signing-key
+          signing-password:remal-secrets/artifact-signing-password
+
     - name: Publish to Maven Central
       env:
         OSS_USER: ${{secrets.OSS_USER}}
         OSS_PASSWORD: ${{secrets.OSS_PASSWORD}}
-        SIGNING_SECRET_KEY_RING: ${{secrets.SIGNING_SECRET_KEY_RING}}
-        SIGNING_KEY_ID: ${{secrets.SIGNING_KEY_ID}}
-        SIGNING_PASSWORD: ${{secrets.SIGNING_PASSWORD}}
+        SIGNING_SECRET_KEY_RING: ${{steps.retrieve-secrets.outputs.signing-key}}
+        SIGNING_PASSWORD: ${{steps.retrieve-secrets.outputs.signing-password}}
       run: |
-        ./gradlew-retry-connection-timeouts publishToSonatype closeAndReleaseSonatypeStagingRepository "-PsonatypeUsername=$OSS_USER" "-PsonatypePassword=$OSS_PASSWORD" "-Psigning.key=$SIGNING_SECRET_KEY_RING" "-Psigning.keyId=$SIGNING_KEY_ID" "-Psigning.password=$SIGNING_PASSWORD"
+        ./gradlew-retry-connection-timeouts publishToSonatype closeAndReleaseSonatypeStagingRepository "-PsonatypeUsername=${OSS_USER}" "-PsonatypePassword=${OSS_PASSWORD}" "-Psigning.key=${SIGNING_SECRET_KEY_RING}" "-Psigning.password=${SIGNING_PASSWORD}"
     - name: Push back published versions
       if: ${{env.PUSH_BACK_TOKEN}}
       env:
