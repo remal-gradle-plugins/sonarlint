@@ -1,0 +1,9 @@
+# Testing
+
+Test source sets are created by the `name.remal.test-source-sets` plugin. A module applying `java-gradle-plugin` gets `src/functionalTest` created automatically by the shared `build-logic` plugin; a stray `src/functional` directory fails the build. `src/componentTest` is never created automatically: opt in explicitly with `testSourceSets.create('componentTest')`, and only when the module has a component that justifies it (see below).
+
+- `src/test`: unit tests. No real Gradle build execution. Either a plain unit test of internal logic with no Gradle involvement at all, or a plugin-wiring test that applies the plugin to an in-memory `Project` (injected via `name.remal.gradle_plugins.toolkit.testkit.GradleProjectExtension`, backed by `ProjectBuilder`) and asserts on task/extension/property wiring without executing tasks.
+- `src/componentTest`: only when a module has a heavyweight or slow-to-initialize internal component worth exercising directly and in-process (a real analysis engine, a real bytecode relocator, a real external network call). It may or may not involve a `Project`. The defining trait is that it actually executes real, expensive logic, not just static wiring, while still stopping short of a full external Gradle build.
+- `src/functionalTest`: end-to-end tests. Injects `name.remal.gradle_plugins.toolkit.testkit.functional.GradleProject` (or `GradleKtsProject`), which wraps Gradle TestKit's `GradleRunner`: writes a real build file, applies the plugin by ID, runs an actual build, and asserts on the `BuildResult`, generated files, or log output.
+
+As a rough cost signal, `build-performance.gradle` flags slow tests past 10s for `test`, 20s for `componentTest`, and 60s for `functionalTest`. A `src/test` case that needs longer than that is a sign it belongs in `componentTest` instead.
