@@ -21,6 +21,15 @@ on:
         options:
         - 'true'
         - 'false'
+      versionIncrementMode:
+        required: false
+        default: 'patch'
+        description: "Which part of version should be incremented. Allowed values: 'major', 'minor', 'patch'"
+        type: choice
+        options:
+        - 'major'
+        - 'minor'
+        - 'patch'
 
 defaults:
   run:
@@ -38,7 +47,7 @@ jobs:
       with:
         dryRun: ${{inputs.dryRun}}
         githubToken: ${{secrets.PUSH_BACK_TOKEN}}
-        versionIncrementMode: 'patch'
+        versionIncrementMode: ${{inputs.versionIncrementMode || 'patch'}}
         versionTagPrefix: 'v'
         expectedFilesToChange: |
           gradle-plugin-api-dependencies.txt
