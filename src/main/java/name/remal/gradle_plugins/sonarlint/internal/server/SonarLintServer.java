@@ -8,6 +8,7 @@ import static name.remal.gradle_plugins.sonarlint.internal.utils.SimpleLoggingEv
 import static name.remal.gradle_plugins.sonarlint.internal.utils.SonarLintServerException.withServerExceptionCalls;
 import static org.slf4j.event.Level.DEBUG;
 
+import com.google.errorprone.annotations.concurrent.LazyInit;
 import java.net.InetSocketAddress;
 import java.util.concurrent.Phaser;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +35,7 @@ public class SonarLintServer
     private final SonarLintServerParams params;
 
 
+    @LazyInit
     private volatile SonarLintHeartbeatDefault heartbeat;
 
     public SonarLintHeartbeatDefault getHeartbeat() {

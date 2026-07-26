@@ -142,6 +142,9 @@ public abstract class SonarLint extends AbstractSonarLintTask
             var languageIncludes = getAllLanguageIncludes(getSettings().getSonarProperties().get());
             getLanguages().getLanguagesToProcess().forEach(lang -> {
                 var includes = languageIncludes.get(lang);
+                if (includes == null) {
+                    return;
+                }
                 filter.include(includes);
             });
         });
@@ -422,7 +425,8 @@ public abstract class SonarLint extends AbstractSonarLintTask
         @SuppressWarnings(
             {
                 "UnnecessaryLocalVariable",
-                "NullableProblems"
+                "NullableProblems",
+                "NullAway"
             }
         ) Map<String, String> nonNullSonarProperties = sonarProperties;
 

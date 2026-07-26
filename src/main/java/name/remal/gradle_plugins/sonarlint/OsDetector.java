@@ -2,6 +2,7 @@ package name.remal.gradle_plugins.sonarlint;
 
 import static lombok.AccessLevel.PUBLIC;
 
+import com.google.errorprone.annotations.concurrent.LazyInit;
 import com.tisonkun.os.core.Detected;
 import com.tisonkun.os.core.Detector;
 import com.tisonkun.os.core.FileOperationProvider;
@@ -20,8 +21,10 @@ import org.jspecify.annotations.Nullable;
 @NoArgsConstructor(access = PUBLIC, onConstructor_ = {@Inject})
 abstract class OsDetector {
 
+    @LazyInit
     private static volatile Detected detectedOs;
 
+    @LazyInit
     private static volatile Boolean isAlpine;
 
     public Detected getDetectedOs() {
