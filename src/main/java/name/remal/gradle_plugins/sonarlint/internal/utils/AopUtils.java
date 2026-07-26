@@ -46,7 +46,7 @@ public abstract class AopUtils {
                             + paramsStr;
                     }
                 };
-                return aroundAdvice.around(realMethod);
+                return invokeAroundAdvice(aroundAdvice, realMethod);
             }
         );
         return interfaceClass.cast(
@@ -56,6 +56,11 @@ public abstract class AopUtils {
                 invocationHandler
             )
         );
+    }
+
+    @SuppressWarnings({"NullAway", "java:S2637"})
+    private static Object invokeAroundAdvice(AroundAdvice aroundAdvice, RealMethod realMethod) throws Throwable {
+        return aroundAdvice.around(realMethod);
     }
 
     @FunctionalInterface
