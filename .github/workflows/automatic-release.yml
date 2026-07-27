@@ -30,6 +30,14 @@ on:
         - 'major'
         - 'minor'
         - 'patch'
+      forceRelease:
+        required: true
+        default: 'true'
+        description: Set to 'true' to bypass the release frequency throttle for dependency/misc-only changes
+        type: choice
+        options:
+        - 'true'
+        - 'false'
 
 defaults:
   run:
@@ -71,11 +79,11 @@ jobs:
           sync-with-template
         dependencyUpdatesPullRequestLabels: |
           dependencies
-        releaseFrequencyForDependencyUpdates: 4 months
+        releaseFrequencyForDependencyUpdates: ${{inputs.forceRelease == 'true' && '0 seconds' || '4 months'}}
         miscPullRequestLabels: |
           sync-with-template
           remal-gradle-plugins-toolkit
-        releaseFrequencyForMiscPullRequests: 4 months
+        releaseFrequencyForMiscPullRequests: ${{inputs.forceRelease == 'true' && '0 seconds' || '4 months'}}
         actionPathsAllowedToFail: |
           .github/workflows/automatic-release.yml
           .github/workflows/bump-repository-activity.yml
