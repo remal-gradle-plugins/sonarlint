@@ -10,6 +10,11 @@ on:
     - '.github/workflows/bump-repository-activity.yml'
   workflow_dispatch:
     inputs:
+      maxInactivityDays:
+        required: true
+        default: 14
+        description: Max inactivity days. If there are no commits during this duration, a new commit will be created.
+        type: number
       dryRun:
         required: true
         default: 'false'
@@ -18,11 +23,6 @@ on:
         options:
         - 'true'
         - 'false'
-      maxInactivityDays:
-        required: true
-        default: 14
-        description: Max inactivity days. If there are no commits during this duration, a new commit will be created.
-        type: number
 
 permissions:
   id-token: write
