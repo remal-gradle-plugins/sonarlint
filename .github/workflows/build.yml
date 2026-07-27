@@ -376,6 +376,10 @@ jobs:
     needs:
     - parse-git-tag
     - build
+    permissions:
+      contents: write
+      actions: write
+      id-token: write
     concurrency:
       group: build-publish-to-gradle-plugins-portal-${{github.ref}}
       cancel-in-progress: false
@@ -406,10 +410,25 @@ jobs:
     - name: Download and extract workspace
       uses: ./.github/actions/download-extract-workspace
 
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v3
+      with:
+        workload_identity_provider: projects/203220814345/locations/global/workloadIdentityPools/github-pool/providers/allowed-owners
+        service_account: secrets-reader@remal-secrets.iam.gserviceaccount.com
+
+    - name: Retrieve secrets
+      id: retrieve-secrets
+      uses: google-github-actions/get-secretmanager-secrets@v3
+      with:
+        export_to_environment: false
+        secrets: |-
+          plugin-portal-key:remal-secrets/gradle-plugin-portal-key
+          plugin-portal-secret:remal-secrets/gradle-plugin-portal-secret
+
     - name: Publish to Gradle Plugin Portal
       env:
-        PLUGINS_PORTAL_KEY: ${{secrets.GRADLE_PLUGINS_PORTAL_KEY}}
-        PLUGINS_PORTAL_SECRET: ${{secrets.GRADLE_PLUGINS_PORTAL_SECRET}}
+        PLUGINS_PORTAL_KEY: ${{steps.retrieve-secrets.outputs.plugin-portal-key}}
+        PLUGINS_PORTAL_SECRET: ${{steps.retrieve-secrets.outputs.plugin-portal-secret}}
       run: |
         ./gradlew-retry-connection-timeouts publishPlugins "-Pgradle.publish.key=${PLUGINS_PORTAL_KEY}" "-Pgradle.publish.secret=${PLUGINS_PORTAL_SECRET}"
     - name: Push back published versions
@@ -434,7 +453,6 @@ jobs:
     permissions:
       contents: write
       actions: write
-      checks: read
       id-token: write
     concurrency:
       group: build-publish-to-maven-central-${{github.ref}}
@@ -478,13 +496,15 @@ jobs:
       with:
         export_to_environment: false
         secrets: |-
+          sonatype-username:remal-secrets/sonatype-username
+          sonatype-password:remal-secrets/sonatype-password
           signing-key:remal-secrets/artifact-signing-key
           signing-password:remal-secrets/artifact-signing-password
 
     - name: Publish to Maven Central
       env:
-        OSS_USER: ${{secrets.OSS_USER}}
-        OSS_PASSWORD: ${{secrets.OSS_PASSWORD}}
+        OSS_USER: ${{steps.retrieve-secrets.outputs.sonatype-username}}
+        OSS_PASSWORD: ${{steps.retrieve-secrets.outputs.sonatype-password}}
         SIGNING_SECRET_KEY_RING: ${{steps.retrieve-secrets.outputs.signing-key}}
         SIGNING_PASSWORD: ${{steps.retrieve-secrets.outputs.signing-password}}
       run: |
