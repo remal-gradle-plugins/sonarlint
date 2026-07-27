@@ -13,14 +13,6 @@ on:
         options:
         - 'true'
         - 'false'
-      dryRun:
-        required: true
-        default: 'false'
-        description: Set to 'true' to enable dry run
-        type: choice
-        options:
-        - 'true'
-        - 'false'
       versionIncrementMode:
         required: false
         default: 'patch'
@@ -34,6 +26,14 @@ on:
         required: true
         default: 'true'
         description: Set to 'true' to bypass the release frequency throttle for dependency/misc-only changes
+        type: choice
+        options:
+        - 'true'
+        - 'false'
+      dryRun:
+        required: true
+        default: 'false'
+        description: Set to 'true' to enable dry run
         type: choice
         options:
         - 'true'
