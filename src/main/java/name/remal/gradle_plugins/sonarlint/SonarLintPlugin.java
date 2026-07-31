@@ -38,10 +38,10 @@ import java.util.stream.Stream;
 import javax.inject.Inject;
 import lombok.CustomLog;
 import name.remal.gradle_plugins.sonarlint.SonarJavascriptPluginInfo.EmbeddedNodeJsPlatform;
+import name.remal.gradle_plugins.toolkit.AbstractSettingsAwarePlugin;
 import name.remal.gradle_plugins.toolkit.LazyValue;
 import name.remal.gradle_plugins.toolkit.reflection.TypedVoidMethod1;
 import org.gradle.api.JavaVersion;
-import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.ModuleDependency;
@@ -64,7 +64,7 @@ import org.gradle.util.GradleVersion;
 import org.jspecify.annotations.Nullable;
 
 @CustomLog
-public abstract class SonarLintPlugin implements Plugin<Project> {
+public abstract class SonarLintPlugin extends AbstractSettingsAwarePlugin {
 
     public static final String SONARLINT_EXTENSION_NAME = doNotInline("sonarLint");
     public static final String SONARLINT_CORE_CONFIGURATION_NAME = doNotInline("sonarlintCore");
@@ -72,7 +72,7 @@ public abstract class SonarLintPlugin implements Plugin<Project> {
     public static final String SONARLINT_PLUGINS_CONFIGURATION_NAME = doNotInline("sonarlintPlugins");
 
     @Override
-    public void apply(Project project) {
+    protected void applyToProject(Project project) {
         var extension = project.getExtensions().create(SONARLINT_EXTENSION_NAME, SonarLintExtension.class);
 
         var coreConf = project.getConfigurations().register(SONARLINT_CORE_CONFIGURATION_NAME, conf -> {
