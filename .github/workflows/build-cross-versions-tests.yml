@@ -68,12 +68,14 @@ jobs:
       with:
         file: gradle.properties
         property: 'java-runtime.min-version'
+
     - name: Read min supported Gradle version
       id: min-gradle-version
       uses: remal-github-actions/read-property@v1
       with:
         file: gradle.properties
         property: 'gradle-api.min-version'
+
     - name: Retrieve matrix versions for testing
       id: matrix-versions
       uses: remal-github-actions/matrix-versions@v1

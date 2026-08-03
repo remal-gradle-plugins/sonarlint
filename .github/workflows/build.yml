@@ -85,21 +85,16 @@ jobs:
 
     - name: Set DEFAULT_JAVA_VERSION
       uses: ./.github/actions/set-default-java-version
+
     - name: Setup Java ${{env.DEFAULT_JAVA_VERSION}}
       uses: actions/setup-java@v5
       with:
         java-version: ${{env.DEFAULT_JAVA_VERSION}}
         distribution: temurin
-    - name: Validate Gradle Wrapper
-      uses: Wandalen/wretry.action/main@v3.8.0
-      with:
-        action: gradle/actions/wrapper-validation@v6
-        attempt_limit: 3
-        attempt_delay: 5000
+
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v6
-      with:
-        validate-wrappers: false
+
     - name: Download dependencies
       run: |
         ./gradlew-retry-connection-timeouts downloadDependencies
@@ -112,6 +107,7 @@ jobs:
       run: |
         ./gradlew-retry-connection-timeouts allClasses
         echo "DISABLE_COMPILATION=true" | tee -a "${GITHUB_ENV}"
+
     - name: Build without tests
       run: |
         ./gradlew-retry-connection-timeouts build publishToMavenLocal -Pdisable-tests=true
@@ -129,6 +125,7 @@ jobs:
         else
           echo "isMavenCentral=false" | tee -a "${GITHUB_OUTPUT}"
         fi
+
     - name: Archive and upload workspace
       if: ${{!cancelled() && steps.checkout.outcome == 'success'}}
       uses: ./.github/actions/archive-upload-workspace
@@ -216,18 +213,22 @@ jobs:
       with:
         submodules: recursive
         fetch-depth: 1
+
     - name: Set DEFAULT_JAVA_VERSION
       uses: ./.github/actions/set-default-java-version
+
     - name: Setup Java ${{env.DEFAULT_JAVA_VERSION}}
       uses: actions/setup-java@v5
       with:
         java-version: ${{env.DEFAULT_JAVA_VERSION}}
         distribution: temurin
+
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v6
       with:
         validate-wrappers: false
         cache-read-only: true
+
     - name: Download and extract workspace
       uses: ./.github/actions/download-extract-workspace
 
@@ -241,9 +242,11 @@ jobs:
         with: |
           pattern: 'jacoco-matrix-exec-files-*'
           path: build/jacoco-matrix-exec-files
+
     - name: Calculate and display total coverage
       run: |
         ./gradlew-retry-connection-timeouts jacocoMatrixReportMerged displayMatrixTotalCodeCoverage "-Pjacoco-all-exec-files-dir=build/jacoco-matrix-exec-files"
+
     - name: Upload Jacoco merged report
       uses: actions/upload-artifact@v7
       with:
@@ -278,13 +281,16 @@ jobs:
         token: ${{secrets.PUSH_BACK_TOKEN}}
         submodules: recursive
         fetch-depth: 1
+
     - name: Set DEFAULT_JAVA_VERSION
       uses: ./.github/actions/set-default-java-version
+
     - name: Setup Java ${{env.DEFAULT_JAVA_VERSION}}
       uses: actions/setup-java@v5
       with:
         java-version: ${{env.DEFAULT_JAVA_VERSION}}
         distribution: temurin
+
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v6
       with:
@@ -299,12 +305,14 @@ jobs:
       with:
         file: gradle.properties
         property: 'java-runtime.min-version'
+
     - name: Read min supported Gradle version
       id: min-gradle-version
       uses: remal-github-actions/read-property@v1
       with:
         file: gradle.properties
         property: 'gradle-api.min-version'
+
     - name: Retrieve max tested versions
       id: max-tested-versions
       uses: remal-github-actions/matrix-versions@v1
@@ -395,13 +403,16 @@ jobs:
       with:
         submodules: recursive
         fetch-depth: 1
+
     - name: Set DEFAULT_JAVA_VERSION
       uses: ./.github/actions/set-default-java-version
+
     - name: Setup Java ${{env.DEFAULT_JAVA_VERSION}}
       uses: actions/setup-java@v5
       with:
         java-version: ${{env.DEFAULT_JAVA_VERSION}}
         distribution: temurin
+
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v6
       with:
@@ -431,6 +442,7 @@ jobs:
         PLUGINS_PORTAL_SECRET: ${{steps.retrieve-secrets.outputs.plugin-portal-secret}}
       run: |
         ./gradlew-retry-connection-timeouts publishPlugins "-Pgradle.publish.key=${PLUGINS_PORTAL_KEY}" "-Pgradle.publish.secret=${PLUGINS_PORTAL_SECRET}"
+
     - name: Push back published versions
       if: ${{env.PUSH_BACK_TOKEN}}
       env:
@@ -469,18 +481,22 @@ jobs:
       with:
         submodules: recursive
         fetch-depth: 1
+
     - name: Set DEFAULT_JAVA_VERSION
       uses: ./.github/actions/set-default-java-version
+
     - name: Setup Java ${{env.DEFAULT_JAVA_VERSION}}
       uses: actions/setup-java@v5
       with:
         java-version: ${{env.DEFAULT_JAVA_VERSION}}
         distribution: temurin
+
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v6
       with:
         validate-wrappers: false
         cache-read-only: true
+
     - name: Download and extract workspace
       uses: ./.github/actions/download-extract-workspace
 
@@ -509,6 +525,7 @@ jobs:
         SIGNING_PASSWORD: ${{steps.retrieve-secrets.outputs.signing-password}}
       run: |
         ./gradlew-retry-connection-timeouts publishToSonatype closeAndReleaseSonatypeStagingRepository "-PsonatypeUsername=${OSS_USER}" "-PsonatypePassword=${OSS_PASSWORD}" "-Psigning.key=${SIGNING_SECRET_KEY_RING}" "-Psigning.password=${SIGNING_PASSWORD}"
+
     - name: Push back published versions
       if: ${{env.PUSH_BACK_TOKEN}}
       env:
