@@ -12,7 +12,7 @@ inputs:
     description: Artifact name
   artifact-retention-days:
     required: false
-    default: 90
+    default: "7"
     description: Artifact retention days
 
 outputs:
@@ -61,4 +61,4 @@ runs:
       name: ${{inputs.artifact-name}}
       path: ${{steps.archive-workspace.outputs.file}}
       if-no-files-found: error
-      retention-days: ${{inputs.artifact-retention-days}}
+      retention-days: ${{inputs.artifact-retention-days || '7'}}
