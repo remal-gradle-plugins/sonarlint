@@ -7,6 +7,10 @@
 gha-creds-*.json
 
 
+# Codex
+AGENTS.override.md
+
+
 # Claude
 .claude/*.local.*
 .claude/*.lock
