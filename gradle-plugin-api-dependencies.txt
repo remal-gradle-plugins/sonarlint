@@ -4,7 +4,7 @@
 org.ow2.asm:asm-bom:9.10.1:@pom
 org.sonarsource.html:sonar-html-plugin:3.30.0.8241:@sonar-plugin
 org.sonarsource.iac:sonar-iac-plugin:2.13.0.21933
-org.sonarsource.java:sonar-java-plugin:8.36.0.45637:@sonar-plugin
+org.sonarsource.java:sonar-java-plugin:8.37.0.45887:@sonar-plugin
 org.sonarsource.java:sonar-java-symbolic-execution-plugin:8.21.0.1991:@sonar-plugin
 org.sonarsource.javascript:sonar-javascript-plugin:13.4.0.43982:@sonar-plugin
 org.sonarsource.kotlin:sonar-kotlin-plugin:3.7.0.9514
