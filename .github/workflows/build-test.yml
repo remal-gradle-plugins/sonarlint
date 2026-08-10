@@ -121,7 +121,6 @@ jobs:
 
     - name: Restore Gradle build cache
       id: restore-gradle-build-cache
-      if: ${{inputs.os == 'ubuntu' && env.GRADLE_BUILD_CACHE_ENABLED == 'true'}}
       uses: actions/cache/restore@v6
       with:
         path: ~/.gradle/caches/build-cache-*
@@ -156,8 +155,6 @@ jobs:
       if: >-
         ${{
           github.ref == 'refs/heads/main'
-          && inputs.os == 'ubuntu'
-          && env.GRADLE_BUILD_CACHE_ENABLED == 'true'
           && steps.restore-gradle-build-cache.outputs.cache-hit != 'true'
         }}
       uses: actions/cache/save@v6

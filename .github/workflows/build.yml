@@ -43,10 +43,9 @@ env:
   GITHUB_ACTIONS_RUN_ID: ${{github.run_id}}
   GITHUB_ACTIONS_RUN_ATTEMPT: ${{github.run_attempt}}
   GITHUB_ACTIONS_JOB: ${{github.job}}
-  GRADLE_BUILD_CACHE_ENABLED: ${{!startsWith(github.ref, 'refs/tags/')}}
   GRADLE_OPTS: >-
     -Dorg.gradle.console.interactive=false
-    -Dorg.gradle.caching=${{!startsWith(github.ref, 'refs/tags/')}}
+    -Dorg.gradle.caching=true
 
 jobs:
   build:
