@@ -50,6 +50,7 @@ jobs:
       uses: gradle/actions/setup-gradle@v6
       with:
         validate-wrappers: false
+        add-job-summary: never
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v4
       with:
