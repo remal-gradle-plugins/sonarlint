@@ -118,6 +118,7 @@ jobs:
         validate-wrappers: false
         workflow-job-context: ${{inputs.job-matrix-json}}
         cache-read-only: ${{inputs.os == 'ubuntu' || github.ref != 'refs/heads/main'}}
+        add-job-summary: never
 
     - name: Restore Gradle build cache
       id: restore-gradle-build-cache
