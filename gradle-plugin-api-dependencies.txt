@@ -3,11 +3,11 @@
 
 org.ow2.asm:asm-bom:9.10.1:@pom
 org.sonarsource.html:sonar-html-plugin:3.30.0.8241:@sonar-plugin
-org.sonarsource.iac:sonar-iac-plugin:2.13.0.21933
+org.sonarsource.iac:sonar-iac-plugin:2.14.0.22356
 org.sonarsource.java:sonar-java-plugin:8.38.0.46176:@sonar-plugin
 org.sonarsource.java:sonar-java-symbolic-execution-plugin:8.21.0.1991:@sonar-plugin
 org.sonarsource.javascript:sonar-javascript-plugin:13.5.0.44127:@sonar-plugin
-org.sonarsource.kotlin:sonar-kotlin-plugin:3.7.0.9514
+org.sonarsource.kotlin:sonar-kotlin-plugin:3.8.0.9765
 org.sonarsource.slang:sonar-scala-plugin:1.24.0.2554
 org.sonarsource.sonarlint.core:sonarlint-analysis-engine:10.47.0.84936
 org.sonarsource.sonarlint.core:sonarlint-rule-extractor:10.47.0.84936
