@@ -105,7 +105,7 @@ jobs:
           setEnvVar('DISABLE_VERIFICATION_EXCEPT_TESTS', 'true')
 
     - name: Setup Java ${{env.CURRENT_JAVA_VERSION != env.DEFAULT_JAVA_VERSION && format('{0} and {1}', env.DEFAULT_JAVA_VERSION, env.CURRENT_JAVA_VERSION) || env.DEFAULT_JAVA_VERSION}}
-      uses: actions/setup-java@v5
+      uses: actions/setup-java@v6
       with:
         java-version: |
           ${{env.CURRENT_JAVA_VERSION != env.DEFAULT_JAVA_VERSION && env.CURRENT_JAVA_VERSION || ''}}
