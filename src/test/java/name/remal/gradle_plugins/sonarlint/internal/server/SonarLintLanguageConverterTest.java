@@ -1,5 +1,6 @@
 package name.remal.gradle_plugins.sonarlint.internal.server;
 
+import static name.remal.gradle_plugins.sonarlint.SonarLintConstants.MIN_SUPPORTED_SONAR_RUNTIME_JAVA_VERSION;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
@@ -11,7 +12,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.sonarsource.sonarlint.core.commons.api.SonarLanguage;
 
-@MinTestableJavaVersion(17)
+@MinTestableJavaVersion(MIN_SUPPORTED_SONAR_RUNTIME_JAVA_VERSION)
 class SonarLintLanguageConverterTest {
 
     @ParameterizedTest
