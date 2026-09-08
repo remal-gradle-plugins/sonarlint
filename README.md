@@ -167,6 +167,12 @@ Two additional help tasks are created:
 
 # Migration guide
 
+## Version 7.1.* to 7.2.*
+
+The minimum Java version for SonarLint analysis was raised to 21 (from 17), following Sonar analyzers.
+
+The plugin itself can still run on an older Java version. In that case analysis forks to a JVM resolved via [Gradle toolchains](https://docs.gradle.org/current/userguide/toolchains.html), so a Java 21 toolchain must be installed or auto-provisioned, for example via the [`org.gradle.toolchains.foojay-resolver-convention` plugin](https://plugins.gradle.org/plugin/org.gradle.toolchains.foojay-resolver-convention).
+
 ## Version 6.* to 7.*
 
 No API changes were made, no migration needed.

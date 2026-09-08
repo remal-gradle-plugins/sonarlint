@@ -1,5 +1,6 @@
 package name.remal.gradle_plugins.sonarlint.internal.server;
 
+import static name.remal.gradle_plugins.sonarlint.SonarLintConstants.MIN_SUPPORTED_SONAR_RUNTIME_JAVA_VERSION;
 import static name.remal.gradle_plugins.sonarlint.TestConstants.CURRENT_MINOR_GRADLE_VERSION;
 import static name.remal.gradle_plugins.sonarlint.internal.server.SonarLintSharedCodeProvider.getSonarLintSharedCode;
 import static name.remal.gradle_plugins.toolkit.SneakyThrowUtils.sneakyThrowsFunction;
@@ -17,7 +18,7 @@ import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.parallel.Execution;
 
 @Execution(CONCURRENT)
-@MinTestableJavaVersion(17)
+@MinTestableJavaVersion(MIN_SUPPORTED_SONAR_RUNTIME_JAVA_VERSION)
 @MinTestableGradleVersion(CURRENT_MINOR_GRADLE_VERSION)
 abstract class AbstractSonarLintComponentTest<T> {
 

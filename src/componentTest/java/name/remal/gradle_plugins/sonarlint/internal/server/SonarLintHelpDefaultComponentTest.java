@@ -41,7 +41,7 @@ class SonarLintHelpDefaultComponentTest extends AbstractSonarLintComponentTest<S
                     var filenamePatternsPropKey = lang.getFilenamePatternsPropKey();
                     if (filenamePatternsPropKey != null) {
                         assertions.assertThat(knownProperties.contains(filenamePatternsPropKey))
-                            .as("%s: unknown filenamePatternsPropKey: %s", lang, fileSuffixesPropKey)
+                            .as("%s: unknown filenamePatternsPropKey: %s", lang, filenamePatternsPropKey)
                             .isTrue();
                     }
                 }
