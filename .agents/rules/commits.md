@@ -8,5 +8,5 @@
   - `[no-changelog] ` - skipped
 - A direct commit to `main` without one of these prefixes breaks automatic release: the next release has to be done manually. This is sometimes wanted, so honor an explicit instruction to omit the prefix.
 - The prefix is NOT used on PR titles or feature-branch commits.
-- Default to `[release-later]` for direct-to-`main` commits. All Gradle code is user-facing, so it uses `[release-later]`. Use `[no-changelog]` when only test code is changed. Ask if unsure.
+- Default to `[release-later]` for direct-to-`main` commits. Use `[no-changelog]` only when every changed file is test code. Build and publishing script changes that alter published output (artifacts, Plugin Portal metadata) are user-facing and use `[release-later]`. Ask if unsure.
 - Commit messages MUST be a single line, no body.
