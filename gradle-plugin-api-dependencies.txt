@@ -3,15 +3,15 @@
 
 org.ow2.asm:asm-bom:9.10.1:@pom
 org.sonarsource.html:sonar-html-plugin:3.31.0.8334:@sonar-plugin
-org.sonarsource.iac:sonar-iac-plugin:2.15.0.22475
-org.sonarsource.java:sonar-java-plugin:8.40.0.46617:@sonar-plugin
-org.sonarsource.java:sonar-java-symbolic-execution-plugin:8.22.0.2207:@sonar-plugin
-org.sonarsource.javascript:sonar-javascript-plugin:13.7.0.44407:@sonar-plugin
+org.sonarsource.iac:sonar-iac-plugin:2.16.0.22905
+org.sonarsource.java:sonar-java-plugin:8.41.0.47177:@sonar-plugin
+org.sonarsource.java:sonar-java-symbolic-execution-plugin:8.23.0.2254:@sonar-plugin
+org.sonarsource.javascript:sonar-javascript-plugin:13.8.0.44569:@sonar-plugin
 org.sonarsource.kotlin:sonar-kotlin-plugin:3.9.0.9809
 org.sonarsource.slang:sonar-scala-plugin:1.24.0.2554
-org.sonarsource.sonarlint.core:sonarlint-analysis-engine:10.47.0.84936
-org.sonarsource.sonarlint.core:sonarlint-rule-extractor:10.47.0.84936
-org.sonarsource.text:sonar-text-plugin:2.48.0.12108
+org.sonarsource.sonarlint.core:sonarlint-analysis-engine:11.9.0.86162
+org.sonarsource.sonarlint.core:sonarlint-rule-extractor:11.9.0.86162
+org.sonarsource.text:sonar-text-plugin:2.49.0.12346
 org.sonarsource.xml:sonar-xml-plugin:2.19.0.8138:@sonar-plugin
 zzzz-classes-relying-on-gradle-internal-api:name.remal.gradle_plugins.sonarlint.AbstractSonarLintHelpTask:18a022ece52ca79214914ed651a8c7cecc02a9bc81b7f2b6306cd8fba31e19ed
 zzzz-classes-relying-on-gradle-internal-api:name.remal.gradle_plugins.sonarlint.SonarLintPlugin:19f61a7da003d311cb78a20f1d7976bbf96e4edab0a7044c01c9b392453882dd
