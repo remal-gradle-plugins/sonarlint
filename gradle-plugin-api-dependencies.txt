@@ -2,7 +2,7 @@
 # Do not modify it yourself unless you know what you are doing.
 
 org.ow2.asm:asm-bom:9.10.1:@pom
-org.sonarsource.html:sonar-html-plugin:3.31.0.8334:@sonar-plugin
+org.sonarsource.html:sonar-html-plugin:3.32.0.9524:@sonar-plugin
 org.sonarsource.iac:sonar-iac-plugin:2.18.0.23895
 org.sonarsource.java:sonar-java-plugin:8.42.0.47616:@sonar-plugin
 org.sonarsource.java:sonar-java-symbolic-execution-plugin:8.24.0.2319:@sonar-plugin
