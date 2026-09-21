@@ -52,6 +52,7 @@ jobs:
     timeout-minutes: 10
     outputs:
       matrix-includes: ${{steps.matrix-versions.outputs.allMatrixIncludes}}
+      max-parallel: ${{steps.max-parallelism.outputs.value || '256'}}
     steps:
     - name: Checkout repository
       uses: actions/checkout@v7
@@ -100,11 +101,37 @@ jobs:
             include:
             - '[${{steps.min-gradle-version.outputs.value}},)'
 
+    - name: Calculate max parallelism for dependency updates
+      id: max-parallelism
+      if: ${{github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'dependencies')}}
+      env:
+        PR_CREATED_AT: ${{github.event.pull_request.created_at}}
+        MATRIX_INCLUDES: ${{steps.matrix-versions.outputs.allMatrixIncludes}}
+      run: |
+        count=$(jq 'length' <<<"${MATRIX_INCLUDES}")
+        echo "Matrix size: ${count}"
+        echo "PR created at: ${PR_CREATED_AT}"
+        created=$(date --date="${PR_CREATED_AT}" +%s)
+        days=$(( ($(date +%s) - created) / 86400 ))
+        echo "PR age: ${days} days"
+        remaining=$(( 256 - days ))
+        if [[ "${remaining}" -lt 0 ]]; then
+          remaining=0
+        fi
+        echo "Remaining window: ${remaining}/256"
+        max_parallel=$(( count * remaining / 256 ))
+        if [[ "${max_parallel}" -lt 1 ]]; then
+          max_parallel=1
+        fi
+        echo "Max parallelism: ${max_parallel}"
+        echo "value=${max_parallel}" | tee -a "${GITHUB_OUTPUT}"
+
   tests:
     needs:
     - create-matrix
     strategy:
       fail-fast: false
+      max-parallel: ${{fromJSON(needs.create-matrix.outputs.max-parallel)}}
       matrix:
         include: ${{fromJSON(needs.create-matrix.outputs.matrix-includes)}}
     uses: ./.github/workflows/build-test.yml
