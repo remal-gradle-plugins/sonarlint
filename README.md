@@ -4,7 +4,7 @@
 
 # `name.remal.sonarlint` plugin
 
-[![configuration cache: supported from v3.2](https://img.shields.io/static/v1?label=configuration%20cache&message=supported+from+v3.2&color=success)](https://docs.gradle.org/current/userguide/configuration_cache.html)
+[![configuration cache: supported from v3.2](https://img.shields.io/static/v1?label=configuration%20cache&message=supported+from+v3.2&color=success)](https://docs.gradle.org/current/userguide/configuration_cache.html) [![isolated projects: supported from v7.0.0](https://img.shields.io/static/v1?label=isolated+projects&message=supported+from+v7.0.0&color=success)](https://docs.gradle.org/current/userguide/isolated_projects.html)
 
 Usage:
 
