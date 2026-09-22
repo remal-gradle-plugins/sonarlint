@@ -42,17 +42,17 @@ runs:
       listFile="$(mktemp)"
       git ls-files --modified --others -z > "$listFile"
 
+      if [ ! -s "$listFile" ]; then
+        echo "No modified or uncommitted files to archive"
+        listFile=/dev/null
+      fi
+
       extra=()
       if tar --version 2>/dev/null | grep -q 'GNU tar'; then
         extra+=(--force-local)
       fi
 
-      if [ -s "$listFile" ]; then
-          tar --create --gzip --no-recursion "${extra[@]}" "--file=$archive" --null -T "$listFile"
-      else
-          echo "No modified or uncommitted files to archive"
-          tar --create --gzip --no-recursion "${extra[@]}" "--file=$archive" --files-from /dev/null
-      fi
+      tar --create --gzip --no-recursion "${extra[@]}" "--file=$archive" --null --files-from="$listFile"
 
   - name: Upload workspace archive
     id: upload
@@ -60,5 +60,6 @@ runs:
     with:
       name: ${{inputs.artifact-name}}
       path: ${{steps.archive-workspace.outputs.file}}
+      compression-level: 0  # payload is a gzipped tar; re-deflating it inside the artifact zip only burns CPU
       if-no-files-found: error
       retention-days: ${{inputs.artifact-retention-days || '7'}}
