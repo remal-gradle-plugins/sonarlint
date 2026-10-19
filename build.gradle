@@ -616,7 +616,7 @@ tasks.named('processReadme') {
         String content = readmeFile.getText('UTF-8')
 
         Closure getDocumentedLanguages = {
-            def root = loadJsonFromUrl('https://next.sonarqube.com/sonarqube/api/rules/search?facets=languages&p=1').toMap()
+            def root = loadJsonFromUrl('https://sonarcloud.io/api/rules/search?facets=languages&p=1&organization=sonarsource').toMap()
             return root.facets.find { it.property == 'languages' }?.values?.collect { it.val } ?: []
         }.memoize()
 
@@ -635,7 +635,7 @@ tasks.named('processReadme') {
                     String languageDocPath = languageDocPaths[info.key] ?: info.key
                     Collection<String> documentedLanguages = getDocumentedLanguages()
                     if (documentedLanguages.contains(languageDocPath)) {
-                        listContent.append("\n* [${info.name}](https://next.sonarqube.com/sonarqube/coding_rules?languages=$languageDocPath)")
+                        listContent.append("\n* [${info.name}](https://sonarcloud.io/organizations/sonarsource/rules?languages=$languageDocPath)")
                     } else {
                         listContent.append("\n* ${info.name}")
                     }

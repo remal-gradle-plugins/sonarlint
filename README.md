@@ -23,24 +23,24 @@ This plugin executes [SonarLint](https://www.sonarlint.org/) inspections without
 The plugin uses these Sonar plugins:
 <!--sonar-plugins-list-->
 
-* [Azure Resource Manager](https://next.sonarqube.com/sonarqube/coding_rules?languages=azureresourcemanager)
-* [CloudFormation](https://next.sonarqube.com/sonarqube/coding_rules?languages=cloudformation)
-* [CSS](https://next.sonarqube.com/sonarqube/coding_rules?languages=css)
-* [Docker](https://next.sonarqube.com/sonarqube/coding_rules?languages=docker)
-* [Java](https://next.sonarqube.com/sonarqube/coding_rules?languages=java)
-* [JavaScript](https://next.sonarqube.com/sonarqube/coding_rules?languages=js)
-* [JSON](https://next.sonarqube.com/sonarqube/coding_rules?languages=json)
+* [Azure Resource Manager](https://sonarcloud.io/organizations/sonarsource/rules?languages=azureresourcemanager)
+* [CloudFormation](https://sonarcloud.io/organizations/sonarsource/rules?languages=cloudformation)
+* [CSS](https://sonarcloud.io/organizations/sonarsource/rules?languages=css)
+* [Docker](https://sonarcloud.io/organizations/sonarsource/rules?languages=docker)
+* [Java](https://sonarcloud.io/organizations/sonarsource/rules?languages=java)
+* [JavaScript](https://sonarcloud.io/organizations/sonarsource/rules?languages=js)
+* [JSON](https://sonarcloud.io/organizations/sonarsource/rules?languages=json)
 * JSP
-* [Kotlin](https://next.sonarqube.com/sonarqube/coding_rules?languages=kotlin)
-* [Kubernetes](https://next.sonarqube.com/sonarqube/coding_rules?languages=kubernetes)
-* [Scala](https://next.sonarqube.com/sonarqube/coding_rules?languages=scala)
-* [Secrets](https://next.sonarqube.com/sonarqube/coding_rules?languages=secrets)
-* [Terraform](https://next.sonarqube.com/sonarqube/coding_rules?languages=terraform)
-* [Text](https://next.sonarqube.com/sonarqube/coding_rules?languages=text)
-* [TypeScript](https://next.sonarqube.com/sonarqube/coding_rules?languages=ts)
-* [HTML](https://next.sonarqube.com/sonarqube/coding_rules?languages=web)
-* [XML](https://next.sonarqube.com/sonarqube/coding_rules?languages=xml)
-* [YAML](https://next.sonarqube.com/sonarqube/coding_rules?languages=yaml)
+* [Kotlin](https://sonarcloud.io/organizations/sonarsource/rules?languages=kotlin)
+* [Kubernetes](https://sonarcloud.io/organizations/sonarsource/rules?languages=kubernetes)
+* [Scala](https://sonarcloud.io/organizations/sonarsource/rules?languages=scala)
+* [Secrets](https://sonarcloud.io/organizations/sonarsource/rules?languages=secrets)
+* [Terraform](https://sonarcloud.io/organizations/sonarsource/rules?languages=terraform)
+* [Text](https://sonarcloud.io/organizations/sonarsource/rules?languages=text)
+* [TypeScript](https://sonarcloud.io/organizations/sonarsource/rules?languages=ts)
+* [HTML](https://sonarcloud.io/organizations/sonarsource/rules?languages=web)
+* [XML](https://sonarcloud.io/organizations/sonarsource/rules?languages=xml)
+* [YAML](https://sonarcloud.io/organizations/sonarsource/rules?languages=yaml)
 
 <!--/sonar-plugins-list-->
 
