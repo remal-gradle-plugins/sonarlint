@@ -146,6 +146,7 @@ public class SonarLintSharedCode implements AutoCloseable {
     }
 
     @Unmodifiable
+    @SuppressWarnings("deprecation") // PropertyDefinitions is the only enumeration API
     private final List<PropertyDefinition> allPropertyDefinitions = asLazyListProxy(() -> withThreadLogger(null, () -> {
         var definitions = getDefinitionsExtractorContainer()
             .getComponentByType(PropertyDefinitions.class)
