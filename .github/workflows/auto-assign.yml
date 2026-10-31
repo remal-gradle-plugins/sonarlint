@@ -51,7 +51,7 @@ jobs:
 
     - name: Auto-assign ${{github.event_name == 'pull_request' && 'PR' || 'issue'}}
       if: ${{steps.assignee.outputs.assignee}}
-      uses: pozil/auto-assign-issue@v4.0.2
+      uses: pozil/auto-assign-issue@v4.1.0
       with:
         assignees: ${{steps.assignee.outputs.assignee}}
         abortIfPreviousAssignees: true
