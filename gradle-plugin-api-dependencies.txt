@@ -6,7 +6,7 @@ org.sonarsource.html:sonar-html-plugin:3.33.0.9779:@sonar-plugin
 org.sonarsource.iac:sonar-iac-plugin:2.26.0.24580
 org.sonarsource.java:sonar-java-plugin:8.46.0.59609:@sonar-plugin
 org.sonarsource.java:sonar-java-symbolic-execution-plugin:8.24.0.2319:@sonar-plugin
-org.sonarsource.javascript:sonar-javascript-plugin:14.3.0.46350:@sonar-plugin
+org.sonarsource.javascript:sonar-javascript-plugin:14.4.0.46458:@sonar-plugin
 org.sonarsource.kotlin:sonar-kotlin-plugin:3.13.0.11095
 org.sonarsource.slang:sonar-scala-plugin:1.25.0.2697
 org.sonarsource.sonarlint.core:sonarlint-analysis-engine:12.1.1.87771
